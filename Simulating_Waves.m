@@ -1,0 +1,164 @@
+
+%% STEP 1: SIMULATE A 2D TRAVELING WAVE 
+
+close all;
+clear;
+clc
+
+% Parameters
+Lx = 10;          % Length in x direction
+Ly = 10;          % Length in y direction
+Nx = 100;         % Number of points in x
+Ny = 100;         % Number of points in y
+c = 1;            % Wave speed
+T = 5;            % Total time
+dt = 0.05;         % Time step
+
+% Create spatial grid
+x = linspace(0, Lx, Nx);
+y = linspace(0, Ly, Ny);
+[X, Y] = meshgrid(x, y);
+data=[];
+tt=[];
+% Time loop
+for t = 0:dt:T
+    % Calculate the wave function
+    wave = sin(2 * pi * (0.5*X + 0.5*Y + c * t) );
+    wave = wave + 0.5*randn(size(wave));
+    data = cat(3,data,wave);
+    tt=[tt t];
+    
+    
+    % Plotting
+    %surf(X, Y, wave, 'EdgeColor', 'none');
+    %axis([0 Lx 0 Ly -1 1]); % Set axis limits
+    surf(X(1:20,1:20), Y(1:20,1:20), wave(1:20,1:20), 'EdgeColor', 'none');    
+    xlabel('X-axis');
+    ylabel('Y-axis');
+    zlabel('Wave Amplitude');
+    title(['Planar Traveling Wave at t = ' num2str(t)]);
+    colorbar;
+    view(2);  % 2D view
+    axis tight
+    pause(0.1); % Pause for a moment to visualize
+end
+
+%% STEP 2: DETECT TRAVELING WAVE AND IDENTIFY ITS PROPERTIES
+
+% compute the fft of the signal 
+
+x=squeeze(data(1,1,:));
+Fs=1/dt;
+figure;plot(tt,x);
+[psdx,ffreq,phasex]=fft_compute(x,Fs,1);
+
+% design band pass filter between 0.8 and 1.2Hz
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',0.8,'HalfPowerFrequency2',1.2, ...
+    'SampleRate',Fs);
+fvtool(bpFilt)
+
+% extracting phase time series for the 2D data 
+data1 = permute(data,[3 1 2]);
+tmp=filtfilt(bpFilt,data1);
+tmp1 = angle(hilbert(tmp));
+tmp = permute(tmp,[2 3 1]);
+tmp1 = permute(tmp1,[2 3 1]);
+x1=squeeze(tmp(1,1,:));
+figure;plot(tt,x)
+hold on
+plot(tt,x1)
+
+phdata=tmp1;
+xx=1:size(phdata,1);
+yy=1:size(phdata,2);
+
+% creating the predictor values
+pred = [];
+for i=1:20
+    pred = [pred; [ (1:20)' repmat(i,20,1)]];
+end
+
+% performing 2D circular linear correlation at each time-point
+for i=1:size(phdata,3)
+    tmp = phdata(:,:,i); % this is the 2D phase data across the grid 
+    tmp = tmp(1:20,1:20);
+
+    % iteratively solve for cirular linear regression
+    % model is theta_hat = ax + by + e , where x and y are spatial
+    % coordinates
+
+    theta = tmp(:);
+    rval=[];
+    for alp=0:0.5:360
+        rtmp=[];
+        for r= 0.05:0.05:20
+            a = r*cosd(alp);
+            b = r*sind(alp);
+            theta_hat = pred*([a;b]);            
+
+            y = theta-theta_hat;
+            r1 = mean(cos(y));
+            r2 = mean(sin(y));
+            rtmp = [rtmp ;sqrt(r1^2 + r2^2)];
+        end
+        rval = [rval rtmp];
+    end
+
+    % get the best regression parameters
+    [aa bb]=find(rval==max(rval(:)));
+
+    % reconstruction 
+    alp_hat=0:0.5:360;
+    r_h at= 0.05:0.05:20;
+    alp_hat = alp_hat(bb);
+    r_hat = r_hat(aa);
+    ahat = r_hat * cosd(alp_hat);
+    bhat = r_hat * sind(alp_hat);
+
+    theta_hat = pred*([ahat;bhat]);
+   
+
+
+
+
+
+
+end
+
+
+
+%%
+% Parameters
+R = 5;           % Maximum radius of the wave
+N = 200;         % Number of spatial points (resolution)
+c = 1;           % Wave speed
+T = 10;          % Total time
+dt = 0.1;        % Time step
+time_steps = T/dt;
+
+% Create spatial grid in Cartesian coordinates
+x = linspace(-R, R, N);
+y = linspace(-R, R, N);
+[X, Y] = meshgrid(x, y);
+
+% Iterate over time
+for t = 0:dt:T
+    % Calculate the radius from the center for each point
+    radius = sqrt(X.^2 + Y.^2);
+    
+    % Define the wave function (traveling wave)
+    wave = sin(2 * pi * (radius - c * t));  % Traveling wave solution
+    
+    % Plotting
+    surf(X, Y, wave, 'EdgeColor', 'none');
+    axis equal;
+    axis([-R R -R R -1 1]); % Set axis limits
+    xlabel('X-axis');
+    ylabel('Y-axis');
+    zlabel('Wave Amplitude');
+    title(['Circular Planar Traveling Wave at t = ' num2str(t)]);
+    colorbar;
+    view(2);  % 2D view
+    pause(0.1); % Pause for visualization
+end
