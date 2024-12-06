@@ -10,7 +10,7 @@ Lx = 10;          % Length in x direction
 Ly = 10;          % Length in y direction
 Nx = 100;         % Number of points in x
 Ny = 100;         % Number of points in y
-c = 1;            % Wave speed
+c = 0.5;            % Wave speed
 T = 5;            % Total time
 dt = 0.05;         % Time step
 
@@ -23,8 +23,8 @@ tt=[];
 % Time loop
 for t = 0:dt:T
     % Calculate the wave function
-    wave = sin(2 * pi * (0.5*X + 0.5*Y + c * t) );
-    wave = wave + 0.5*randn(size(wave));
+    wave = sin(2 * pi * (0.25*X + 0.25*Y + c * t) );
+    wave = wave + 0.05*randn(size(wave));
     data = cat(3,data,wave);
     tt=[tt t];
     
@@ -54,17 +54,19 @@ figure;plot(tt,x);
 
 % design band pass filter between 0.8 and 1.2Hz
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',0.8,'HalfPowerFrequency2',1.2, ...
+    'HalfPowerFrequency1',0.35,'HalfPowerFrequency2',0.55, ...
     'SampleRate',Fs);
-fvtool(bpFilt)
+%fvtool(bpFilt)
 
 % extracting phase time series for the 2D data 
 data1 = permute(data,[3 1 2]);
-tmp=filtfilt(bpFilt,data1);
+data1 = cat(1,randn(50,100,100),data1);
+tmp = filtfilt(bpFilt,data1);
+tmp = tmp(51:end,:,:);
 tmp1 = angle(hilbert(tmp));
 tmp = permute(tmp,[2 3 1]);
 tmp1 = permute(tmp1,[2 3 1]);
-x1=squeeze(tmp(1,1,:));
+x1  = squeeze(tmp(1,1,:));
 figure;plot(tt,x)
 hold on
 plot(tt,x1)
@@ -78,24 +80,32 @@ pred = [];
 for i=1:20
     pred = [pred; [ (1:20)' repmat(i,20,1)]];
 end
+pred(:,1) = pred(:,1)./max(pred(:,1));
+pred(:,2) = pred(:,2)./max(pred(:,2));
 
 % performing 2D circular linear correlation at each time-point
 for i=1:size(phdata,3)
     tmp = phdata(:,:,i); % this is the 2D phase data across the grid 
     tmp = tmp(1:20,1:20);
+    figure;imagesc(tmp)
+    
+    theta_orig = tmp;
+
 
     % iteratively solve for cirular linear regression
     % model is theta_hat = ax + by + e , where x and y are spatial
     % coordinates
 
     theta = tmp(:);
+    theta = wrapTo2Pi(theta);
     rval=[];
     for alp=0:0.5:360
         rtmp=[];
-        for r= 0.05:0.05:20
+        for r = 0.01:0.05:20
             a = r*cosd(alp);
             b = r*sind(alp);
-            theta_hat = pred*([a;b]);            
+            theta_hat = pred*([a;b]);    
+            theta_hat = wrapTo2Pi(theta_hat);
 
             y = theta-theta_hat;
             r1 = mean(cos(y));
@@ -106,24 +116,35 @@ for i=1:size(phdata,3)
     end
 
     % get the best regression parameters
-    [aa bb]=find(rval==max(rval(:)));
-
-    % reconstruction 
+    [aa bb]=find(rval==max(rval(:)));    
     alp_hat=0:0.5:360;
-    r_h at= 0.05:0.05:20;
+    r_hat=  0.01:0.05:20;
     alp_hat = alp_hat(bb);
     r_hat = r_hat(aa);
-    ahat = r_hat * cosd(alp_hat);
-    bhat = r_hat * sind(alp_hat);
+    a = r_hat*cosd(alp_hat);
+    b = r_hat*sind(alp_hat);
 
-    theta_hat = pred*([ahat;bhat]);
-   
+    % get the phase offset
+    theta_hat = wrapTo2Pi(pred*([a;b]));    
+    y1 = sum(sin(theta-theta_hat));
+    y2 = sum(cos(theta-theta_hat));
+    phi = atan2(y1,y2);
 
+    % final reconstruction
+    theta_hat = wrapToPi(theta_hat + phi);
 
-
-
-
-
+    % rearranging as a 2D array
+    theta_hat = reshape(theta_hat,[size(theta_orig)]);
+    figure;
+    subplot(1,2,1)
+    imagesc(theta_orig)
+    axis tight
+    title('Simulated Original')
+    subplot(1,2,2)
+    imagesc(theta_hat)
+    title('Recon from circular linear regression')
+    axis tight
+    
 end
 
 
