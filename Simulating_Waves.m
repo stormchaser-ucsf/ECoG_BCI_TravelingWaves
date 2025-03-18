@@ -321,3 +321,15 @@ for t = 0:dt:T
     view(2);  % 2D view
     pause(0.1); % Pause for visualization
 end
+
+
+%%
+
+figure;
+for i=1:size(x1,3)
+    imagesc(x1(:,:,i))
+    pause(0.1)
+end
+
+
+

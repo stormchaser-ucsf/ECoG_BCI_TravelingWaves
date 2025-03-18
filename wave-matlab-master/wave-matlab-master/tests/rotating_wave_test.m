@@ -4,19 +4,30 @@
 %                                   test signal (here, a 2d target wave)
 %
 
-clear all; clc; close all %#ok<CLSCR>
-addpath('/Users/runfeng/Desktop/research/project/wave-matlab-master/test-data')
-addpath('/Users/runfeng/Desktop/research/project/wave-matlab-master/plotting')
+%addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
+
+clear all; clc; close all 
+addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves'))
 
 % parameters
-T = 1; %s
-Fs = 1000; freq = 13.5; %Hz
-image_size = 8; %px
+T = 10; %s
+Fs = 100; freq = 10; %Hz
+image_size = 30; %px
 pixel_spacing = 1; %a.u.
 direction = +1; % +1/-1
+dt=1/Fs;
 
 % generate data
-xf = generate_rotating_wave( image_size, 1/Fs, T, freq, direction );
+%xf = generate_rotating_wave( image_size, 1/Fs, T, freq, direction );
+xf=generate_expanding_wave( image_size, dt, T, freq);
+
+%plot it
+figure;
+for i=1:size(xf,3)
+    imagesc(squeeze(xf(:,:,i)));
+    colormap bone    
+    pause(0.01)    
+end
 
 % z-score data
 xf = zscore_independent( xf );
@@ -30,8 +41,28 @@ xph = analytic_signal( xf );
 % calculate phase gradient
 [pm,pd,dx,dy] = phase_gradient_complex_multiplication( xph, pixel_spacing, signIF );
 
+% using gradient
+
 % plot resulting vector field
-plot_vector_field( exp( 1i .* pd(:,:,125) ), 1 );
+plot_vector_field( exp( 1i .* pd(:,:,10) ), 1 );
+
+[XX,YY] = meshgrid( 1:size(pd,2), 1:size(pd,1) );
+
+% expanding wave metrics
+for i=1:10%size(pd,3)
+    plot_vector_field( exp( 1i .* pd(:,:,i) ), 1 );
+    tmp=exp( 1i .* pd(:,:,i) );
+    M = real( exp( 1i * angle(tmp) ) ); N = imag( exp( 1i * angle(tmp) ) );
+    M = smoothn(M);
+    N = smoothn(N);
+    [cl,c]= curl(XX,YY,M,N);
+    pl = squeeze(angle(xph(:,:,i)));
+    [cc,pv,center_point] = phase_correlation_rotation( pl, cl,[],signIF);
+    title(['Correlation of ' num2str(cc)]);
+end
+
+
+[cc,pv] = phase_correlation_distance( pl, source, pixel_spacing );
 
 
 % % plot movie

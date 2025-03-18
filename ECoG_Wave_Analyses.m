@@ -10,7 +10,8 @@ load('ECOG_Grid_8596_000067_B3.mat')
 % add the circ stats toolbox
 addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
 addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim\helpers')
-
+addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
+addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
 imaging_B3;close all
 
 %% OPEN LOOP OSCILLATION CLUSTERS
@@ -105,7 +106,7 @@ hold on
 plot(f,osc_clus,'Color',[.5 .5 .5 .5],'LineWidth',.5)
 plot(f,median(osc_clus,1),'b','LineWidth',2)
 
-% get all the electrodes with peak between 7.0Hz and 10Hz
+% get all the electrodes with peak between 8.0Hz and 10Hz
 ch_idx=[];
 for i=1:length(spectral_peaks)
     if sum(i==bad_ch)==0
@@ -271,7 +272,7 @@ figure;
 v = VideoWriter('CL_TravWave_B3_Hand_Segment.avi');
 v.FrameRate=6;
 open(v);
-for i=277:332%1:1:size(data,1)
+for i=1:1:size(data,1)
     tmp = data_ang(i,:);
     tmp = cos(tmp);
     imagesc(tmp(ecog_grid));
@@ -447,5 +448,169 @@ end
 figure;plot(zscore(stab))
 
 % plotting stability of phase angles 
+
+%% LOOKING AT EXPANDING AND CONTRACTING WAVES
+
+% continuing work on the trial loaded from above
+ii=1;
+load(files{ii})
+data_trial = (TrialData.BroadbandData');
+task_state = TrialData.TaskState;
+[aa bb]=unique(task_state);
+states=[];
+len_states=[];
+for i=1:length(bb)-1
+    states(:,i) = [bb(i) bb(i+1)-1]';
+    tmp = cell2mat(data_trial(bb(i):(bb(i+1)-1)));
+    len_states = [len_states size(tmp,1)];
+end
+
+% filter in the 8 to 10Hz range
+Fs=100;
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'SampleRate',Fs);
+%fvtool(bpFilt)
+
+data = cell2mat(data_trial);
+
+% down sample to 50Hz
+data = resample(data,100,1e3);
+
+% filter
+data = filter(bpFilt,data);
+
+% datacube
+dc=[];
+for i=1:size(data,1)
+    t = data(i,:)';
+    t = t(ecog_grid);
+    dc(:,:,i) = t;
+end
+
+xf = zscore_independent( dc );
+
+% form analytic signal
+xph = analytic_signal( xf );
+
+% calculate instantaneous frequency 
+[wt,signIF] = instantaneous_frequency( xph, Fs );
+
+
+% calculate phase gradient
+pixel_spacing = 1; %a.u.
+[pm,pd,dx,dy] = phase_gradient_complex_multiplication( xph, pixel_spacing, signIF );
+
+
+% plot resulting vector field
+plot_vector_field( exp( 1i .* pd(:,:,200) ), 1 );
+
+[XX,YY] = meshgrid( 1:size(pd,2), 1:size(pd,1) );
+
+% expanding wave metrics
+res=[];
+for i=1:size(pd,3)
+    %disp(i)
+    %plot_vector_field( exp( 1i .* pd(:,:,i) ), 1 );
+    tmp=exp( 1i .* pd(:,:,i) );
+    M = real( exp( 1i * angle(tmp) ) ); N = imag( exp( 1i * angle(tmp) ) );
+    M = smoothn(M);
+    N = smoothn(N);
+    %[cl,c]= curl(XX,YY,M,N);
+    [cl]= divergence(XX,YY,M,N);
+    pl = squeeze(angle(xph(:,:,i)));
+    [cc,pv] = phase_correlation_distance( pl, cl,[]);
+    res(i)=cc;
+    %title(['Correlation of ' num2str(cc)]);
+end
+
+tt=linspace(0,size(data,1)*10,size(data,1));
+figure;plot(tt,smooth(res))
+vline(cumsum(len_states),'--r')
+
+
+
+%% LOOKING AT ROTATING WAVES
+
+% continuing work on the trial loaded from above
+ii=6;
+load(files{ii})
+data_trial = (TrialData.BroadbandData');
+task_state = TrialData.TaskState;
+[aa bb]=unique(task_state);
+states=[];
+len_states=[];
+for i=1:length(bb)-1
+    states(:,i) = [bb(i) bb(i+1)-1]';
+    tmp = cell2mat(data_trial(bb(i):(bb(i+1)-1)));
+    len_states = [len_states size(tmp,1)];
+end
+
+% filter in the 8 to 10Hz range
+Fs=100;
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'SampleRate',Fs);
+%fvtool(bpFilt)
+
+data = cell2mat(data_trial);
+
+% down sample to 50Hz
+data = resample(data,100,1e3);
+
+% filter
+data = filter(bpFilt,data);
+
+% datacube
+dc=[];
+for i=1:size(data,1)
+    t = data(i,:)';
+    t = t(ecog_grid);
+    dc(:,:,i) = t;
+end
+
+xf = zscore_independent( dc );
+
+% form analytic signal
+xph = analytic_signal( xf );
+
+% calculate instantaneous frequency 
+[wt,signIF] = instantaneous_frequency( xph, Fs );
+
+
+% calculate phase gradient
+pixel_spacing = 1; %a.u.
+[pm,pd,dx,dy] = phase_gradient_complex_multiplication( xph, pixel_spacing, signIF );
+
+
+% plot resulting vector field
+plot_vector_field( exp( 1i .* pd(:,:,97) ), 1 );
+
+[XX,YY] = meshgrid( 1:size(pd,2), 1:size(pd,1) );
+
+% expanding wave metrics
+res=[];
+for i=1:size(pd,3)
+    %disp(i)
+    %plot_vector_field( exp( 1i .* pd(:,:,i) ), 1 );
+    tmp=exp( 1i .* pd(:,:,i) );
+    M = real( exp( 1i * angle(tmp) ) ); N = imag( exp( 1i * angle(tmp) ) );
+    M = smoothn(M);
+    N = smoothn(N);
+    [cl,c]= curl(XX,YY,M,N);
+    pl = squeeze(angle(xph(:,:,i)));
+    %[cc,pv,center_point] = phase_correlation_rotation( pl, cl,[],signIF);
+    [cc,pv] = phase_correlation_distance( pl, source, spacing );
+    res(i)=cc;
+    %title(['Correlation of ' num2str(cc)]);
+end
+
+tt=linspace(0,size(data,1)*10,size(data,1));
+figure;plot(tt,smooth(res))
+vline(cumsum(len_states),'--r')
+
+
+
+
 
 

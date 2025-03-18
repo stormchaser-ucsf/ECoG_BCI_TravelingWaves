@@ -16,8 +16,14 @@ function [cc,pv] = phase_correlation_distance( pl, source, spacing )
 %
 
 assert( ismatrix(pl), 'data matrix input required' )
-assert( ( source(1) <= size(pl,2) ) && ( source(2) <= size(pl,1) ), ...
-    'source point out of bounds' )
+% assert( ( source(1) <= size(pl,2) ) && ( source(2) <= size(pl,1) ), ...
+%     'source point out of bounds' )
+
+% parse inputs
+if isempty( source )
+	source = zeros( 1, 2 );
+    [source(2),source(1)] = find( abs(cl) == max(abs(cl(:))), 1, 'first' );
+end
 
 % make matrix of distances from wave center
 [r,c] = size(pl); [X,Y] = meshgrid( (1:c)-source(1), (1:r)-source(2) );
