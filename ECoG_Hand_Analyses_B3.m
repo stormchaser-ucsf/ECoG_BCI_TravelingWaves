@@ -1489,3 +1489,93 @@ for i=1:40%size(a100,1)
     pause(0.1)
 end
 
+%% plotting data from Runfeng
+
+
+OL=0;
+CL=1;
+
+a=[0.0,92.36183169024783,OL
+1.0,108.11812950320537,OL
+2.0,88.90075325143873,OL
+3.0,76.76341470570813,OL
+4.0,103.16923432092167,OL
+5.0,69.05802225052128,OL
+6.0,70.72858879298809,OL
+7.0,71.6972569924039,OL
+8.0,46.0521770039698,OL
+9.0,49.95963461027006,OL
+0.0,76.38132017230757,CL
+1.0,100.09545756597,CL
+2.0,83.26065216655617,CL
+3.0,74.20199629752328,CL
+4.0,98.77527423562887,CL
+5.0,55.51111725776758,CL
+6.0,57.93915679462318,CL
+7.0,64.46523458727998,CL
+8.0,42.698748308813535,CL
+9.0,46.02720458434817,CL];
+
+
+ol = a(1:10,2);
+cl = a(11:20,2);
+days=1:10;
+X = [ones(length(days),1) days'];
+[B,BINT,R,RINT,STATS] = regress(ol,X);
+[B1,BINT,R,RINT,STATS1] = regress(cl,X);
+
+figure;
+hold on
+plot(days,ol,'.k','MarkerSize',20)
+plot(days,X*B,'k','LineWidth',2)
+
+plot(days,cl,'.b','MarkerSize',20)
+plot(days,X*B1,'b','LineWidth',2)
+xlabel('Days')
+ylabel('1 step MSE prediction error')
+set(gcf,'Color','w')
+xlim([0.5 10.5])
+set(gca,'LineWidth',1)
+set(gca,'FontSize',12)
+xticks(1:10)
+
+
+figure;
+boxplot([ol cl])
+set(gcf,'Color','w')
+set(gca,'LineWidth',1)
+set(gca,'FontSize',12)
+xticklabels({'OL','CL'})
+ylabel('1 step MSE prediction error')
+box off
+P = signrank(ol,cl)
+
+
+% cross entropy loss
+OL=0;
+CL=1;
+a=[0.0,0.31853630978926667,OL
+1.0,1.2185988293343653,OL
+2.0,0.977496566746216,OL
+3.0,1.2986392036158376,OL
+4.0,1.0845636945841932,OL
+5.0,0.36178247683393533,OL
+6.0,0.6418155421096434,OL
+7.0,0.7917347118150979,OL
+8.0,1.1550503954475309,OL
+9.0,0.7403181394502294,OL
+0.0,0.2717143529304259,CL
+1.0,1.1196755699252263,CL
+2.0,0.8227975070622551,CL
+3.0,1.0000589976099277,CL
+4.0,0.9733150502699118,CL
+5.0,0.44613335178027963,CL
+6.0,0.7129680968167489,CL
+7.0,0.6255885338122766,CL
+8.0,0.8096929219923256,CL
+9.0,0.6309129987444196,CL]
+ol = a(1:10,2);
+cl=a(11:end,2);
+ce_loss = mean([ol cl],2);
+figure;
+plot(days,ce_loss,'.','MarkerSize',20)

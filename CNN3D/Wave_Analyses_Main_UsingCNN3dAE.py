@@ -38,7 +38,7 @@ from torch.utils.data import TensorDataset, random_split, DataLoader
 
 
 # load the data 
-filename = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_2nd_5Days_Rawzscore.mat'
+filename = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_2nd_5Days.mat'
 #filename = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_2nd_5Days.mat'
 #filename = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_1st5Days.mat'
 data_dict = mat73.loadmat(filename)
@@ -62,10 +62,10 @@ for iter in np.arange(6):
     Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val = training_test_val_split_CNN3DAE(xdata,ydata,labels,0.8)                        
     #del xdata, ydata
     
-    # # circular shifting the data for null stats
-    # random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
-    # for i in np.arange(len(random_shifts)):
-    #     Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
+    # circular shifting the data for null stats
+    random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
+    for i in np.arange(len(random_shifts)):
+        Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
     
 
     
@@ -151,10 +151,10 @@ ol_mse_null=ol_mse
 cl_mse_null = cl_mse
 decoding_acc_null = decoding_acc
 
-np.savez('Alpha_200Hz_2nd_5days_RawZscore', 
-          ol_mse = ol_mse,
-          cl_mse = cl_mse,
-          decoding_acc = decoding_acc)
+np.savez('Alpha_200Hz_2nd_5days_nullModel', 
+          ol_mse_null = ol_mse_null,
+          cl_mse_null = cl_mse_null,
+          decoding_acc_null = decoding_acc_null)
 
 
 #%% plotting amplitude differences
@@ -184,12 +184,17 @@ plt.show()
 
 
 data=np.load('Alpha_200Hz_2nd_5days.npz')
+data1=np.load('Alpha_200Hz_2nd_5days_nullModel.npz')
 ol_mse = data.get('ol_mse')
 cl_mse = data.get('cl_mse')
+null_mse = data1.get('ol_mse')
+null_mse2 = data1.get('cl_mse')
 decoding_acc = data.get('decoding_acc')
 plt.figure();
 plt.boxplot([ol_mse,cl_mse]);
-
+hfont = {'fontname':'Arial'}
+plt.xticks(ticks=[1,2],labels=('OL','CL'),**hfont)
+plt.ylabel('Mean Sq. prediction error')
 
 #%% simple methods to get activations at hidden layers 
 
@@ -225,8 +230,14 @@ layer_activation = activations[key]  # Retrieve activation
 print(f"last Activation - Layer: {key}, Shape: {layer_activation.shape}")
 
 
+# all closed loop activations
+tmp = layer_activation[idx_cl,4,:]
+tmp = torch.mean(tmp,axis=0)
+
 # access images of this last layer activations
-tmp = layer_activation[120,2,:]
+#tmp = layer_activation[100,0,:]
+
+
 
 # plot the activation over time
 num_time_steps = tmp.shape[-1]
@@ -260,7 +271,7 @@ plt.show()
 
 
 keys_list = list(activations.keys())  # Convert keys to a list
-key = keys_list[3] 
+key = keys_list[0] 
 
 layer_activation = activations[key]  # Retrieve activation
 print(f"last Activation - Layer: {key}, Shape: {layer_activation.shape}")
@@ -268,7 +279,13 @@ print(f"last Activation - Layer: {key}, Shape: {layer_activation.shape}")
 
 a=0
     
-tmp = layer_activation[120,a,:]
+#tmp = layer_activation[3,a,:]
+
+tmp = layer_activation[idx_cl,1,:]
+tmp = torch.mean(tmp,axis=0)
+
+
+
 num_time_steps = tmp.shape[-1]
 
 # Set up the figure and axis
@@ -276,6 +293,8 @@ fig, ax = plt.subplots(figsize=(5, 5))
 im = ax.imshow(tmp[:,:,0].cpu().numpy(), cmap="viridis")  # Initial frame
 ax.set_title(f"Time 0")
 ax.axis("off")
+
+#cbar = fig.colorbar(im, ax=ax)
 
 # Update function for animation
 def update(frame):
@@ -288,6 +307,207 @@ ani = animation.FuncAnimation(fig, update, frames=num_time_steps, interval=500) 
 # Show animation
 plt.show()
 
+# Save as GIF
+ani.save("Raw.gif", writer="pillow", fps=10)
 
-#%% do it in a loop to get a general distribution of recon errors and decoding accuracies
+
+#%% TESTING OF CNN ARCHITECTURES
+
+
+
+# # testing the various sizes of the convolutional layers 
+input = torch.randn(32,1,11,23,40)
+
+
+# layer 1: 9,21,99 is output
+m=nn.Conv3d(1,12,kernel_size=2,stride=(1,1,1))
+a = nn.AvgPool3d(kernel_size=2,stride=1)
+r = nn.ELU()
+out = m(input)
+out = r(out)
+#out = a(out)
+
+#layer 2
+m = nn.Conv3d(12,12,kernel_size=2,stride=(1,1,1))
+a = nn.AvgPool3d(kernel_size=2,stride=1)
+out = m(out)
+out = r(out)
+#out = a(out)
+
+# layer 3
+m = nn.Conv3d(12,12,kernel_size=2,stride=(1,2,2))
+out = m(out)
+out = r(out)
+
+# layer 4
+m = nn.Conv3d(12,6,kernel_size=2,stride=(1,1,2))
+out = m(out)
+out = r(out)
+
+# pass to lstm for classification
+tmp = torch.flatten(out,start_dim=1,end_dim=3)
+x=tmp
+x = torch.permute(x,(0,2,1))
+rnn1 = nn.LSTM(input_size=378,hidden_size=48,batch_first=True,bidirectional=False)
+output,(hn,cn) = rnn1(x)
+#output1,(hn1,cn1) = rnn2(output)
+hn=torch.squeeze(hn)
+linear0 = nn.Linear(48,2)
+out=linear0(hn)
+
+
+# tmp = out.view()
+
+# # bottleneck enc side
+# out = out.view(out.size(0), -1) 
+# m = nn.Linear(out.shape[1], 128)    
+# out = m(out)
+
+# # bottleneck dec side
+# m = nn.Linear(128,6*7*19*25)    
+# out = m(out)
+
+# layer 4
+#out = out.view(out.size(0), 6,7, 19,25)
+
+m = nn.ConvTranspose3d(6,12,kernel_size=2,stride=(1,1,1),output_padding=(0,0,0))
+out = m(out)
+out = r(out)
+
+# layer 3
+m = nn.ConvTranspose3d(12,12,kernel_size=2,stride=(1,1,2),output_padding=(0,0,0))
+out = m(out)
+out = r(out)
+
+out_tmp=out;
+
+# layer 2 want  10,22,100
+out=out_tmp
+m = nn.ConvTranspose3d(12,12,kernel_size=2,stride=(1,2,2),
+                      padding=(0,0,0), output_padding=(0,0,0))
+out = m(out)
+out = r(out)
+print(out.shape)
+
+out_tmp=out;
+
+
+# layer 1 #11,23,200
+out=out_tmp
+m = nn.ConvTranspose3d(12,1,kernel_size=2,stride=(1,1,2),output_padding=(0,0,0))
+out = m(out)
+out = r(out)
+print(out.shape)
+
+
+
+
+# CNN 3D AE encoder
+class Encoder3D(nn.Module):
+    def __init__(self,ksize):
+        super(Encoder3D, self).__init__()
+        self.conv1 = nn.Conv3d(1, 12, kernel_size=ksize, stride=(1, 1, 2)) 
+        self.conv2 = nn.Conv3d(12, 12, kernel_size=ksize, stride=(1, 1, )) # downsampling h
+        self.conv3 = nn.Conv3d(12, 12, kernel_size=ksize, stride=(1, 1, 2))
+        self.conv4 = nn.Conv3d(12, 6, kernel_size=ksize, stride=(1, 1, 1))
+        #self.fc = nn.Linear(6 * 7 * 9 *25, num_nodes)    # 6 filters, w, h, d    
+        self.elu = nn.ELU()
+        #self.bn1 = torch.nn.BatchNorm3d(num_features=12)
+        #self.bn2 = torch.nn.BatchNorm3d(num_features=6)
+        #self.pool = nn.AvgPool3d(kernel_size=ksize,stride=1)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        #x = self.bn1(x)
+        x = self.elu(x)
+        #x = self.pool(x)
+        
+        x = self.conv2(x)
+        #x = self.bn1(x)
+        x = self.elu(x)
+        #x = self.pool(x)
+        
+        x=self.conv3(x)
+        #x = self.bn1(x)
+        x=self.elu(x)
+        
+        x=self.conv4(x)
+        #x = self.bn2(x)
+        x=self.elu(x)
+        return x
+
+# CNN 3D AE decoder
+class Decoder3D(nn.Module):
+    def __init__(self,ksize):
+        super(Decoder3D, self).__init__()
+        #self.fc = nn.Linear(num_nodes, 6 * 7 * 9 *25)
+        self.deconv1 = nn.ConvTranspose3d(6, 12, kernel_size=ksize, stride=(1, 1, 1))
+        self.deconv2 = nn.ConvTranspose3d(12, 12, kernel_size=ksize, stride=(1, 1, 2))        
+        self.deconv3 = nn.ConvTranspose3d(12, 12, kernel_size=ksize, stride=(1, 2, 2))                                           
+        self.deconv4 = nn.ConvTranspose3d(12, 1, kernel_size=ksize, stride=(1, 1, 2))                                           
+        self.elu = nn.ELU()        
+        #self.bn1 = torch.nn.BatchNorm3d(num_features=12)
+        #self.bn2 = torch.nn.BatchNorm3d(num_features=6)
+
+    def forward(self, x):
+        #x = self.fc(x)
+        #x = self.elu(x)
+        #x = x.view(x.size(0), 6, 7, 9, 25)
+        x = self.deconv1(x)
+        #x = self.bn1(x)        
+        x = self.elu(x)
+        
+        x = self.deconv2(x)
+        #x = self.bn1(x)        
+        x = self.elu(x)
+        
+        x = self.deconv3(x)
+        #x = self.bn1(x)
+        x = self.elu(x)
+        
+        x = self.deconv4(x)
+        #x = torch.tanh(x) # squish between 0 and 1
+        return x
+    
+    
+# lstm model working in latent space of CNN3D AE
+class rnn_lstm(nn.Module):
+    def __init__(self,num_classes,input_size,lstm_size):
+        super(rnn_lstm,self).__init__()
+        self.num_classes = num_classes        
+        self.input_size = round(input_size)
+        self.lstm_size = round(lstm_size)
+        
+        self.rnn1=nn.LSTM(input_size=input_size,hidden_size=self.lstm_size,
+                          num_layers=1,batch_first=True,bidirectional=False)        
+        # self.rnn2=nn.LSTM(input_size=round(self.lstm_size*2),
+        #                   hidden_size=round(self.lstm_size/2),
+        #                   num_layers=1,batch_first=True,bidirectional=False)      
+        self.linear0 = nn.Linear(round(self.lstm_size),num_classes)
+                
+    
+    def forward(self,x):        
+        # convert to batch, seq, feature
+        x = torch.flatten(x,start_dim=1,end_dim=3)
+        x = torch.permute(x,(0,2,1))
+        output1, (hn1,cn1) = self.rnn1(x) 
+        #output2, (hn2,cn2) = self.rnn2(output1) 
+        hn1 = torch.squeeze(hn1)        
+        out = self.linear0(hn1)        
+        return out
+    
+class Autoencoder3D(nn.Module):
+    def __init__(self, ksize,num_classes,input_size,lstm_size):
+        super(Autoencoder3D, self).__init__()
+        self.encoder = Encoder3D(ksize)
+        self.decoder = Decoder3D(ksize)
+        #self.classifier = nn.Linear(num_nodes, num_classes)  
+        self.classifier = rnn_lstm(num_classes,input_size,lstm_size)
+        
+    def forward(self,x):
+        latent = self.encoder(x)
+        recon = self.decoder(latent)
+        logits = self.classifier(latent)
+        return recon,logits 
+
 
