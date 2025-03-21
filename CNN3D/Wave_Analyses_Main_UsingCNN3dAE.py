@@ -38,7 +38,7 @@ from torch.utils.data import TensorDataset, random_split, DataLoader
 
 
 # load the data 
-filename = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_2nd_5Days.mat'
+filename = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_2nd_5Days_Nozscore.mat'
 #filename = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_2nd_5Days.mat'
 #filename = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_1st5Days.mat'
 data_dict = mat73.loadmat(filename)
@@ -46,6 +46,8 @@ data_dict = mat73.loadmat(filename)
 xdata = data_dict.get('xdata')
 ydata = data_dict.get('ydata')
 labels = data_dict.get('labels')
+labels_days = data_dict.get('days')
+labels_batch = data_dict.get('labels_batch')
 
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
@@ -54,18 +56,18 @@ ydata = np.concatenate(ydata)
 decoding_acc=[]
 cl_mse=[]
 ol_mse=[]
-for iter in np.arange(6):    
+for iter in np.arange(8):    
     
     
    
     # parse into training, validation and testing datasets
-    Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val = training_test_val_split_CNN3DAE(xdata,ydata,labels,0.8)                        
+    Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.7,labels_days)                        
     #del xdata, ydata
     
-    # circular shifting the data for null stats
-    random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
-    for i in np.arange(len(random_shifts)):
-        Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
+    # # circular shifting the data for null stats
+    # random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
+    # for i in np.arange(len(random_shifts)):
+    #     Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
     
 
     
@@ -147,14 +149,14 @@ for iter in np.arange(6):
 plt.figure();
 plt.boxplot([ol_mse,cl_mse])
 
-ol_mse_null=ol_mse
-cl_mse_null = cl_mse
-decoding_acc_null = decoding_acc
+# ol_mse_null=ol_mse
+# cl_mse_null = cl_mse
+# decoding_acc_null = decoding_acc
 
-np.savez('Alpha_200Hz_2nd_5days_nullModel', 
-          ol_mse_null = ol_mse_null,
-          cl_mse_null = cl_mse_null,
-          decoding_acc_null = decoding_acc_null)
+# np.savez('Alpha_200Hz_2nd_5days_nullModel', 
+#           ol_mse_null = ol_mse_null,
+#           cl_mse_null = cl_mse_null,
+#           decoding_acc_null = decoding_acc_null)
 
 
 #%% plotting amplitude differences
@@ -187,14 +189,17 @@ data=np.load('Alpha_200Hz_2nd_5days.npz')
 data1=np.load('Alpha_200Hz_2nd_5days_nullModel.npz')
 ol_mse = data.get('ol_mse')
 cl_mse = data.get('cl_mse')
-null_mse = data1.get('ol_mse')
-null_mse2 = data1.get('cl_mse')
+null_mse = data1.get('ol_mse_null')
+null_mse2 = data1.get('cl_mse_null')
+null_mse = np.concatenate((null_mse, null_mse2))
+
 decoding_acc = data.get('decoding_acc')
+
 plt.figure();
-plt.boxplot([ol_mse,cl_mse]);
+plt.boxplot([np.log(ol_mse),np.log(cl_mse),np.log(null_mse)])
 hfont = {'fontname':'Arial'}
-plt.xticks(ticks=[1,2],labels=('OL','CL'),**hfont)
-plt.ylabel('Mean Sq. prediction error')
+plt.xticks(ticks=[1,2,3],labels=('OL','CL','null'),**hfont)
+plt.ylabel('Mean Sq. prediction error (log)')
 
 #%% simple methods to get activations at hidden layers 
 

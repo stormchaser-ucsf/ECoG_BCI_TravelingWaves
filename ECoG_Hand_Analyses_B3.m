@@ -1579,3 +1579,18 @@ cl=a(11:end,2);
 ce_loss = mean([ol cl],2);
 figure;
 plot(days,ce_loss,'.','MarkerSize',20)
+
+
+%% random stuff
+
+a=[ones(10,1);2*ones(30,1)];
+
+ratios=[];
+for i=1:1000
+    idx = randperm(length(a),0.8*length(a));
+    aa = a(idx);
+    ratios(i,:) = [sum(aa==1)/10 sum(aa==2)/30];
+end
+
+
+

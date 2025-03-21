@@ -33,6 +33,7 @@ import numpy.random as rnd
 import scipy as scipy
 import scipy.stats as stats
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 
 # setting up GPU
@@ -382,6 +383,86 @@ def training_test_val_split_CNN3DAE(xdata,Y,labels,prop):
     Xval,Xtest = Xleftover[:len2_cutoff,:,:,:], Xleftover[len2_cutoff:,:,:,:]
     Yval,Ytest = Yleftover[:len2_cutoff,:,:,:], Yleftover[len2_cutoff:,:,:,:]    
     labels_val,labels_test = labels_leftover[:len2_cutoff], labels_leftover[len2_cutoff:]    
+    return Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val
+
+
+# split into test training splits for the AE with balanced datasets
+# within each day, split the data into 70% training, 15% testing and 15% validation 
+def training_test_val_split_CNN3DAE_equal(xdata,Y,labels,prop,labels_days):
+    days = np.unique(labels_days)
+    Xtrain=np.empty((0,40,11,23))
+    Xtest=np.empty((0,40,11,23))
+    Xval=np.empty((0,40,11,23))
+    Ytrain=np.empty((0,40,11,23))
+    Ytest=np.empty((0,40,11,23))
+    Yval=np.empty((0,40,11,23))
+    labels_train=[]
+    labels_test=[]
+    labels_val=[]
+    for i in np.arange(len(days)):
+        days_idx = np.where(labels_days==days[i])[0]
+        xtmp = xdata[days_idx]
+        ytmp = Y[days_idx]
+        labels_tmp = np.squeeze(labels[days_idx]).astype(int)
+        
+        # bin count
+        bin_count = np.bincount(labels_tmp)
+        bin_min = np.where(bin_count==np.min(bin_count))[0]        
+        #start first split, get training
+        len_cutoff = (prop*bin_count[bin_min])
+        # extract len_cutoff elements randomly from each class
+        idx0 = np.where(labels_tmp==0)[0]
+        idx1 = np.where(labels_tmp==1)[0]
+        idx0_main = np.random.permutation(idx0)
+        idx1_main = np.random.permutation(idx1)
+        
+        idx0_train = idx0_main[:round(len_cutoff[0])]
+        idx1_train = idx1_main[:round(len_cutoff[0])]
+        idx_train = np.concatenate((idx0_train, idx1_train))
+        Xtrain_tmp = xtmp[idx_train,:]
+        Ytrain_tmp = ytmp[idx_train,:]
+        labels_train_tmp = labels_tmp[idx_train].tolist()
+        
+        Xtrain = np.concatenate((Xtrain,Xtrain_tmp),axis=0)
+        Ytrain = np.concatenate((Ytrain,Ytrain_tmp),axis=0)
+        labels_train.append(labels_train_tmp)
+        
+        
+        # get leftover and do remaining splits
+        idx0_leftover = idx0_main[round(len_cutoff[0]):]
+        idx1_leftover = idx1_main[round(len_cutoff[0]):]
+        idx_leftover = np.concatenate((idx0_leftover, idx1_leftover))
+        labels_leftover = labels_tmp[idx_leftover]
+        # bin count
+        bin_count = np.bincount(labels_leftover)
+        bin_min = np.where(bin_count==np.min(bin_count))[0]        
+        # do the second split for validation: equal size
+        len_cutoff1 = round(bin_count[bin_min][0]/2)
+        idx0_val = idx0_leftover[:len_cutoff1]
+        idx0_test = idx0_leftover[len_cutoff1:]
+        idx1_val = idx1_leftover[:len_cutoff1]
+        idx1_test = idx1_leftover[len_cutoff1:]
+        
+        idx_val = np.concatenate((idx0_val, idx1_val))
+        Xval_tmp = xtmp[idx_val,:]
+        Yval_tmp = ytmp[idx_val,:]
+        labels_val_tmp = labels_tmp[idx_val].tolist()
+        Xval = np.concatenate((Xval,Xval_tmp),axis=0)
+        Yval = np.concatenate((Yval,Yval_tmp),axis=0)
+        labels_val.append(labels_val_tmp)
+        
+        idx_test = np.concatenate((idx0_test, idx1_test))
+        Xtest_tmp = xtmp[idx_test,:]
+        Ytest_tmp = ytmp[idx_test,:]
+        labels_test_tmp = labels_tmp[idx_test].tolist()
+        Xtest = np.concatenate((Xtest,Xtest_tmp),axis=0)
+        Ytest = np.concatenate((Ytest,Ytest_tmp),axis=0)
+        labels_test.append(labels_test_tmp)
+    
+    labels_train = np.concatenate(labels_train)
+    labels_val = np.concatenate(labels_val)
+    labels_test = np.concatenate(labels_test)
+    
     return Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val
     
 # split into training and validation class 
