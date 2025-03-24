@@ -11,7 +11,7 @@ good_ch=ones(256,1);
 good_ch(bad_ch)=0;
 
 for ii=1:length(files)
-    disp(ii/length(files)*100)
+    %disp(ii/length(files)*100)
     loaded=1;
     try
         load(files{ii})
@@ -27,13 +27,13 @@ for ii=1:length(files)
         kinax4 = find(TrialData.TaskState==4);
 
         data1 = cell2mat(TrialData.BroadbandData(kinax1)');
-        l1 =  length(data1);
+        l1 =  size(data1,1);
         data2 = cell2mat(TrialData.BroadbandData(kinax2)');
-        l2 =  length(data2);
+        l2 =  size(data2,1);
         data4 = cell2mat(TrialData.BroadbandData(kinax4)');
-        l4 = length(data4);
+        l4 = size(data4,1);
         data3 = cell2mat(TrialData.BroadbandData(kinax3)');
-        l3 = length(data3);
+        l3 = size(data3,1);
 
         data = [data2;data3];
         %data = [data1;data2]; % only state 1 and 2

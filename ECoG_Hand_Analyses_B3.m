@@ -1254,7 +1254,7 @@ for i=1:length(session_data)
     end
 
     [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata);
-    
+
     labels = [labels; ones(idx,1)];
     days = [days;ones(idx,1)*i];
     labels_batch = [labels_batch;zeros(idx,1)];
@@ -1424,16 +1424,27 @@ plot(days,ce_loss,'.','MarkerSize',20)
 
 clc;clear
 close all
+tic
 
-root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
-addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
-cd(root_path)
-addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
-load session_data_B3_Hand
-addpath 'C:\Users\nikic\Documents\MATLAB'
-load('ECOG_Grid_8596_000067_B3.mat')
-addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
-addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers')
+if ispc
+    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
+    cd(root_path)
+    addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
+    load session_data_B3_Hand
+    addpath 'C:\Users\nikic\Documents\MATLAB'
+    load('ECOG_Grid_8596_000067_B3.mat')
+    addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
+    addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers')
+
+else
+    root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
+    cd(root_path)
+    load session_data_B3_Hand
+    load('ECOG_Grid_8596_000067_B3.mat')
+    addpath(genpath('/home/reza/Repositories/ECoG_BCI_TravelingWaves/helpers'))
+end
+
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
@@ -1447,6 +1458,7 @@ pac_ol=[];
 pac_cl=[];
 pac_batch=[];
 for i=1:length(session_data)
+    
     folders_imag =  strcmp(session_data(i).folder_type,'I');
     folders_online = strcmp(session_data(i).folder_type,'O');
     folders_batch = strcmp(session_data(i).folder_type,'B');
@@ -1475,17 +1487,18 @@ for i=1:length(session_data)
     for ii=1:length(folders)
         folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
         %cd(folderpath)
-        files = [files;findfiles('',folderpath)'];
+        files = [files;findfiles('mat',folderpath)'];
     end
 
     % get the phase locking value
+    disp(['Processing Day ' num2str(i) ' OL'])
     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
 
     % run permutation test and get pvalue for each channel
     pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
 
     %sum(pac_r>0.3)/253
-    pac_ol(i,:) = pac_r;
+    pac_ol(i,:) = pval;
 
 
     %%%%%% getting online files now
@@ -1495,12 +1508,18 @@ for i=1:length(session_data)
     for ii=1:length(folders)
         folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
         %cd(folderpath)
-        files = [files;findfiles('',folderpath)'];
+        files = [files;findfiles('mat',folderpath)'];
     end
 
-    pac_r = compute_pac(files,d1,d2);
-    sum(pac_r>0.3)/253
-    pac_cl(i,:) = pac_r;
+    % get the phase locking value
+    disp(['Processing Day ' num2str(i) ' CL'])
+    [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+
+    % run permutation test and get pvalue for each channel
+    pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+
+    %sum(pac_r>0.3)/253
+    pac_cl(i,:) = pval;
 
     %%%%%% getting batch udpated (CL2) files now
     folders = session_data(i).folders(batch_idx1);
@@ -1509,13 +1528,26 @@ for i=1:length(session_data)
     for ii=1:length(folders)
         folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
         %cd(folderpath)
-        files = [files;findfiles('',folderpath)'];
+        files = [files;findfiles('mat',folderpath)'];
     end
 
-    pac_r = compute_pac(files,d1,d2);
-    sum(pac_r>0.3)/253
-    pac_batch(i,:) = pac_r;
+    if ~isempty(files)
+
+        % get the phase locking value
+        disp(['Processing Day ' num2str(i) ' Batch'])
+        [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+
+        % run permutation test and get pvalue for each channel
+        pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+
+        pac_batch(i,:) = pval;
+
+    else
+        pac_batch(i,:)=NaN(1,253);
+    end
 
 end
 
+toc
 
+save PAC_B3_Hand pac_ol pac_cl pac_batch

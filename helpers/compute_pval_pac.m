@@ -5,16 +5,17 @@ function pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase)
 pval=[];
 rboot=[];
 r = abs(mean(pac));
-for iter=1:1000
-    disp(iter)
+parfor iter=1:1000
+    %fprintf('%d',iter)
+    %disp(iter)
     pac_boot=zeros(length(alpha_phase),253);
-    parfor i = 1:length(alpha_phase)
+    for i = 1:length(alpha_phase)
         alp = alpha_phase{i};
         hg = hg_alpha_phase{i};
 
         % shuffle alpha phase
         for j=1:size(alp,2)
-            idx = randperm(length(alp));
+            idx = randperm(size(alp,1));
             alp(:,j) = alp(idx,j);
         end
 
@@ -26,7 +27,7 @@ for iter=1:1000
     rboot(iter,:) = abs(mean(pac_boot));
 end
 
-pval = sum(rboot>r)/length(rboot);
+pval = sum(r>=rboot)/size(rboot,1);
 
 
 end

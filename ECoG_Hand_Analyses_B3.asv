@@ -1425,6 +1425,7 @@ plot(days,ce_loss,'.','MarkerSize',20)
 clc;clear
 close all
 
+if ispc
 root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
 addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
 cd(root_path)
@@ -1434,6 +1435,13 @@ addpath 'C:\Users\nikic\Documents\MATLAB'
 load('ECOG_Grid_8596_000067_B3.mat')
 addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
 addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers')
+
+else
+    root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
+    cd(root_path)
+    load session_data_B3_Hand
+    addpat
+
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
@@ -1481,8 +1489,9 @@ for i=1:length(session_data)
     % get the phase locking value
     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
 
-    % get the null distribution 
-    
+    % run permutation test and get pvalue for each channel
+    pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+
     %sum(pac_r>0.3)/253
     pac_ol(i,:) = pac_r;
 
