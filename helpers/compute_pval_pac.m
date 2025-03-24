@@ -5,7 +5,7 @@ function pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase)
 pval=[];
 rboot=[];
 r = abs(mean(pac));
-for iter=1:30
+for iter=1:1000
     disp(iter)
     pac_boot=zeros(length(alpha_phase),253);
     parfor i = 1:length(alpha_phase)
@@ -27,31 +27,6 @@ for iter=1:30
 end
 
 pval = sum(rboot>r)/length(rboot);
-
-
-%
-% for ch=1:size(pac,2)
-%     ch_pac = pac(:,ch);
-%     r = abs(mean(ch_pac));
-%
-%     for iter=1:1000
-%
-%         ch_alp=[];ch_hg=[];
-%         % get the phases of the channel
-%         for i=1:length(alpha_phase)
-%             tmp = alpha_phase{i};
-%             tmp = tmp(:,ch);
-%
-%
-%         end
-%
-%
-%     end
-
-
-
-
-
 
 
 end
