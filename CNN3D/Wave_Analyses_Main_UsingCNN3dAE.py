@@ -38,9 +38,10 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 # load the data 
-filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_NewOnlyState3.mat'
-#filename = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_2nd_5Days.mat'
-#filename = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_1st5Days.mat'
+#filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_NewOnlyState3.mat'
+filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
+
+
 data_dict = mat73.loadmat(filename)
 
 xdata = data_dict.get('xdata')
@@ -52,7 +53,7 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 10
+iterations = 50
 days = np.unique(labels_days)
 
 decoding_acc=[]
@@ -64,7 +65,7 @@ ol_mse_days=np.zeros((iterations,len(days)))
 balanced_acc_days=np.zeros((iterations,len(days)))
 ce_loss = np.zeros((iterations,len(days)))
 
-    
+print(xdata.shape)
 
 for iter in np.arange(iterations):    
     
@@ -74,10 +75,10 @@ for iter in np.arange(iterations):
     Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.7,labels_days)                        
     #del xdata, ydata
     
-    # # circular shifting the data for null stats
-    # random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
-    # for i in np.arange(len(random_shifts)):
-    #     Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
+    # circular shifting the data for null stats
+    random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
+    for i in np.arange(len(random_shifts)):
+        Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
     
 
     
@@ -196,15 +197,16 @@ plt.plot(tmp)
 plt.figure();
 plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
 
-# ol_mse_null=ol_mse
-# cl_mse_null = cl_mse
-# decoding_acc_null = decoding_acc
+ol_mse_days_null=ol_mse_days
+cl_mse_days_null = cl_mse_days
+balanced_acc_days_null = balanced_acc_days
+cd_loss_null = ce_loss
 
-# np.savez('Alpha_200Hz_AllDays', 
-#           ce_loss = ce_loss,
-#           balanced_acc_days = balanced_acc_days,
-#           ol_mse_days = ol_mse_days,
-#           cl_mse_days=cl_mse_days)
+np.savez('Alpha_200Hz_AllDays_null', 
+          ce_loss = ce_loss,
+          balanced_acc_days = balanced_acc_days,
+          ol_mse_days = ol_mse_days,
+          cl_mse_days=cl_mse_days)
 
 
 #%% plotting amplitude differences
