@@ -1,9 +1,15 @@
-function [pac_r] = compute_pac(files,d1,d2)
+function [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2)
 
 
 %load the data and extract PAC at each channel
 idx=0;
 pac=[];
+hg_alpha_phase={};
+alpha_phase={};
+bad_ch=[108 113 118];
+good_ch=ones(256,1);
+good_ch(bad_ch)=0;
+
 for ii=1:length(files)
     disp(ii/length(files)*100)
     loaded=1;
@@ -20,6 +26,8 @@ for ii=1:length(files)
         kinax3 = find(TrialData.TaskState==3);
         kinax4 = find(TrialData.TaskState==4);
 
+        data1 = cell2mat(TrialData.BroadbandData(kinax1)');
+        l1 =  length(data1);
         data2 = cell2mat(TrialData.BroadbandData(kinax2)');
         l2 =  length(data2);
         data4 = cell2mat(TrialData.BroadbandData(kinax4)');
@@ -28,6 +36,7 @@ for ii=1:length(files)
         l3 = length(data3);
 
         data = [data2;data3];
+        %data = [data1;data2]; % only state 1 and 2
 
         % extract hG envelope signal
         hg = filtfilt(d2,data);
@@ -53,15 +62,16 @@ for ii=1:length(files)
 
         % store
         pac = cat(1,pac,m);
+        alp_ph = alp_ph(:,logical(good_ch));
+        hg_alpha_ph = hg_alpha_ph(:,logical(good_ch));
+        alpha_phase = cat(1,alpha_phase,alp_ph);        
+        hg_alpha_phase = cat(1,hg_alpha_phase,hg_alpha_ph);
     end
 end
 
 %get rid of bad channels
-bad_ch=[108 113 118];
-good_ch=ones(256,1);
-good_ch(bad_ch)=0;
 pac=pac(:,logical(good_ch));
-pac_r = exp(1i*pac);
-pac_r = abs(mean(pac_r));
+pac = exp(1i*pac);
+%pac_r = abs(mean(pac_r));
 
 

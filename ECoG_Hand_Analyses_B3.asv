@@ -11,6 +11,11 @@
 % travling waves with a transformer
 
 
+
+
+%%
+disp('test')
+
 %% SESSION DATA FOR HAND EXPERIMENTS B3
 
 clc;clear
@@ -144,7 +149,7 @@ session_data(10).AM_PM = {'am','am','am','am','am','am',...
     'am','am','am','am','am','am','am',...
     'am','am','am','am','am'};
 
-save session_data_B3_Hand session_data
+%save session_data_B3_Hand session_data
 
 % for accuracy -> take B1 ie CL3 or more...
 % for neural features, consider all CL2,3 as CL2.
@@ -154,6 +159,7 @@ save session_data_B3_Hand session_data
 clc;clear
 close all
 clc;clear;
+
 root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
 addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
 cd(root_path)
@@ -1231,80 +1237,8 @@ for i=1:length(session_data)
         files = [files;findfiles('',folderpath)'];
     end
 
-    %load the data and extract the features in 8 to 10Hz range, 200ms
-    %snippets, 201 ms prediction, in 50ms increments
-    idx=0;
-    for ii=1:length(files)
-        disp(ii/length(files)*100)
-        loaded=1;
-        try
-            load(files{ii})
-        catch
-            loaded=0;
-        end
+    [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata);
 
-        if loaded==1
-
-            % have to take 1s before the start of state3, to 1s after state
-            % 4 and then trim 
-
-            kinax1 = find(TrialData.TaskState==1);
-            kinax2 = find(TrialData.TaskState==2);
-            kinax3 = find(TrialData.TaskState==3);
-            kinax4 = find(TrialData.TaskState==4);
-
-            data2 = cell2mat(TrialData.BroadbandData(kinax2)');
-            l2 =  length(data2);
-            data4 = cell2mat(TrialData.BroadbandData(kinax4)');
-            l4 = length(data4);
-            data3 = cell2mat(TrialData.BroadbandData(kinax3)');
-            l3 = length(data3);
-
-            data = [data2;data3];                                    
-            l22=floor(l2/5); % length of the down sampled signal
-
-            % resample and filter
-            data = resample(data,200,1000);
-            df = filtfilt(d2,data);
-            df = df(l22+1:end,:);
-
-            % normalize
-            %df = normalize(df);
-
-            % filter at 1khz
-            %df = filtfilt(d1,data);
-            for xx=1:40:length(df) %50ms step forward
-                if size(df,1)-xx > 42
-                    st = xx;
-                    stp = xx+39;
-                    yst=xx+1;
-                    ystp = xx+1+39;
-                    tmpx = df(st:stp,:);
-                    tmpy = df(yst:ystp,:);
-                    a=[];
-                    for j=1:size(tmpx,1)
-                        aa = tmpx(j,:);
-                        aa = aa(ecog_grid);
-                        a(j,:,:) = aa;
-                    end
-                    b=[];
-                    for j=1:size(tmpy,1)
-                        bb = tmpy(j,:);
-                        bb = bb(ecog_grid);
-                        b(j,:,:) = bb;
-                    end
-
-                    %a=a./norm(a(:));
-                    %b=b./norm(b(:));
-                    %a=normalize(a); % zscore
-                    %b=normalize(b);
-                    xdata = cat(1,(xdata),(a));
-                    ydata = cat(1,(ydata),(b));
-                    idx=idx+1;
-                end
-            end
-        end
-    end
     labels = [labels; zeros(idx,1)];
     days = [days;ones(idx,1)*i];
     labels_batch = [labels_batch;zeros(idx,1)];
@@ -1319,72 +1253,8 @@ for i=1:length(session_data)
         files = [files;findfiles('',folderpath)'];
     end
 
-    %load the data and extract the features in 8 to 10Hz range, 200ms
-    %snippets, 201 ms prediction, in 50ms increments
-    idx=0;
-    for ii=1:length(files)
-        disp(ii/length(files)*100)
-        loaded=1;
-        try
-            load(files{ii})
-        catch
-            loaded=0;
-        end
-        if loaded==1
-            
-            kinax1 = find(TrialData.TaskState==1);
-            kinax2 = find(TrialData.TaskState==2);
-            kinax3 = find(TrialData.TaskState==3);
-            kinax4 = find(TrialData.TaskState==4);
-
-            data2 = cell2mat(TrialData.BroadbandData(kinax2)');
-            l2 =  length(data2);
-            data4 = cell2mat(TrialData.BroadbandData(kinax4)');
-            l4 = length(data4);
-            data3 = cell2mat(TrialData.BroadbandData(kinax3)');
-            l3 = length(data3);
-
-            data = [data2;data3];                                    
-            l22=floor(l2/5); % length of the down sampled signal
-
-            % resample and filter
-            data = resample(data,200,1000);
-            df = filtfilt(d2,data);
-            df = df(l22+1:end,:);
-
-            % filter at 1khz
-            %df = filtfilt(d1,data);
-            for xx=1:40:length(df) %50ms step forward
-                if size(df,1)-xx > 42
-                    st = xx;
-                    stp = xx+39;
-                    yst=xx+1;
-                    ystp = xx+1+39;
-                    tmpx = df(st:stp,:);
-                    tmpy = df(yst:ystp,:);
-                    a=[];
-                    for j=1:size(tmpx,1)
-                        aa = tmpx(j,:);
-                        aa = aa(ecog_grid);
-                        a(j,:,:) = aa;
-                    end
-                    b=[];
-                    for j=1:size(tmpy,1)
-                        bb = tmpy(j,:);
-                        bb = bb(ecog_grid);
-                        b(j,:,:) = bb;
-                    end
-                    %a=a./norm(a(:));
-                    %b=b./norm(b(:));
-                    %a=normalize(a); % zscore
-                    %b=normalize(b);
-                    xdata = cat(1,(xdata),(a));
-                    ydata = cat(1,(ydata),(b));
-                    idx=idx+1;
-                end
-            end
-        end
-    end
+    [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata);
+    
     labels = [labels; ones(idx,1)];
     days = [days;ones(idx,1)*i];
     labels_batch = [labels_batch;zeros(idx,1)];
@@ -1400,72 +1270,8 @@ for i=1:length(session_data)
         files = [files;findfiles('',folderpath)'];
     end
 
-    %load the data and extract the features in 8 to 10Hz range, 200ms
-    %snippets, 201 ms prediction, in 50ms increments
-    idx=0;
-    for ii=1:length(files)
-        disp(ii/length(files)*100)
-        loaded=1;
-        try
-            load(files{ii})
-        catch
-            loaded=0;
-        end
-        if loaded==1
-            
-            kinax1 = find(TrialData.TaskState==1);
-            kinax2 = find(TrialData.TaskState==2);
-            kinax3 = find(TrialData.TaskState==3);
-            kinax4 = find(TrialData.TaskState==4);
+    [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata);
 
-            data2 = cell2mat(TrialData.BroadbandData(kinax2)');
-            l2 =  length(data2);
-            data4 = cell2mat(TrialData.BroadbandData(kinax4)');
-            l4 = length(data4);
-            data3 = cell2mat(TrialData.BroadbandData(kinax3)');
-            l3 = length(data3);
-
-            data = [data2;data3];                                    
-            l22=floor(l2/5); % length of the down sampled signal
-
-            % resample and filter
-            data = resample(data,200,1000);
-            df = filtfilt(d2,data);
-            df = df(l22+1:end,:);
-
-            % filter at 1khz
-            %df = filtfilt(d1,data);
-            for xx=1:40:length(df) %50ms step forward
-                if size(df,1)-xx > 42
-                    st = xx;
-                    stp = xx+39;
-                    yst=xx+1;
-                    ystp = xx+1+39;
-                    tmpx = df(st:stp,:);
-                    tmpy = df(yst:ystp,:);
-                    a=[];
-                    for j=1:size(tmpx,1)
-                        aa = tmpx(j,:);
-                        aa = aa(ecog_grid);
-                        a(j,:,:) = aa;
-                    end
-                    b=[];
-                    for j=1:size(tmpy,1)
-                        bb = tmpy(j,:);
-                        bb = bb(ecog_grid);
-                        b(j,:,:) = bb;
-                    end
-                    %a=a./norm(a(:));
-                    %b=b./norm(b(:));
-                    %a=normalize(a); % zscore
-                    %b=normalize(b);
-                    xdata = cat(1,(xdata),(a));
-                    ydata = cat(1,(ydata),(b));
-                    idx=idx+1;
-                end
-            end
-        end
-    end
     labels = [labels; ones(idx,1)];
     days = [days;ones(idx,1)*i];
     labels_batch = [labels_batch;ones(idx,1)];
@@ -1525,25 +1331,25 @@ OL=0;
 CL=1;
 
 a=[0.0,92.36183169024783,OL
-1.0,108.11812950320537,OL
-2.0,88.90075325143873,OL
-3.0,76.76341470570813,OL
-4.0,103.16923432092167,OL
-5.0,69.05802225052128,OL
-6.0,70.72858879298809,OL
-7.0,71.6972569924039,OL
-8.0,46.0521770039698,OL
-9.0,49.95963461027006,OL
-0.0,76.38132017230757,CL
-1.0,100.09545756597,CL
-2.0,83.26065216655617,CL
-3.0,74.20199629752328,CL
-4.0,98.77527423562887,CL
-5.0,55.51111725776758,CL
-6.0,57.93915679462318,CL
-7.0,64.46523458727998,CL
-8.0,42.698748308813535,CL
-9.0,46.02720458434817,CL];
+    1.0,108.11812950320537,OL
+    2.0,88.90075325143873,OL
+    3.0,76.76341470570813,OL
+    4.0,103.16923432092167,OL
+    5.0,69.05802225052128,OL
+    6.0,70.72858879298809,OL
+    7.0,71.6972569924039,OL
+    8.0,46.0521770039698,OL
+    9.0,49.95963461027006,OL
+    0.0,76.38132017230757,CL
+    1.0,100.09545756597,CL
+    2.0,83.26065216655617,CL
+    3.0,74.20199629752328,CL
+    4.0,98.77527423562887,CL
+    5.0,55.51111725776758,CL
+    6.0,57.93915679462318,CL
+    7.0,64.46523458727998,CL
+    8.0,42.698748308813535,CL
+    9.0,46.02720458434817,CL];
 
 
 ol = a(1:10,2);
@@ -1584,25 +1390,25 @@ P = signrank(ol,cl)
 OL=0;
 CL=1;
 a=[0.0,0.31853630978926667,OL
-1.0,1.2185988293343653,OL
-2.0,0.977496566746216,OL
-3.0,1.2986392036158376,OL
-4.0,1.0845636945841932,OL
-5.0,0.36178247683393533,OL
-6.0,0.6418155421096434,OL
-7.0,0.7917347118150979,OL
-8.0,1.1550503954475309,OL
-9.0,0.7403181394502294,OL
-0.0,0.2717143529304259,CL
-1.0,1.1196755699252263,CL
-2.0,0.8227975070622551,CL
-3.0,1.0000589976099277,CL
-4.0,0.9733150502699118,CL
-5.0,0.44613335178027963,CL
-6.0,0.7129680968167489,CL
-7.0,0.6255885338122766,CL
-8.0,0.8096929219923256,CL
-9.0,0.6309129987444196,CL]
+    1.0,1.2185988293343653,OL
+    2.0,0.977496566746216,OL
+    3.0,1.2986392036158376,OL
+    4.0,1.0845636945841932,OL
+    5.0,0.36178247683393533,OL
+    6.0,0.6418155421096434,OL
+    7.0,0.7917347118150979,OL
+    8.0,1.1550503954475309,OL
+    9.0,0.7403181394502294,OL
+    0.0,0.2717143529304259,CL
+    1.0,1.1196755699252263,CL
+    2.0,0.8227975070622551,CL
+    3.0,1.0000589976099277,CL
+    4.0,0.9733150502699118,CL
+    5.0,0.44613335178027963,CL
+    6.0,0.7129680968167489,CL
+    7.0,0.6255885338122766,CL
+    8.0,0.8096929219923256,CL
+    9.0,0.6309129987444196,CL]
 ol = a(1:10,2);
 cl=a(11:end,2);
 ce_loss = mean([ol cl],2);
@@ -1610,7 +1416,7 @@ figure;
 plot(days,ce_loss,'.','MarkerSize',20)
 
 
-%% Phase amplitude coupling between hG and alpha waves 
+%% Phase amplitude coupling between hG and alpha waves
 % do it for an example day, over all electrodes
 % then branch out to all days, OL vs. CL for comparisons
 
@@ -1627,6 +1433,7 @@ load session_data_B3_Hand
 addpath 'C:\Users\nikic\Documents\MATLAB'
 load('ECOG_Grid_8596_000067_B3.mat')
 addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
+addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers')
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
@@ -1636,7 +1443,9 @@ d2 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
     'SampleRate',1e3);
 
-
+pac_ol=[];
+pac_cl=[];
+pac_batch=[];
 for i=1:length(session_data)
     folders_imag =  strcmp(session_data(i).folder_type,'I');
     folders_online = strcmp(session_data(i).folder_type,'O');
@@ -1669,68 +1478,14 @@ for i=1:length(session_data)
         files = [files;findfiles('',folderpath)'];
     end
 
-    %load the data and extract PAC at each channel 
-    idx=0;
-    pac=[];
-    for ii=1:length(files)
-        disp(ii/length(files)*100)
-        loaded=1;
-        try
-            load(files{ii})
-        catch
-            loaded=0;
-        end
+    % get the phase locking value
+    [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
 
-        if loaded==1
+    % get the null distribution 
+    
+    %sum(pac_r>0.3)/253
+    pac_ol(i,:) = pac_r;
 
-            kinax1 = find(TrialData.TaskState==1);
-            kinax2 = find(TrialData.TaskState==2);
-            kinax3 = find(TrialData.TaskState==3);
-            kinax4 = find(TrialData.TaskState==4);
-
-            data2 = cell2mat(TrialData.BroadbandData(kinax2)');
-            l2 =  length(data2);
-            data4 = cell2mat(TrialData.BroadbandData(kinax4)');
-            l4 = length(data4);
-            data3 = cell2mat(TrialData.BroadbandData(kinax3)');
-            l3 = length(data3);
-
-            data = [data2;data3];                                                
-
-            % extract hG envelope signal
-            hg = filtfilt(d2,data);
-            hg = abs(hilbert(hg));
-
-            % extract the alpha component of the hg envelope
-            hg_alpha = filtfilt(d1,hg);
-
-            % extract alpha signal 
-            alp = filtfilt(d1,data);
-
-            % get phase of both signal
-            hg_alpha_ph = angle(hilbert(hg_alpha));
-            alp_ph = angle(hilbert(alp));
-
-            % cut it to state 3 
-            alp_ph = alp_ph(l2+1:end,:);
-            hg_alpha_ph = hg_alpha_ph(l2+1:end,:);
-
-            % get phase difference and circular mean 
-            circ_diff = alp_ph - hg_alpha_ph;
-            m = circ_mean(circ_diff);
-
-            % store
-            pac = cat(1,pac,m);
-        end
-    end
-
-    %get rid of bad channels 
-    bad_ch=[108 113 118];
-    good_ch=ones(256,1);
-    good_ch(bad_ch)=0;
-    pac=pac(:,logical(good_ch));
-    pac_r = exp(1i*pac);
-    pac_r = abs(mean(pac_r));
 
     %%%%%% getting online files now
     folders = session_data(i).folders(online_idx);
@@ -1742,68 +1497,9 @@ for i=1:length(session_data)
         files = [files;findfiles('',folderpath)'];
     end
 
-    %load the data and extract the features in 8 to 10Hz range, 200ms
-    %snippets, 201 ms prediction, in 50ms increments
-    idx=0;
-    for ii=1:length(files)
-        disp(ii/length(files)*100)
-        loaded=1;
-        try
-            load(files{ii})
-        catch
-            loaded=0;
-        end
-        if loaded==1
-            data=TrialData.BroadbandData;
-            data=cell2mat(data');
-
-            % normalize
-            %data = normalize(data);
-
-            % resample and filter
-            data = resample(data,200,1000);
-            df = filtfilt(d2,data);
-
-            % normalize
-            %df = normalize(df);
-
-            % filter at 1khz
-            %df = filtfilt(d1,data);
-            for xx=1:39:length(df) %50ms step forward
-                if size(df,1)-xx > 42
-                    st = xx;
-                    stp = xx+39;
-                    yst=xx+1;
-                    ystp = xx+1+39;
-                    tmpx = df(st:stp,:);
-                    tmpy = df(yst:ystp,:);
-                    a=[];
-                    for j=1:size(tmpx,1)
-                        aa = tmpx(j,:);
-                        aa = aa(ecog_grid);
-                        a(j,:,:) = aa;
-                    end
-                    b=[];
-                    for j=1:size(tmpy,1)
-                        bb = tmpy(j,:);
-                        bb = bb(ecog_grid);
-                        b(j,:,:) = bb;
-                    end
-                    %a=a./norm(a(:));
-                    %b=b./norm(b(:));
-                    %a=normalize(a); % zscore
-                    %b=normalize(b);
-                    xdata = cat(1,(xdata),(a));
-                    ydata = cat(1,(ydata),(b));
-                    idx=idx+1;
-                end
-            end
-        end
-    end
-    labels = [labels; ones(idx,1)];
-    days = [days;ones(idx,1)*i];
-    labels_batch = [labels_batch;zeros(idx,1)];
-
+    pac_r = compute_pac(files,d1,d2);
+    sum(pac_r>0.3)/253
+    pac_cl(i,:) = pac_r;
 
     %%%%%% getting batch udpated (CL2) files now
     folders = session_data(i).folders(batch_idx1);
@@ -1815,67 +1511,9 @@ for i=1:length(session_data)
         files = [files;findfiles('',folderpath)'];
     end
 
-    %load the data and extract the features in 8 to 10Hz range, 200ms
-    %snippets, 201 ms prediction, in 50ms increments
-    idx=0;
-    for ii=1:length(files)
-        disp(ii/length(files)*100)
-        loaded=1;
-        try
-            load(files{ii})
-        catch
-            loaded=0;
-        end
-        if loaded==1
-            data=TrialData.BroadbandData;
-            data=cell2mat(data');
-
-            % normalize
-            %data = normalize(data);
-
-            % resample and filter
-            data = resample(data,200,1000);
-            df = filtfilt(d2,data);
-
-            % normalize
-            %df = normalize(df);
-
-            % filter at 1khz
-            %df = filtfilt(d1,data);
-            for xx=1:39:length(df) %50ms step forward
-                if size(df,1)-xx > 42
-                    st = xx;
-                    stp = xx+39;
-                    yst=xx+1;
-                    ystp = xx+1+39;
-                    tmpx = df(st:stp,:);
-                    tmpy = df(yst:ystp,:);
-                    a=[];
-                    for j=1:size(tmpx,1)
-                        aa = tmpx(j,:);
-                        aa = aa(ecog_grid);
-                        a(j,:,:) = aa;
-                    end
-                    b=[];
-                    for j=1:size(tmpy,1)
-                        bb = tmpy(j,:);
-                        bb = bb(ecog_grid);
-                        b(j,:,:) = bb;
-                    end
-                    %a=a./norm(a(:));
-                    %b=b./norm(b(:));
-                    %a=normalize(a); % zscore
-                    %b=normalize(b);
-                    xdata = cat(1,(xdata),(a));
-                    ydata = cat(1,(ydata),(b));
-                    idx=idx+1;
-                end
-            end
-        end
-    end
-    labels = [labels; ones(idx,1)];
-    days = [days;ones(idx,1)*i];
-    labels_batch = [labels_batch;ones(idx,1)];
+    pac_r = compute_pac(files,d1,d2);
+    sum(pac_r>0.3)/253
+    pac_batch(i,:) = pac_r;
 
 end
 

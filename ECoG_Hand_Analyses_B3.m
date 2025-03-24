@@ -11,6 +11,11 @@
 % travling waves with a transformer
 
 
+
+
+%%
+disp('test')
+
 %% SESSION DATA FOR HAND EXPERIMENTS B3
 
 clc;clear
@@ -144,7 +149,7 @@ session_data(10).AM_PM = {'am','am','am','am','am','am',...
     'am','am','am','am','am','am','am',...
     'am','am','am','am','am'};
 
-save session_data_B3_Hand session_data
+%save session_data_B3_Hand session_data
 
 % for accuracy -> take B1 ie CL3 or more...
 % for neural features, consider all CL2,3 as CL2.
@@ -154,6 +159,7 @@ save session_data_B3_Hand session_data
 clc;clear
 close all
 clc;clear;
+
 root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
 addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
 cd(root_path)
@@ -1472,10 +1478,14 @@ for i=1:length(session_data)
         files = [files;findfiles('',folderpath)'];
     end
 
-    pac_r = compute_pac(files,d1,d2);
-    sum(pac_r>0.3)/253
-    pac_ol(i,:) = pac_r;
+    % get the phase locking value
+    [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
 
+    % run permutation test and get pvalue for each channel
+    pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+
+    %sum(pac_r>0.3)/253
+    pac_ol(i,:) = pac_r;
 
 
     %%%%%% getting online files now
