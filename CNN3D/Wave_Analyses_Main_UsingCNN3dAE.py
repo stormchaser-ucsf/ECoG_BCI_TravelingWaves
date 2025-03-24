@@ -8,7 +8,7 @@ Created on Tue Mar 11 19:13:24 2025
 #%% PRELIMS
 import os
 
-os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
+os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
 
 
 from iAE_utils_models import *
@@ -29,8 +29,8 @@ import torch
 import h5py
 import numpy as np
 from torch.utils.data import TensorDataset, random_split, DataLoader
-
-
+from sklearn.metrics import balanced_accuracy_score as balan_acc
+from sklearn.preprocessing import MinMaxScaler
 
 
 #%% LOAD THE DATA
@@ -38,7 +38,7 @@ from torch.utils.data import TensorDataset, random_split, DataLoader
 
 
 # load the data 
-filename = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_2nd_5Days_Nozscore.mat'
+filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_NewOnlyState3.mat'
 #filename = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_2nd_5Days.mat'
 #filename = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_1st5Days.mat'
 data_dict = mat73.loadmat(filename)
@@ -52,16 +52,26 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
+iterations = 10
+days = np.unique(labels_days)
 
 decoding_acc=[]
+balanced_decoding_acc=[];
 cl_mse=[]
 ol_mse=[]
-for iter in np.arange(8):    
+cl_mse_days=np.zeros((iterations,len(days)))
+ol_mse_days=np.zeros((iterations,len(days)))
+balanced_acc_days=np.zeros((iterations,len(days)))
+ce_loss = np.zeros((iterations,len(days)))
+
+    
+
+for iter in np.arange(iterations):    
     
     
    
     # parse into training, validation and testing datasets
-    Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.7,labels_days)                        
+    Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.7,labels_days)                        
     #del xdata, ydata
     
     # # circular shifting the data for null stats
@@ -106,9 +116,9 @@ for iter in np.arange(8):
     # getparams and train the model 
     num_epochs=150
     batch_size=128
-    learning_rate=2e-3
+    learning_rate=1e-3
     batch_val=512
-    patience=5
+    patience=6
     gradient_clipping=10
     nn_filename = 'i3DAE.pth' 
     
@@ -123,40 +133,78 @@ for iter in np.arange(8):
     model.eval()
     with torch.no_grad():
         recon, decodes = model(Xtest1)
+        
+    for i in np.arange(len(days)): # loop over the 10 days 
+        idx_days = np.where(labels_test_days == days[i])[0]
+        tmp_labels = labels_test[idx_days]
+        tmp_ydata = Ytest[idx_days,:]
+        tmp_recon = recon[idx_days,:]
+        tmp_decodes = decodes[idx_days,:]
+        decodes1 = convert_to_ClassNumbers(tmp_decodes).cpu().detach().numpy()           
+        
+        idx = convert_to_ClassNumbers(torch.from_numpy(tmp_labels)).detach().numpy()
+        idx_cl = np.where(idx==1)[0]
+        idx_ol = np.where(idx==0)[0]
     
-    idx = convert_to_ClassNumbers(torch.from_numpy(labels_test)).detach().numpy()
-    idx_cl = np.where(idx==1)[0]
-    idx_ol = np.where(idx==0)[0]
+        recon_cl = tmp_recon[idx_cl,:].cpu().detach().numpy()
+        Ytest_cl = tmp_ydata[idx_cl,:]
+        cl_error = (np.sum((recon_cl - Ytest_cl)**2)) / Ytest_cl.shape[0]
+        cl_mse_days[iter,i] = cl_error
+        #print(cl_error)
+        #cl_mse.append(cl_error)
+        
+            
+        recon_ol = tmp_recon[idx_ol,:].cpu().detach().numpy()
+        Ytest_ol = tmp_ydata[idx_ol,:]
+        ol_error = (np.sum((recon_ol - Ytest_ol)**2)) / Ytest_ol.shape[0]
+        ol_mse_days[iter,i] = ol_error
+        #print(ol_error)
+        #ol_mse.append(ol_error)
     
-    recon_cl = recon[idx_cl,:].cpu().detach().numpy()
-    Ytest_cl = Ytest[idx_cl,:]
-    cl_error = (np.sum((recon_cl - Ytest_cl)**2)) / Ytest_cl.shape[0]
-    print(cl_error)
-    cl_mse.append(cl_error)
+        # # decoding accuracy
+        # decodes1 = convert_to_ClassNumbers(decodes).cpu().detach().numpy()           
+        # accuracy = np.sum(idx == decodes1) / len(decodes1)
+        # print(accuracy*100)
+        # decoding_acc.append(accuracy*100)
+        
+        # balanced accuracy
+        balanced_acc = balan_acc(idx,decodes1)
+        balanced_acc_days[iter,i]=balanced_acc
+        #print(balanced_acc*100)
+        #balanced_decoding_acc.append(balanced_acc*100)
+        
+        # cross entropy loss
+        classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
+        classif_loss = (classif_criterion(torch.from_numpy(tmp_labels).to(device),
+                                          tmp_decodes)).item()
+        ce_loss[iter,i]= classif_loss
     
-    recon_ol = recon[idx_ol,:].cpu().detach().numpy()
-    Ytest_ol = Ytest[idx_ol,:]
-    ol_error = (np.sum((recon_ol - Ytest_ol)**2)) / Ytest_ol.shape[0]
-    print(ol_error)
-    ol_mse.append(ol_error)
-    
-    # decoding accuracy
-    decodes1 = convert_to_ClassNumbers(decodes).cpu().detach().numpy()           
-    accuracy = np.sum(idx == decodes1) / len(decodes1)
-    print(accuracy*100)
-    decoding_acc.append(accuracy*100)
+
+
+tmp = np.mean(ol_mse_days,axis=0)
+tmp1 = np.mean(cl_mse_days,axis=0)
+plt.figure();
+plt.plot(tmp)    
+plt.plot(tmp1)
+plt.show()
+
+
+tmp = np.mean(balanced_acc_days,axis=0)
+plt.figure();
+plt.plot(tmp)
 
 plt.figure();
-plt.boxplot([ol_mse,cl_mse])
+plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
 
 # ol_mse_null=ol_mse
 # cl_mse_null = cl_mse
 # decoding_acc_null = decoding_acc
 
-# np.savez('Alpha_200Hz_2nd_5days_nullModel', 
-#           ol_mse_null = ol_mse_null,
-#           cl_mse_null = cl_mse_null,
-#           decoding_acc_null = decoding_acc_null)
+# np.savez('Alpha_200Hz_AllDays', 
+#           ce_loss = ce_loss,
+#           balanced_acc_days = balanced_acc_days,
+#           ol_mse_days = ol_mse_days,
+#           cl_mse_days=cl_mse_days)
 
 
 #%% plotting amplitude differences
@@ -515,4 +563,12 @@ class Autoencoder3D(nn.Module):
         logits = self.classifier(latent)
         return recon,logits 
 
+#%%
+
+
+for xx in  np.arange(10):
+    print('hello')
+    
+    
+    
 
