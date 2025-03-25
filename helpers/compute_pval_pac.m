@@ -27,10 +27,13 @@ parfor iter=1:1000
     rboot(iter,:) = abs(mean(pac_boot));
 end
 
-pval = sum(r>=rboot)/size(rboot,1);
+pval = sum(rboot>r)/size(rboot,1);
 
 
 end
+
+
+
 
 
 

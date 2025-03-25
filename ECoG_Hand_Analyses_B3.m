@@ -1424,6 +1424,7 @@ plot(days,ce_loss,'.','MarkerSize',20)
 
 clc;clear
 close all
+
 tic
 
 if ispc
@@ -1454,9 +1455,9 @@ d2 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
     'SampleRate',1e3);
 
-pac_ol=[];
-pac_cl=[];
-pac_batch=[];
+pac_ol=[];pval_ol=[];
+pac_cl=[];pval_cl=[];
+pac_batch=[];pval_batch=[];
 for i=1:length(session_data)
     
     folders_imag =  strcmp(session_data(i).folder_type,'I');
@@ -1498,7 +1499,8 @@ for i=1:length(session_data)
     pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
 
     %sum(pac_r>0.3)/253
-    pac_ol(i,:) = pval;
+    pval_ol(i,:) = pval;
+    pac_ol(i,:) = abs(mean(pac));
 
 
     %%%%%% getting online files now
@@ -1519,7 +1521,8 @@ for i=1:length(session_data)
     pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
 
     %sum(pac_r>0.3)/253
-    pac_cl(i,:) = pval;
+    pval_cl(i,:) = pval;
+    pac_cl(i,:) = abs(mean(pac));
 
     %%%%%% getting batch udpated (CL2) files now
     folders = session_data(i).folders(batch_idx1);
@@ -1540,14 +1543,20 @@ for i=1:length(session_data)
         % run permutation test and get pvalue for each channel
         pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
 
-        pac_batch(i,:) = pval;
+        pval_batch(i,:) = pval;
+        pac_batch(i,:) = abs(mean(pac));
 
     else
         pac_batch(i,:)=NaN(1,253);
+        pval_batch(i,:)=NaN(1,253);
     end
 
 end
 
 toc
 
-save PAC_B3_Hand pac_ol pac_cl pac_batch
+
+cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
+save PAC_B3_Hand -v7.3
+
+
