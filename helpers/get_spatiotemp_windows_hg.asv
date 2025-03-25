@@ -1,0 +1,112 @@
+function [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata)
+
+%load the data and extract the downsampled alpha dynamics within a bin and
+%the resulting average hG within that same bin
+idx=0;
+for ii=1:length(files)
+    disp(ii/length(files)*100)
+    loaded=1;
+    try
+        load(files{ii})
+    catch
+        loaded=0;
+    end
+
+    if loaded==1
+
+        % have to take 1s before the start of state3, to 1s after state
+        % 4 and then trim
+
+
+
+        kinax1 = find(TrialData.TaskState==1);
+        kinax2 = find(TrialData.TaskState==2);
+        kinax3 = find(TrialData.TaskState==3);
+        kinax4 = find(TrialData.TaskState==4);
+        kinax3 = [kinax2(3:end) kinax3];
+
+        for xx=1:length(kinax3)
+            data = TrialData.BroadbandData{kinax3(xx)};
+            data = resample(data,200,1000);
+            data = filtfilt(d2,data);
+            len = size(data,1);
+            if len > 40
+                data = data(1:40,:);
+            elseif len < 40       
+                d = 40-len;
+                data(end+1:40,:) = repmat(data(end,:),d,1);
+            end
+            a=[];
+            for j=1:size(data,1)
+                aa = data(j,:);
+                aa = aa(ecog_grid);
+                a(j,:,:) = aa;
+            end
+
+            feat = TrialData.SmoothedNeuralFeatures{kinax3(xx)};
+            tmpy = feat(1537:1792);
+            b = tmpy(ecog_grid);
+            
+              b=[];
+                for j=1:size(tmpy,1)
+                    bb = tmpy(j,:);
+                    bb = bb(ecog_grid);
+                    b(j,:,:) = bb;
+                end
+
+
+
+
+        end
+
+        tmp=cell2mat(TrialData.BroadbandData(6));
+        tmp1= resample(tmp,200,1000);
+        tmp1=filtfilt(d2,tmp1);
+
+        data2 = cell2mat(TrialData.BroadbandData(kinax2)');
+        l2 =  length(data2);
+        data4 = cell2mat(TrialData.BroadbandData(kinax4)');
+        l4 = length(data4);
+        data3 = cell2mat(TrialData.BroadbandData(kinax3)');
+        l3 = length(data3);
+
+        data = [data2;data3];
+        l22=floor(l2/5); % length of the down sampled signal
+
+        % resample and filter
+        data = resample(data,200,1000);
+        df = filtfilt(d2,data);
+        df = df(l22+1:end,:);
+
+
+        % filter at 1khz
+        %df = filtfilt(d1,data);
+        for xx=1:39:length(df) %39 is the original step forward
+            if size(df,1)-xx > 42
+                st = xx;
+                stp = xx+39;
+                yst=xx+1;
+                ystp = xx+1+39;
+                tmpx = df(st:stp,:);
+                tmpy = df(yst:ystp,:);
+                a=[];
+                for j=1:size(tmpx,1)
+                    aa = tmpx(j,:);
+                    aa = aa(ecog_grid);
+                    a(j,:,:) = aa;
+                end
+                b=[];
+                for j=1:size(tmpy,1)
+                    bb = tmpy(j,:);
+                    bb = bb(ecog_grid);
+                    b(j,:,:) = bb;
+                end
+
+                
+                xdata = cat(1,(xdata),(a));
+                ydata = cat(1,(ydata),(b));
+                idx=idx+1;
+            end
+        end
+    end
+end

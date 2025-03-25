@@ -1192,6 +1192,13 @@ if ispc
     load('ECOG_Grid_8596_000067_B3.mat')
     addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers'))
 
+else
+    root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
+    cd(root_path)
+    load session_data_B3_Hand
+    load('ECOG_Grid_8596_000067_B3.mat')
+    addpath(genpath('/home/reza/Repositories/ECoG_BCI_TravelingWaves/helpers'))
+
 end
 
 xdata={};
@@ -1208,6 +1215,9 @@ d2 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
     'SampleRate',200);
 
+
+
+hg_alpha_switch=true; %1 means get hG, 0 means get alpha dynamics
 
 for i=1:length(session_data)
     folders_imag =  strcmp(session_data(i).folder_type,'I');
@@ -1238,10 +1248,16 @@ for i=1:length(session_data)
     for ii=1:length(folders)
         folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
         %cd(folderpath)
-        files = [files;findfiles('',folderpath)'];
+        files = [files;findfiles('mat',folderpath)'];
     end
 
-    [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata);
+    if hg_alpha_switch
+        [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
+
+    else
+        [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata);
+
+    end
 
     labels = [labels; zeros(idx,1)];
     days = [days;ones(idx,1)*i];
@@ -1254,10 +1270,16 @@ for i=1:length(session_data)
     for ii=1:length(folders)
         folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
         %cd(folderpath)
-        files = [files;findfiles('',folderpath)'];
+        files = [files;findfiles('mat',folderpath)'];
     end
 
-    [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata);
+     if hg_alpha_switch
+        [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
+
+    else
+        [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata);
+
+    end
 
     labels = [labels; ones(idx,1)];
     days = [days;ones(idx,1)*i];
@@ -1271,10 +1293,16 @@ for i=1:length(session_data)
     for ii=1:length(folders)
         folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
         %cd(folderpath)
-        files = [files;findfiles('',folderpath)'];
+        files = [files;findfiles('mat',folderpath)'];
     end
 
-    [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata);
+     if hg_alpha_switch
+        [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
+
+    else
+        [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata);
+
+    end
 
     labels = [labels; ones(idx,1)];
     days = [days;ones(idx,1)*i];
@@ -1283,7 +1311,151 @@ for i=1:length(session_data)
 end
 
 %save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
-save alpha_dynamics_200Hz_AllDays_DaysLabeled_NewOnlyState3 xdata ydata labels labels_batch days -v7.3
+save alpha_dynamics_hG_200Hz_AllDays_DaysLabeled xdata ydata labels labels_batch days -v7.3
+
+
+%% getting alpha osc. of hg amplitude for PAC via CNN recon
+
+
+
+clc;clear
+close all
+
+if ispc
+    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
+    cd(root_path)
+    addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
+    load session_data_B3_Hand
+    addpath 'C:\Users\nikic\Documents\MATLAB'
+    load('ECOG_Grid_8596_000067_B3.mat')
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers'))
+
+else
+    root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
+    cd(root_path)
+    load session_data_B3_Hand
+    load('ECOG_Grid_8596_000067_B3.mat')
+    addpath(genpath('/home/reza/Repositories/ECoG_BCI_TravelingWaves/helpers'))
+
+end
+
+xdata={};
+ydata={};
+labels=[];
+labels_batch=[];
+days=[];
+
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'SampleRate',1e3);
+
+d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'SampleRate',200);
+
+
+
+hg_alpha_switch=false; %1 means get hG, 0 means get alpha dynamics
+
+for i=1:length(session_data)
+    folders_imag =  strcmp(session_data(i).folder_type,'I');
+    folders_online = strcmp(session_data(i).folder_type,'O');
+    folders_batch = strcmp(session_data(i).folder_type,'B');
+    folders_batch1 = strcmp(session_data(i).folder_type,'B1');
+    %batch_idx_overall = [find(folders_batch==1) find(folders_batch1==1)];
+
+    imag_idx = find(folders_imag==1);
+    online_idx = find(folders_online==1);
+    batch_idx = find(folders_batch==1);
+    batch_idx1 = find(folders_batch1==1);
+    %     if sum(folders_batch1)==0
+    %         batch_idx = find(folders_batch==1);
+    %     else
+    %         batch_idx = find(folders_batch1==1);
+    %     end
+    %     %batch_idx = [online_idx batch_idx];
+
+    online_idx=[online_idx batch_idx];
+    %batch_idx = [online_idx batch_idx_overall];
+
+
+    %%%%%% get imagined data files
+    folders = session_data(i).folders(imag_idx);
+    day_date = session_data(i).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+
+    if hg_alpha_switch
+        [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
+
+    else
+        [xdata,ydata,idx] = ...
+            get_spatiotemp_windows_hg_alpha(files,d2,ecog_grid,xdata,ydata,d1);
+
+    end
+
+    labels = [labels; zeros(idx,1)];
+    days = [days;ones(idx,1)*i];
+    labels_batch = [labels_batch;zeros(idx,1)];
+
+    %%%%%% getting online files now
+    folders = session_data(i).folders(online_idx);
+    day_date = session_data(i).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+
+    if hg_alpha_switch
+        [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
+
+    else
+        [xdata,ydata,idx] = ...
+            get_spatiotemp_windows_hg_alpha(files,d2,ecog_grid,xdata,ydata,d1);
+
+    end
+
+    labels = [labels; ones(idx,1)];
+    days = [days;ones(idx,1)*i];
+    labels_batch = [labels_batch;zeros(idx,1)];
+
+
+    %%%%%% getting batch udpated (CL2) files now
+    folders = session_data(i).folders(batch_idx1);
+    day_date = session_data(i).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+
+    if hg_alpha_switch
+        [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
+
+    else
+        [xdata,ydata,idx] = ...
+            get_spatiotemp_windows_hg_alpha(files,d2,ecog_grid,xdata,ydata,d1);
+
+    end
+
+    labels = [labels; ones(idx,1)];
+    days = [days;ones(idx,1)*i];
+    labels_batch = [labels_batch;ones(idx,1)];
+
+end
+
+%save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
+save alpha_dynamics_hG_alpha_PAC_200Hz_AllDays_DaysLabeled xdata ydata labels labels_batch days -v7.3
+
+
 
 %% plotting values
 
@@ -1463,7 +1635,7 @@ pac_ol=[];pval_ol=[];
 pac_cl=[];pval_cl=[];
 pac_batch=[];pval_batch=[];
 for i=1:length(session_data)
-    
+
     folders_imag =  strcmp(session_data(i).folder_type,'I');
     folders_online = strcmp(session_data(i).folder_type,'O');
     folders_batch = strcmp(session_data(i).folder_type,'B');
