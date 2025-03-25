@@ -1182,13 +1182,17 @@ end
 clc;clear
 close all
 
-root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
-addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
-cd(root_path)
-addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
-load session_data_B3_Hand
-addpath 'C:\Users\nikic\Documents\MATLAB'
-load('ECOG_Grid_8596_000067_B3.mat')
+if ispc
+    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
+    cd(root_path)
+    addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
+    load session_data_B3_Hand
+    addpath 'C:\Users\nikic\Documents\MATLAB'
+    load('ECOG_Grid_8596_000067_B3.mat')
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers'))
+
+end
 
 xdata={};
 ydata={};

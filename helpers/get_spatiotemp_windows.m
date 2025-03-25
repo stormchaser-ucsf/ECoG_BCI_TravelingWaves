@@ -37,8 +37,6 @@ for ii=1:length(files)
         df = filtfilt(d2,data);
         df = df(l22+1:end,:);
 
-        % normalize
-        %df = normalize(df);
 
         % filter at 1khz
         %df = filtfilt(d1,data);
@@ -63,10 +61,7 @@ for ii=1:length(files)
                     b(j,:,:) = bb;
                 end
 
-                %a=a./norm(a(:));
-                %b=b./norm(b(:));
-                %a=normalize(a); % zscore
-                %b=normalize(b);
+                
                 xdata = cat(1,(xdata),(a));
                 ydata = cat(1,(ydata),(b));
                 idx=idx+1;
