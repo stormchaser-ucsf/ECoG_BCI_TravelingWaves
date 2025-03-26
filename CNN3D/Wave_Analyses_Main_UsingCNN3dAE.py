@@ -6,6 +6,7 @@ Created on Tue Mar 11 19:13:24 2025
 """
 
 #%% PRELIMS
+
 import os
 
 os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
@@ -38,8 +39,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 # load the data 
-#filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_NewOnlyState3.mat'
-filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
+filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_hG_alpha_PAC_200Hz_AllDays_DaysLabeled.mat'
+#filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
 
 
 data_dict = mat73.loadmat(filename)
@@ -53,7 +54,7 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 50
+iterations = 5
 days = np.unique(labels_days)
 
 decoding_acc=[]
@@ -75,10 +76,10 @@ for iter in np.arange(iterations):
     Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.7,labels_days)                        
     #del xdata, ydata
     
-    # circular shifting the data for null stats
-    random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
-    for i in np.arange(len(random_shifts)):
-        Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
+    # # circular shifting the data for null stats
+    # random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
+    # for i in np.arange(len(random_shifts)):
+    #     Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
     
 
     
@@ -189,6 +190,20 @@ plt.plot(tmp)
 plt.plot(tmp1)
 plt.show()
 
+# now same but with regression line
+from sklearn.linear_model import LinearRegression
+x = days
+x = x.reshape(-1,1)
+y = tmp1
+mdl = LinearRegression()
+mdl.fit(x,y)
+plt.figure();
+plt.scatter(x,y)
+#x = np.concatenate((np.ones((10,1)),x),axis=1)
+yhat = mdl.predict(x)
+plt.plot(x,yhat,color='red')
+plt.show()
+
 
 tmp = np.mean(balanced_acc_days,axis=0)
 plt.figure();
@@ -202,11 +217,14 @@ cl_mse_days_null = cl_mse_days
 balanced_acc_days_null = balanced_acc_days
 cd_loss_null = ce_loss
 
-np.savez('Alpha_200Hz_AllDays_null', 
-          ce_loss = ce_loss,
-          balanced_acc_days = balanced_acc_days,
-          ol_mse_days = ol_mse_days,
-          cl_mse_days=cl_mse_days)
+
+
+
+# np.savez('Alpha_200Hz_AllDays_null', 
+#           ce_loss = ce_loss,
+#           balanced_acc_days = balanced_acc_days,
+#           ol_mse_days = ol_mse_days,
+#           cl_mse_days=cl_mse_days)
 
 
 #%% plotting amplitude differences
