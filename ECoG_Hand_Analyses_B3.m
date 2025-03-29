@@ -1671,6 +1671,10 @@ for i=1:length(session_data)
     disp(['Processing Day ' num2str(i) ' OL'])
     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
 
+    % temp stuff for plotting: get good channel example of PAC
+    % plot significant channel on brain with preferred phase
+    % show how it traverses across days 
+
     % run permutation test and get pvalue for each channel
     pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
 
