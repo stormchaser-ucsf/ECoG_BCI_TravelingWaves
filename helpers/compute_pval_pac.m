@@ -1,4 +1,4 @@
-function pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase)
+function [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase)
 
 
 

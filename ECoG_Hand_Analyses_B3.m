@@ -1601,7 +1601,7 @@ plot(days,ce_loss,'.','MarkerSize',20)
 clc;clear
 close all
 
-tic
+
 
 if ispc
     root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
@@ -1619,7 +1619,7 @@ else
     cd(root_path)
     load session_data_B3_Hand
     load('ECOG_Grid_8596_000067_B3.mat')
-    addpath(genpath('/home/reza/Repositories/ECoG_BCI_TravelingWaves/helpers'))
+    addpath(genpath('/home/reza/Repositories/ECoG_BCI_TravelingWaves'))
 end
 
 
@@ -1634,6 +1634,9 @@ d2 = designfilt('bandpassiir','FilterOrder',4, ...
 pac_ol=[];pval_ol=[];
 pac_cl=[];pval_cl=[];
 pac_batch=[];pval_batch=[];
+rboot_ol=[];rboot_cl=[];rboot_batch=[];
+pac_raw_values={};k=1;
+tic
 for i=1:length(session_data)
 
     folders_imag =  strcmp(session_data(i).folder_type,'I');
@@ -1671,16 +1674,19 @@ for i=1:length(session_data)
     disp(['Processing Day ' num2str(i) ' OL'])
     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
 
-    % temp stuff for plotting: get good channel example of PAC
-    % plot significant channel on brain with preferred phase
-    % show how it traverses across days 
+   
 
     % run permutation test and get pvalue for each channel
-    pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+    [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
 
     %sum(pac_r>0.3)/253
     pval_ol(i,:) = pval;
-    pac_ol(i,:) = abs(mean(pac));
+    pac_ol(i,:) = abs(mean(pac));    
+    pac_raw_values(k).pac = pac;
+    pac_raw_values(k).boot = rboot;
+    pac_raw_values(k).type = 'OL';
+    pac_raw_values(k).Day = i;
+    k=k+1;
 
 
     %%%%%% getting online files now
@@ -1698,11 +1704,16 @@ for i=1:length(session_data)
     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
 
     % run permutation test and get pvalue for each channel
-    pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+    [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
 
     %sum(pac_r>0.3)/253
     pval_cl(i,:) = pval;
-    pac_cl(i,:) = abs(mean(pac));
+    pac_cl(i,:) = abs(mean(pac));    
+    pac_raw_values(k).pac = pac;
+    pac_raw_values(k).boot = rboot;
+    pac_raw_values(k).type = 'CL';
+    pac_raw_values(k).Day = i;
+    k=k+1;
 
     %%%%%% getting batch udpated (CL2) files now
     folders = session_data(i).folders(batch_idx1);
@@ -1721,10 +1732,17 @@ for i=1:length(session_data)
         [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
 
         % run permutation test and get pvalue for each channel
-        pval = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+        [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
 
         pval_batch(i,:) = pval;
         pac_batch(i,:) = abs(mean(pac));
+        %rboot_batch(i,:,:) = rboot;
+        pac_raw_values(k).pac = pac;
+        pac_raw_values(k).boot = rboot;
+        pac_raw_values(k).type = 'Batch';
+        pac_raw_values(k).Day = i;
+        k=k+1;
+
 
     else
         pac_batch(i,:)=NaN(1,253);
@@ -1737,6 +1755,12 @@ toc
 
 
 cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
-save PAC_B3_Hand -v7.3
+save PAC_B3_Hand_rawValues -v7.3
 
+%% PLOTTING CONTINUATION FROM ABOVE
 
+ % temp stuff for plotting: get good channel example of PAC
+    % plot significant channel on brain with preferred phase
+    % show how it traverses across days 
+
+    

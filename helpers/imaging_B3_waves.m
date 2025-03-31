@@ -1,9 +1,9 @@
 
 
-
-dirn=pwd;
-addpath(genpath('C:\Users\nikic\Documents\MATLAB\ctmr_gauss_plot_April2016\ctmr_gauss_plot_April2016'))
-cd('C:\Users\nikic\Documents\MATLAB\ctmr_gauss_plot_April2016\ctmr_gauss_plot_April2016\Bravo3')
+% 
+% dirn=pwd;
+% addpath(genpath('C:\Users\nikic\Documents\MATLAB\ctmr_gauss_plot_April2016\ctmr_gauss_plot_April2016'))
+% cd('C:\Users\nikic\Documents\MATLAB\ctmr_gauss_plot_April2016\ctmr_gauss_plot_April2016\Bravo3')
 
 load('BRAVO3_lh_pial')
 %load('BRAVO2_elecs_all2')
@@ -19,7 +19,7 @@ e_h = el_add(elecmatrix([1:length(ch)],:), 'color', 'b', 'numbers', ch);
 %e_h = el_add(elecmatrix([1:length(ch)],:), 'color', 'r', 'msize',12);
 %e_h = el_add(elecmatrix(1:64,:)); % only loading 48 electrode data
 set(gcf,'Color','w')
-cd(dirn)
+%cd(dirn)
 
 
 % plotting by ROI
