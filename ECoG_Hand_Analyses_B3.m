@@ -1759,8 +1759,89 @@ save PAC_B3_Hand_rawValues -v7.3
 
 %% PLOTTING CONTINUATION FROM ABOVE
 
- % temp stuff for plotting: get good channel example of PAC
-    % plot significant channel on brain with preferred phase
-    % show how it traverses across days 
+% temp stuff for plotting: get good channel example of PAC
+% plot significant channel on brain with preferred phase
+% show how it traverses across days
 
-    
+
+% code for plotting phase angle and PLV on grid. Taken from ecog hand
+% project code
+
+
+
+% plot the sig. electrodes on the brain across condns
+p = sum(p_overall);
+pref_phase=angle(mean(exp(1i.*ph_angle),1));
+phMap = linspace(-pi,pi,256)';
+ChColorMap = ([parula(256)]);
+%ChColorMap = ([parula(128) ;flipud(parula(128))]);
+figure;
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,hemis,1,1,1);
+%c_h = ctmr_gauss_plot(cortex,elecmatrix(1:256,:),p,'lh',1,1,1);
+e_h = el_add(elecmatrix(bad_chI,:), 'color', 'w','msize',2);
+for j=1:length(p)
+    if p(j)~=0
+        ms = p(j)*(1.25)+3;
+        [aa bb]=min(abs(pref_phase(j) - phMap));
+        c=ChColorMap(bb,:);
+        %e_h = el_add(elecmatrix(j,:), 'color', [.1 .1 .8],'msize',ms);
+        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',ms);
+    end
+end
+set(gcf,'Color','w')
+
+figure;
+c_h = ctmr_gauss_plot(cortex,elecmatrix(1:256,:),p,hemis,1,1,1);
+e_h = el_add(elecmatrix(1:256,:), 'color', 'w','msize',1.0);
+sum(p~=0)/sum(bad_chI)
+
+% phase plot new colormap
+p = sum(p_overall);
+pref_phase=angle(mean(exp(1i.*ph_angle),1));
+phMap = linspace(-pi,pi,256)';
+tmp = flipud(parula(256));
+ChColorMap = [tmp];
+figure;
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,hemis,1,1,1);
+%c_h = ctmr_gauss_plot(cortex,elecmatrix(1:256,:),p,'lh',1,1,1);
+e_h = el_add(elecmatrix(bad_chI,:), 'color', 'w','msize',2);
+for j=1:length(p)
+    if p(j)~=0
+        ms = p(j)*(1.25)+3;
+        [aa bb]=min(abs(pref_phase(j) - phMap));
+        c=ChColorMap(bb,:);
+        %e_h = el_add(elecmatrix(j,:), 'color', [.1 .1 .8],'msize',ms);
+        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',ms);
+    end
+end
+set(gcf,'Color','w')
+
+
+% phase plot new colormap
+p = sum(p_overall);
+pref_phase=angle(mean(exp(1i.*ph_angle),1));
+phMap = linspace(-pi,pi,length(p))';
+tmp = (parula(256));
+%tmp(221:end,:) = tmp(1:50,:);
+ChColorMap = [tmp];
+for i=1:size(ChColorMap,2)
+    ChColorMap(:,i) = smooth(ChColorMap(:,i));
+end
+figure;
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,hemis,1,1,1);
+%c_h = ctmr_gauss_plot(cortex,elecmatrix(1:256,:),p,'lh',1,1,1);
+e_h = el_add(elecmatrix(bad_chI,:), 'color', 'w','msize',2);
+for j=1:length(p)
+    if p(j)~=0
+        ms = p(j)*(1.25)+3;
+        [aa bb]=min(abs(pref_phase(j) - phMap));
+        c=ChColorMap(bb,:);
+        %e_h = el_add(elecmatrix(j,:), 'color', [.1 .1 .8],'msize',ms);
+        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',ms);
+    end
+end
+set(gcf,'Color','w')
+
+
+
+
