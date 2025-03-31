@@ -1,4 +1,4 @@
-% main code for the hand project
+ % main code for the hand project
 %
 % this includes the data recently collected with multipe sequences of hand
 % movements
@@ -1766,8 +1766,31 @@ save PAC_B3_Hand_rawValues -v7.3
 
 % code for plotting phase angle and PLV on grid. Taken from ecog hand
 % project code
+pac_day1 = pac_raw_values(1).pac;
+plv  = abs(mean(pac_day1));
+pval_day1 = pval_ol(1,:);
+sig = pval_day1<=0.05;
+ns = pval_day1>0.05;
+pref_phase = angle(mean(pac_day1));
+figure;
+subplot(1,2,1)
+rose(pref_phase(sig));
 
-
+% plot sig electrodes, with size denoted by PLV and color b preferred phase
+plv(sig) = zscore(plv(sig))+4;
+phMap = linspace(-pi,pi,253)';
+ChColorMap = ([parula(253)]);
+subplot(1,2,2)
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+e_h = el_add(elecmatrix, 'color', 'w','msize',2);
+for j=1:length(sig)
+    if sig(j)==1
+        ms = plv(j)*2;
+        [aa bb]=min(abs(pref_phase(j) - phMap));
+        c=ChColorMap(bb,:);
+        e_h = el_add(elecmatrix(j,:), 'color', 'b','msize',ms);
+    end
+end
 
 % plot the sig. electrodes on the brain across condns
 p = sum(p_overall);
