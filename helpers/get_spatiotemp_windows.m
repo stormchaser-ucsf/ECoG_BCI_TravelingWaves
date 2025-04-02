@@ -28,14 +28,17 @@ for ii=1:length(files)
         l4 = length(data4);
         data3 = cell2mat(TrialData.BroadbandData(kinax3)');
         l3 = length(data3);
+        data1 = cell2mat(TrialData.BroadbandData(kinax1)');
+        l1 = length(data1);
 
-        data = [data2;data3];
+        data = [data1;data2;data3;data4];
         l22=floor(l2/5); % length of the down sampled signal
+        l11=floor(l1/5); % length of the down sampled signal
 
         % resample and filter
         data = resample(data,200,1000);
         df = filtfilt(d2,data);
-        df = df(l22+1:end,:);
+        df = df(l11+1:end,:);
 
 
         % filter at 1khz

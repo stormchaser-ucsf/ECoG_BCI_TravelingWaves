@@ -88,7 +88,7 @@ for ii=1:length(files)
         % hold on;
         % polarplot([phi-0.01 phi],[0 r1],'LineWidth',1.5,'Color','r');
         % %set(gcf,'PaperPositionMode','auto')
-        % %set(gcf,'Position',[680.0,865,120.0,113.0])
+        % %set(gcf,'Position',[680.0,865,120.0,113.0])        
         % title([num2str(ii) '    ' num2str(abs(mean(exp(1i*circ_diff(:,50)))))])
 
         % get phase difference and circular mean
@@ -99,7 +99,7 @@ for ii=1:length(files)
         pac = cat(1,pac,m);
         alp_ph = alp_ph(:,logical(good_ch));
         hg_alpha_ph = hg_alpha_ph(:,logical(good_ch));
-        alpha_phase = cat(1,alpha_phase,alp_ph);
+        alpha_phase = cat(1,alpha_phase,alp_ph);        
         hg_alpha_phase = cat(1,hg_alpha_phase,hg_alpha_ph);
     end
 end
@@ -109,35 +109,4 @@ pac=pac(:,logical(good_ch));
 pac = exp(1i*pac);
 %pac_r = abs(mean(pac_r));
 
-% 
-% % temp plotting
-% tmp = (pac(:,50));
-% [t,r]=rose(angle(tmp),20);
-% %subplot(4,8,i);
-% figure
-% polarplot(t,r,'LineWidth',1,'Color','k');
-% pax=gca;
-% %pax.RLim = [0 20];
-% thetaticks(0:45:315);
-% pax.ThetaAxisUnits='radians';
-% pax.FontSize=16;
-% set(gcf,'Color','w')
-% pax.RTick = [5 10 15 20 ];
-% pax.GridAlpha = 0.25;
-% pax.MinorGridAlpha = 0.25;
-% pax.ThetaMinorGrid = 'off';
-% %pax.ThetaTickLabel = {'0', ' ', '\pi/2 ', ' ','\pi',' ','3\pi/2',' '};
-% pax.ThetaTickLabel = '';
-% %pax.ThetaTickLabel = {'0', ' ', ' ', ' ','\pi',' ',' ',' '};
-% pax.RTickLabel = {' ',' '};
-% pax.RAxisLocation=1;
-% pax.RAxis.LineWidth=1;
-% pax.ThetaAxis.LineWidth=1;
-% pax.LineWidth=1;
-% r1 = abs(mean(tmp))*max(1*r);
-% phi = angle(mean(tmp));
-% hold on;
-% polarplot([phi-0.01 phi],[0 r1],'LineWidth',1.5,'Color','r');
-% %set(gcf,'PaperPositionMode','auto')
-% %set(gcf,'Position',[680.0,865,120.0,113.0])
-% title(['PLV ' num2str(abs(mean((pac(:,50)))))])
+
