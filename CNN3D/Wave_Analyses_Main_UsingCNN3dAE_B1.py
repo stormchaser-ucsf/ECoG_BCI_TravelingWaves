@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Thu Apr  3 01:24:37 2025
+
+@author: nikic
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Tue Mar 11 19:13:24 2025
 
 @author: nikic
@@ -40,7 +47,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 # load the data 
-filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_hG_alpha_PAC_200Hz_AllDays_DaysLabeled.mat'
+filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate clicker/alpha_dynamics_hG_200Hz_1st5Days_DaysLabeled_B1_7DoF.mat'
+#filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_hG_200Hz_1st5Days_DaysLabeled_B1_7DoF.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
 
 
@@ -74,7 +82,7 @@ for iter in np.arange(iterations):
     
    
     # parse into training, validation and testing datasets
-    Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.7,labels_days)                        
+    Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal_B1(xdata,ydata,labels,0.7,labels_days)                        
     #del xdata, ydata
     
     # # circular shifting the data for null stats
@@ -108,13 +116,13 @@ for iter in np.arange(iterations):
     
     # get the CNN architecture model
     num_classes=2
-    input_size=378
-    lstm_size=64
+    input_size=180
+    lstm_size=24
     ksize=2;
     if 'model' in locals():
         del model 
    
-    model = Autoencoder3D(ksize,num_classes,input_size,lstm_size).to(device)
+    model = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size).to(device)
     
     # getparams and train the model 
     num_epochs=150

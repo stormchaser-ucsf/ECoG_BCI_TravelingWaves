@@ -2280,4 +2280,8 @@ for i=1:length(session_data)
 end
 
 %save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
-save alpha_dynamics_hG_200Hz_AllDays_DaysLabeled_B1_7DoF xdata ydata labels labels_batch days -v7.3
+%save alpha_dynamics_hG_200Hz_AllDays_DaysLabeled_B1_7DoF xdata ydata labels labels_batch days -v7.3
+save alpha_dynamics_hG_200Hz_All5Days_DaysLabeled_B1_7DoF xdata ydata labels labels_batch days -v7.3
+
+
+

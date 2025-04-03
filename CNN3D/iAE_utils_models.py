@@ -388,6 +388,93 @@ def training_test_val_split_CNN3DAE(xdata,Y,labels,prop):
 
 # split into test training splits for the AE with balanced datasets
 # within each day, split the data into 70% training, 15% testing and 15% validation 
+def training_test_val_split_CNN3DAE_equal_B1(xdata,Y,labels,prop,labels_days):
+    days = np.unique(labels_days)
+    Xtrain=np.empty((0,40,8,16))
+    Xtest=np.empty((0,40,8,16))
+    Xval=np.empty((0,40,8,16))
+    Ytrain=np.empty((0,40,8,16))
+    Ytest=np.empty((0,40,8,16))
+    Yval=np.empty((0,40,8,16))
+    labels_train=[]
+    labels_test=[]
+    labels_val=[]
+    labels_test_days=[]
+    for i in np.arange(len(days)):
+        days_idx = np.where(labels_days==days[i])[0]
+        xtmp = xdata[days_idx]
+        ytmp = Y[days_idx]
+        labels_tmp = np.squeeze(labels[days_idx]).astype(int)
+        
+        # bin count
+        bin_count = np.bincount(labels_tmp)
+        bin_min = np.where(bin_count==np.min(bin_count))[0]        
+        #start first split, get training
+        len_cutoff = (prop*bin_count[bin_min])
+        # extract len_cutoff elements randomly from each class
+        idx0 = np.where(labels_tmp==0)[0]
+        idx1 = np.where(labels_tmp==1)[0]
+        idx0_main = np.random.permutation(idx0)
+        idx1_main = np.random.permutation(idx1)
+        
+        idx0_train = idx0_main[:round(len_cutoff[0])]
+        idx1_train = idx1_main[:round(len_cutoff[0])]
+        idx_train = np.concatenate((idx0_train, idx1_train))
+        Xtrain_tmp = xtmp[idx_train,:]
+        Ytrain_tmp = ytmp[idx_train,:]
+        labels_train_tmp = labels_tmp[idx_train].tolist()
+        
+        Xtrain = np.concatenate((Xtrain,Xtrain_tmp),axis=0)
+        Ytrain = np.concatenate((Ytrain,Ytrain_tmp),axis=0)
+        labels_train.append(labels_train_tmp)
+        
+        
+        # get leftover and do remaining splits
+        idx0_leftover = idx0_main[round(len_cutoff[0]):]
+        idx1_leftover = idx1_main[round(len_cutoff[0]):]
+        idx_leftover = np.concatenate((idx0_leftover, idx1_leftover))
+        labels_leftover = labels_tmp[idx_leftover]
+        # bin count
+        bin_count = np.bincount(labels_leftover)
+        bin_min = np.where(bin_count==np.min(bin_count))[0]        
+        # do the second split for validation: equal size
+        len_cutoff1 = round(bin_count[bin_min][0]/2)
+        idx0_val = idx0_leftover[:len_cutoff1]
+        idx0_test = idx0_leftover[len_cutoff1:]
+        idx1_val = idx1_leftover[:len_cutoff1]
+        idx1_test = idx1_leftover[len_cutoff1:]
+        
+        idx_val = np.concatenate((idx0_val, idx1_val))
+        Xval_tmp = xtmp[idx_val,:]
+        Yval_tmp = ytmp[idx_val,:]
+        labels_val_tmp = labels_tmp[idx_val].tolist()
+        Xval = np.concatenate((Xval,Xval_tmp),axis=0)
+        Yval = np.concatenate((Yval,Yval_tmp),axis=0)
+        labels_val.append(labels_val_tmp)
+        
+        idx_test = np.concatenate((idx0_test, idx1_test))
+        Xtest_tmp = xtmp[idx_test,:]
+        Ytest_tmp = ytmp[idx_test,:]
+        labels_test_tmp = labels_tmp[idx_test].tolist()
+        Xtest = np.concatenate((Xtest,Xtest_tmp),axis=0)
+        Ytest = np.concatenate((Ytest,Ytest_tmp),axis=0)
+        labels_test.append(labels_test_tmp)
+        tmp = days[i] * np.ones((len(idx_test),1))
+        labels_test_days.append(tmp.tolist())
+        
+        
+        
+    
+    labels_train = np.concatenate(labels_train)
+    labels_val = np.concatenate(labels_val)
+    labels_test = np.concatenate(labels_test)
+    labels_test_days = np.concatenate(labels_test_days)
+    
+    return Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
+    
+
+# split into test training splits for the AE with balanced datasets
+# within each day, split the data into 70% training, 15% testing and 15% validation 
 def training_test_val_split_CNN3DAE_equal(xdata,Y,labels,prop,labels_days):
     days = np.unique(labels_days)
     Xtrain=np.empty((0,40,11,23))
@@ -879,6 +966,88 @@ class Autoencoder3D(nn.Module):
         return recon,logits 
 
 
+class Encoder3D_B1(nn.Module):
+    def __init__(self,ksize):
+        super(Encoder3D_B1, self).__init__()
+        self.conv1 = nn.Conv3d(1, 12, kernel_size=ksize, stride=(1, 1, 2)) 
+        self.conv2 = nn.Conv3d(12, 12, kernel_size=ksize, stride=(1, 2, 2)) # downsampling h
+        self.conv3 = nn.Conv3d(12, 6, kernel_size=ksize, stride=(1, 1, 2))
+        #self.conv4 = nn.Conv3d(12, 6, kernel_size=ksize, stride=(1, 1, 1))
+        #self.fc = nn.Linear(6 * 7 * 9 *25, num_nodes)    # 6 filters, w, h, d    
+        self.elu = nn.ELU()
+        #self.bn1 = torch.nn.BatchNorm3d(num_features=12)
+        #self.bn2 = torch.nn.BatchNorm3d(num_features=6)
+        #self.pool = nn.AvgPool3d(kernel_size=ksize,stride=1)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        #x = self.bn1(x)
+        x = self.elu(x)
+        #x = self.pool(x)
+        
+        x = self.conv2(x)
+        #x = self.bn1(x)
+        x = self.elu(x)
+        #x = self.pool(x)
+        
+        x=self.conv3(x)
+        #x = self.bn1(x)
+        x=self.elu(x)
+        
+        #x=self.conv4(x)
+        #x = self.bn2(x)
+        #x=self.elu(x)
+        return x
+
+# CNN 3D AE decoder
+class Decoder3D_B1(nn.Module):
+    def __init__(self,ksize):
+        super(Decoder3D_B1, self).__init__()
+        #self.fc = nn.Linear(num_nodes, 6 * 7 * 9 *25)
+        self.deconv1 = nn.ConvTranspose3d(6, 12, kernel_size=ksize, stride=(1, 1, 2))
+        self.deconv2 = nn.ConvTranspose3d(12, 12, kernel_size=ksize, stride=(1, 2, 2),
+                                          output_padding=(0,1,0))        
+        self.deconv3 = nn.ConvTranspose3d(12, 1, kernel_size=ksize, stride=(1, 1, 2))                                           
+        #self.deconv4 = nn.ConvTranspose3d(12, 1, kernel_size=ksize, stride=(1, 1, 2))                                           
+        self.elu = nn.ELU()        
+        #self.bn1 = torch.nn.BatchNorm3d(num_features=12)
+        #self.bn2 = torch.nn.BatchNorm3d(num_features=6)
+
+    def forward(self, x):
+        #x = self.fc(x)
+        #x = self.elu(x)
+        #x = x.view(x.size(0), 6, 7, 9, 25)
+        x = self.deconv1(x)
+        #x = self.bn1(x)        
+        x = self.elu(x)
+        
+        x = self.deconv2(x)
+        #x = self.bn1(x)        
+        x = self.elu(x)
+        
+        x = self.deconv3(x)
+        #x = self.bn1(x)
+        #x = self.elu(x)
+        
+        #x = self.deconv4(x)
+        #x = torch.tanh(x) # squish between -1 and 1
+        return x
+
+class Autoencoder3D_B1(nn.Module):
+    def __init__(self, ksize,num_classes,input_size,lstm_size):
+        super(Autoencoder3D_B1, self).__init__()
+        self.encoder = Encoder3D_B1(ksize)
+        self.decoder = Decoder3D_B1(ksize)
+        #self.classifier = nn.Linear(num_nodes, num_classes)  
+        self.classifier = rnn_lstm(num_classes,input_size,lstm_size)
+        
+    def forward(self,x):
+        latent = self.encoder(x)
+        recon = self.decoder(latent)
+        logits = self.classifier(latent)
+        return recon,logits  
+
+
 #### model training and validation sections 
 
 # function to validate model 
@@ -930,33 +1099,6 @@ def validation_loss(model,X_test,Y_test,batch_val,val_type):
     return loss_val,accuracy,recon_error
 
 
-# function to validate modes: pass the entire validation data through 
-def validation_loss_3DCNNAE_fullVal(model,Xval,Yval,labels_val,batch_val,val_type):
-    crit_classif_val = nn.CrossEntropyLoss(reduction='mean') #if mean, it is over all samples
-    crit_recon_val = nn.MSELoss(reduction='mean') # if mean, it is over all elements     
-    model.eval()
-    with torch.no_grad():
-        x=torch.from_numpy(Xval).to(device).float()
-        y=torch.from_numpy(Yval).to(device).float()
-        z=torch.from_numpy(labels_val).to(device).float()
-        out,zpred = model(x) 
-        loss1 = crit_recon_val(out,y)
-        loss2 = crit_classif_val(zpred,z)    
-        #loss1  = loss1/x.shape[0]
-        #loss2 = loss2/x.shape[0]
-        loss_val = 50*loss1.item() + loss2.item()    
-        
-    zlabels = convert_to_ClassNumbers(z)        
-    zpred_labels = convert_to_ClassNumbers(zpred)     
-    accuracy = torch.sum(zlabels == zpred_labels).item()
-    accuracy = accuracy/x.shape[0]
-    recon_error = (torch.sum(torch.square(out-y))).item()  
-    recon_error = recon_error/x.shape[0]
-    
-    model.train()
-    torch.cuda.empty_cache()
-    return loss_val,accuracy,recon_error      
-        
 
 
 # function to validate model 
@@ -1010,6 +1152,36 @@ def validation_loss_3DCNNAE(model,X_test,Y_test,labels_val,batch_val,val_type):
     recon_error = (recon_error/X_test.shape[0])#.cpu().numpy()
     torch.cuda.empty_cache()
     return loss_val,accuracy,recon_error
+
+
+
+# function to validate modes: pass the entire validation data through 
+def validation_loss_3DCNNAE_fullVal(model,Xval,Yval,labels_val,batch_val,val_type):
+    crit_classif_val = nn.CrossEntropyLoss(reduction='mean') #if mean, it is over all samples
+    crit_recon_val = nn.MSELoss(reduction='mean') # if mean, it is over all elements     
+    model.eval()
+    with torch.no_grad():
+        x=torch.from_numpy(Xval).to(device).float()
+        y=torch.from_numpy(Yval).to(device).float()
+        z=torch.from_numpy(labels_val).to(device).float()
+        out,zpred = model(x) 
+        loss1 = crit_recon_val(out,y)
+        loss2 = crit_classif_val(zpred,z)    
+        #loss1  = loss1/x.shape[0]
+        #loss2 = loss2/x.shape[0]
+        loss_val = 30*loss1.item() + loss2.item()    #30
+        
+    zlabels = convert_to_ClassNumbers(z)        
+    zpred_labels = convert_to_ClassNumbers(zpred)     
+    accuracy = torch.sum(zlabels == zpred_labels).item()
+    accuracy = accuracy/x.shape[0]
+    recon_error = (torch.sum(torch.square(out-y))).item()  
+    recon_error = recon_error/x.shape[0]
+    
+    model.train()
+    torch.cuda.empty_cache()
+    return loss_val,accuracy,recon_error      
+        
 
 # TRAINING LOOP
 def training_loop_iAE(model,num_epochs,batch_size,learning_rate,batch_val,
@@ -1147,7 +1319,7 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
           # get loss      
           recon_loss = (recon_criterion(recon,Ytrain_batch))#/Ytrain_batch.shape[0]
           classif_loss = (classif_criterion(decodes,labels_batch))#/labels_batch.shape[0]      
-          loss = 50*recon_loss + classif_loss#30
+          loss = 30*recon_loss + classif_loss#30
           total_loss = loss.item()
           #print(classif_loss.item())
           
@@ -1187,7 +1359,7 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
           print(goat_loss,goat_acc)
           break
     
-    model_goat = Autoencoder3D(ksize,num_classes,input_size,lstm_size)
+    model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)
     #model_goat = iAutoencoder(input_size,hidden_size,latent_dims,num_classes)  
     #model_goat = iAutoencoder_B3(input_size,hidden_size,latent_dims,num_classes)
     model_goat.load_state_dict(torch.load(filename))
@@ -2748,3 +2920,91 @@ def bootstrap_difference_test(a,b,test_type):
 # out = r(out)
 # print(out.shape)
 
+# for B1
+
+
+# # # testing the various sizes of the convolutional layers 
+# input = torch.randn(32,1,8,16,40)
+
+
+# # layer 1: 9,21,99 is output
+# m=nn.Conv3d(1,12,kernel_size=2,stride=(1,1,2))
+# a = nn.AvgPool3d(kernel_size=2,stride=1)
+# bn = nn.BatchNorm3d(num_features=12)
+# r = nn.ELU()
+# out = m(input)
+# #out = bn(out)
+# out = r(out)
+# #out = a(out)
+
+# #layer 2
+# m = nn.Conv3d(12,12,kernel_size=2,stride=(1,2,2))
+# a = nn.AvgPool3d(kernel_size=2,stride=1)
+# out = m(out)
+# out = r(out)
+# #out = a(out)
+
+# # layer 3
+# m = nn.Conv3d(12,6,kernel_size=2,stride=(1,1,2))
+# out = m(out)
+# out = r(out)
+
+# # layer 4
+# # m = nn.Conv3d(12,6,kernel_size=2,stride=(1,1,1))
+# # out = m(out)
+# # out = r(out)
+
+# # # pass to lstm for classification
+# # tmp = torch.flatten(out,start_dim=1,end_dim=3)
+# # x=tmp
+# # x = torch.permute(x,(0,2,1))
+# # rnn1 = nn.LSTM(input_size=180,hidden_size=24,batch_first=True,bidirectional=False)
+# # output,(hn,cn) = rnn1(x)
+# # #output1,(hn1,cn1) = rnn2(output)
+# # hn=torch.squeeze(hn)
+# # linear0 = nn.Linear(24,2)
+# # out=linear0(hn)
+
+
+# # tmp = out.view()
+
+# # # bottleneck enc side
+# # out = out.view(out.size(0), -1) 
+# # m = nn.Linear(out.shape[1], 128)    
+# # out = m(out)
+
+# # # bottleneck dec side
+# # m = nn.Linear(128,6*7*19*25)    
+# # out = m(out)
+
+# # layer 4
+# #out = out.view(out.size(0), 6,7, 19,25)
+
+# m = nn.ConvTranspose3d(6,12,kernel_size=2,stride=(1,1,2),output_padding=(0,0,0))
+# out = m(out)
+# out = r(out)
+
+# # layer 3
+# m = nn.ConvTranspose3d(12,12,kernel_size=2,stride=(1,2,2),output_padding=(0,1,0))
+# out = m(out)
+# out = r(out)
+
+# out_tmp=out;
+
+# # # layer 2 want  10,22,100
+# # out=out_tmp
+# # m = nn.ConvTranspose3d(12,12,kernel_size=2,stride=(1,2,2),
+# #                       padding=(0,0,0), output_padding=(0,0,0))
+# # out = m(out)
+# # out = r(out)
+# # print(out.shape)
+
+# # out_tmp=out;
+
+
+# # layer 1 #11,23,200
+# out=out_tmp
+# m = nn.ConvTranspose3d(12,1,kernel_size=2,stride=(1,1,2),output_padding=(0,0,0))
+# out = m(out)
+# out = r(out)
+# print(out.shape)
