@@ -108,14 +108,14 @@ for iter in np.arange(iterations):
     
     
     # convert labels to indicators
-    labels_train = one_hot_convert(labels_train)
-    labels_test = one_hot_convert(labels_test)
-    labels_val = one_hot_convert(labels_val)
+    # labels_train = one_hot_convert(labels_train)
+    # labels_test = one_hot_convert(labels_test)
+    # labels_val = one_hot_convert(labels_val)
     
     
     
     # get the CNN architecture model
-    num_classes=2
+    num_classes=1
     input_size=180
     lstm_size=32
     ksize=2;
@@ -151,9 +151,11 @@ for iter in np.arange(iterations):
         tmp_ydata = Ytest[idx_days,:]
         tmp_recon = recon[idx_days,:]
         tmp_decodes = decodes[idx_days,:]
-        decodes1 = convert_to_ClassNumbers(tmp_decodes).cpu().detach().numpy()           
+        #decodes1 = convert_to_ClassNumbers(tmp_decodes).cpu().detach().numpy()           
+        decodes1 = convert_to_ClassNumbers_sigmoid(tmp_decodes).cpu().detach().numpy().squeeze()           
         
-        idx = convert_to_ClassNumbers(torch.from_numpy(tmp_labels)).detach().numpy()
+        #idx = convert_to_ClassNumbers(torch.from_numpy(tmp_labels)).detach().numpy()
+        idx = (tmp_labels)
         idx_cl = np.where(idx==1)[0]
         idx_ol = np.where(idx==0)[0]
     
@@ -185,13 +187,13 @@ for iter in np.arange(iterations):
         #balanced_decoding_acc.append(balanced_acc*100)
         
         # cross entropy loss
-        classif_criterion = nn.CrossEntropyLoss(reduction='mean')  #input,target
+        #classif_criterion = nn.CrossEntropyLoss(reduction='mean')  #input,target
         #targets = torch.argmax(torch.from_numpy(tmp_labels),dim=1)
-        #classif_criterion = nn.BCEWithLogitsLoss(reudction='mean')
+        classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')# input. target
         # classif_loss = (classif_criterion(torch.from_numpy(tmp_labels).to(device),
         #                                   tmp_decodes)).item()
-        classif_loss = (classif_criterion(tmp_decodes,
-                                          torch.from_numpy(tmp_labels).to(device))).item()
+        classif_loss = (classif_criterion(tmp_decodes.squeeze(),
+                                          torch.from_numpy(tmp_labels).to(device).float())).item()
         
         
         

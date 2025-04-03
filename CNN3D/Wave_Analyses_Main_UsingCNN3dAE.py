@@ -102,15 +102,15 @@ for iter in np.arange(iterations):
     Yval = np.transpose(Yval,(0,1,3,4,2)) 
     
     
-    # convert labels to indicators
-    labels_train = one_hot_convert(labels_train)
-    labels_test = one_hot_convert(labels_test)
-    labels_val = one_hot_convert(labels_val)
+    # # convert labels to indicators
+    # labels_train = one_hot_convert(labels_train)
+    # labels_test = one_hot_convert(labels_test)
+    # labels_val = one_hot_convert(labels_val)
     
     
     
     # get the CNN architecture model
-    num_classes=2
+    num_classes=1
     input_size=378
     lstm_size=64
     ksize=2;
@@ -146,9 +146,11 @@ for iter in np.arange(iterations):
         tmp_ydata = Ytest[idx_days,:]
         tmp_recon = recon[idx_days,:]
         tmp_decodes = decodes[idx_days,:]
-        decodes1 = convert_to_ClassNumbers(tmp_decodes).cpu().detach().numpy()           
+        #decodes1 = convert_to_ClassNumbers(tmp_decodes).cpu().detach().numpy()           
+        decodes1 = convert_to_ClassNumbers_sigmoid(tmp_decodes).cpu().detach().numpy().squeeze()           
         
-        idx = convert_to_ClassNumbers(torch.from_numpy(tmp_labels)).detach().numpy()
+        #idx = convert_to_ClassNumbers(torch.from_numpy(tmp_labels)).detach().numpy()
+        idx = (tmp_labels)
         idx_cl = np.where(idx==1)[0]
         idx_ol = np.where(idx==0)[0]
     
@@ -180,33 +182,37 @@ for iter in np.arange(iterations):
         #balanced_decoding_acc.append(balanced_acc*100)
         
         # cross entropy loss
-        classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
-        classif_loss = (classif_criterion(tmp_decodes,
-                                          torch.from_numpy(tmp_labels).to(device))).item()
+        #classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
+        classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')# input. target
+        # classif_loss = (classif_criterion(tmp_decodes,
+        #                                   torch.from_numpy(tmp_labels).to(device))).item()
+        classif_loss = (classif_criterion(tmp_decodes.squeeze(),
+                                          torch.from_numpy(tmp_labels).to(device).float())).item()
+        
         ce_loss[iter,i]= classif_loss
     
 
 
-classif_loss = (classif_criterion(torch.from_numpy(tmp_labels[:1,:]).to(device),
-                                   tmp_decodes[:1,:])).item()
-print(classif_loss)
+# classif_loss = (classif_criterion(torch.from_numpy(tmp_labels[:1,:]).to(device),
+#                                    tmp_decodes[:1,:])).item()
+# print(classif_loss)
 
 
-tmp = torch.from_numpy(tmp_labels)
-tmp1 = tmp_decodes.cpu()
+# tmp = torch.from_numpy(tmp_labels)
+# tmp1 = tmp_decodes.cpu()
 
-classif_loss = classif_criterion(tmp1,tmp).item()
-print(classif_loss)
+# classif_loss = classif_criterion(tmp1,tmp).item()
+# print(classif_loss)
 
-val=[];
-for i in np.arange(tmp.shape[0]):
-    val.append(classif_criterion(tmp1[i,:],tmp[i,:]).item())
+# val=[];
+# for i in np.arange(tmp.shape[0]):
+#     val.append(classif_criterion(tmp1[i,:],tmp[i,:]).item())
 
-val=np.array(val)
-print(np.mean(val))
+# val=np.array(val)
+# print(np.mean(val))
 
-plt.figure();
-plt.stem(val)
+# plt.figure();
+# plt.stem(val)
 
 tmp = np.mean(ol_mse_days,axis=0)
 tmp1 = np.mean(cl_mse_days,axis=0)

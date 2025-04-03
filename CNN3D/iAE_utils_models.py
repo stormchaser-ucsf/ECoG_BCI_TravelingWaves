@@ -1379,8 +1379,8 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
           print(goat_loss,goat_acc)
           break
     
-    #model_goat = Autoencoder3D(ksize,num_classes,input_size,lstm_size)
-    model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)
+    model_goat = Autoencoder3D(ksize,num_classes,input_size,lstm_size)
+    #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)
     #model_goat = iAutoencoder(input_size,hidden_size,latent_dims,num_classes)  
     #model_goat = iAutoencoder_B3(input_size,hidden_size,latent_dims,num_classes)
     model_goat.load_state_dict(torch.load(filename))
