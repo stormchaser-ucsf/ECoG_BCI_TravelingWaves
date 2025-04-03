@@ -47,7 +47,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 # load the data 
-filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate clicker/alpha_dynamics_hG_200Hz_1st5Days_DaysLabeled_B1_7DoF.mat'
+filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate clicker/alpha_dynamics_hG_200Hz_All5Days_DaysLabeled_B1_7DoF.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_hG_200Hz_1st5Days_DaysLabeled_B1_7DoF.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
 
@@ -117,7 +117,7 @@ for iter in np.arange(iterations):
     # get the CNN architecture model
     num_classes=2
     input_size=180
-    lstm_size=24
+    lstm_size=32
     ksize=2;
     if 'model' in locals():
         del model 
@@ -185,12 +185,34 @@ for iter in np.arange(iterations):
         #balanced_decoding_acc.append(balanced_acc*100)
         
         # cross entropy loss
-        classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
-        classif_loss = (classif_criterion(torch.from_numpy(tmp_labels).to(device),
-                                          tmp_decodes)).item()
+        classif_criterion = nn.CrossEntropyLoss(reduction='mean')  #input,target
+        #targets = torch.argmax(torch.from_numpy(tmp_labels),dim=1)
+        #classif_criterion = nn.BCEWithLogitsLoss(reudction='mean')
+        # classif_loss = (classif_criterion(torch.from_numpy(tmp_labels).to(device),
+        #                                   tmp_decodes)).item()
+        classif_loss = (classif_criterion(tmp_decodes,
+                                          torch.from_numpy(tmp_labels).to(device))).item()
+        
+        
+        
         ce_loss[iter,i]= classif_loss
     
 
+# aa=torch.round(idx.float().cpu())
+# aa=aa.view(-1)
+# classif_criterion(aa,tmp_decodes.float())
+
+# tmp = torch.from_numpy(tmp_labels).to(device)
+# tmp1 = tmp_decodes
+
+# val=[];
+# for i in np.arange(tmp.shape[0]):
+#     val.append(classif_criterion(tmp1[i,:],tmp[i,:]).item())
+
+# val=np.array(val)
+
+# plt.figure();
+# plt.stem(val)
 
 tmp = np.mean(ol_mse_days,axis=0)
 tmp1 = np.mean(cl_mse_days,axis=0)

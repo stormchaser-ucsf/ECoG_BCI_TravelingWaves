@@ -592,6 +592,14 @@ def convert_to_ClassNumbers(indata):
     
     return outdata
 
+def convert_to_ClassNumbers_sigmoid(indata):
+    with torch.no_grad():
+        outdata = torch.sigmoid(indata.float()).cpu()
+        outdata[np.where(outdata>0.5)]=1
+        outdata[np.where(outdata<=0.5)]=0
+    
+    return outdata
+
 
 # create a autoencoder with a classifier layer for separation in latent space
 class encoder(nn.Module):
@@ -1157,7 +1165,8 @@ def validation_loss_3DCNNAE(model,X_test,Y_test,labels_val,batch_val,val_type):
 
 # function to validate modes: pass the entire validation data through 
 def validation_loss_3DCNNAE_fullVal(model,Xval,Yval,labels_val,batch_val,val_type):
-    crit_classif_val = nn.CrossEntropyLoss(reduction='mean') #if mean, it is over all samples
+    #crit_classif_val = nn.CrossEntropyLoss(reduction='mean') #if mean, it is over all samples
+    crit_classif_val = nn.BCEWithLogitsLoss(reduction='mean')
     crit_recon_val = nn.MSELoss(reduction='mean') # if mean, it is over all elements     
     model.eval()
     with torch.no_grad():
@@ -1166,17 +1175,22 @@ def validation_loss_3DCNNAE_fullVal(model,Xval,Yval,labels_val,batch_val,val_typ
         z=torch.from_numpy(labels_val).to(device).float()
         out,zpred = model(x) 
         loss1 = crit_recon_val(out,y)
+        zpred=zpred.squeeze()
         loss2 = crit_classif_val(zpred,z)    
         #loss1  = loss1/x.shape[0]
         #loss2 = loss2/x.shape[0]
-        loss_val = 30*loss1.item() + loss2.item()    #30
+        loss_val = 5*loss1.item() + loss2.item()    #30
         
-    zlabels = convert_to_ClassNumbers(z)        
-    zpred_labels = convert_to_ClassNumbers(zpred)     
+    #zlabels = convert_to_ClassNumbers(z)        
+    zlabels=z
+    #zpred_labels = convert_to_ClassNumbers(zpred)     
+    zpred_labels = convert_to_ClassNumbers_sigmoid(zpred).to(device)     
     accuracy = torch.sum(zlabels == zpred_labels).item()
     accuracy = accuracy/x.shape[0]
-    recon_error = (torch.sum(torch.square(out-y))).item()  
-    recon_error = recon_error/x.shape[0]
+    #recon_error = (torch.sum(torch.square(out-y))).item()  
+    #recon_error = recon_error/x.shape[0]
+    recon_error = crit_recon_val(out,y).item()
+    
     
     model.train()
     torch.cuda.empty_cache()
@@ -1280,7 +1294,9 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
    
     num_batches = math.ceil(Xtrain.shape[0]/batch_size)
     recon_criterion = nn.MSELoss(reduction='mean')
-    classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
+    #classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
+    classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')    
+    
     opt = torch.optim.AdamW(model.parameters(),lr=learning_rate)
     print('Starting training')
     goat_loss=99999
@@ -1303,7 +1319,8 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
           samples = idx_split[batch]
           Xtrain_batch = Xtrain[samples,:]
           Ytrain_batch = Ytrain[samples,:]        
-          labels_batch = labels_train[samples,:]
+          #labels_batch = labels_train[samples,:]
+          labels_batch = labels_train[samples]
           
           #push to gpu
           Xtrain_batch = torch.from_numpy(Xtrain_batch).to(device).float()
@@ -1318,15 +1335,18 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
           
           # get loss      
           recon_loss = (recon_criterion(recon,Ytrain_batch))#/Ytrain_batch.shape[0]
+          decodes = decodes.squeeze() # for BCE loss
           classif_loss = (classif_criterion(decodes,labels_batch))#/labels_batch.shape[0]      
-          loss = 30*recon_loss + classif_loss#30
+          loss = 5*recon_loss + classif_loss#30
           total_loss = loss.item()
           #print(classif_loss.item())
           
           # compute accuracy
-          ylabels = convert_to_ClassNumbers(labels_batch)        
-          ypred_labels = convert_to_ClassNumbers(decodes)     
-          accuracy = (torch.sum(ylabels == ypred_labels).item())/ylabels.shape[0]
+          #ylabels = convert_to_ClassNumbers(labels_batch)        
+          ylabels =  labels_batch
+          ypred_labels = convert_to_ClassNumbers_sigmoid(decodes).to(device)    
+          #accuracy = (torch.sum(ylabels == ypred_labels).item())/ylabels.shape[0]
+          accuracy = (torch.sum(ylabels == ypred_labels.squeeze()).item())/ylabels.shape[0]
           
           # backpropagate thru network 
           loss.backward()
@@ -1359,6 +1379,7 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
           print(goat_loss,goat_acc)
           break
     
+    #model_goat = Autoencoder3D(ksize,num_classes,input_size,lstm_size)
     model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)
     #model_goat = iAutoencoder(input_size,hidden_size,latent_dims,num_classes)  
     #model_goat = iAutoencoder_B3(input_size,hidden_size,latent_dims,num_classes)
