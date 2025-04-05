@@ -41,9 +41,6 @@ for ii=1:length(files)
         df = filtfilt(d2,data);
         df = df(l11+1:end,:);
 
-        % keep track of trial segments
-        trial_seg=0;
-
 
         % filter at 1khz
         %df = filtfilt(d1,data);
@@ -72,11 +69,7 @@ for ii=1:length(files)
                 xdata = cat(1,(xdata),(a));
                 ydata = cat(1,(ydata),(b));
                 idx=idx+1;
-                trial_seg = trial_seg+1;
             end
         end
     end
-    trial_idx = [trial_idx ;[TrialData.TargetID * ones(trial_seg,1)]];
 end
-
-
