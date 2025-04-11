@@ -1,5 +1,6 @@
-function [xdata,ydata,idx,trial_idx] = ...
-    get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata)
+function [data_trial] = ...
+    get_spatiotemp_windows_trial(files,d2,ecog_grid,data_trial,bci_type,day_idx)
+%function [data] = get_spatiotemp_windows_trial(files,d2,ecog_grid,data,bci_type)
 
 %load the data and extract the features in 8 to 10Hz range, 200ms
 %snippets, 201 ms prediction, in 50ms increments
@@ -14,6 +15,8 @@ for ii=1:length(files)
     end
 
     if loaded==1
+
+        xdata={};ydata={};
 
         % have to take 1s before the start of state3, to 1s after state
         % 4 and then trim
@@ -68,7 +71,7 @@ for ii=1:length(files)
                     b(j,:,:) = bb;
                 end
 
-                
+
                 xdata = cat(1,(xdata),(a));
                 ydata = cat(1,(ydata),(b));
                 idx=idx+1;
@@ -76,7 +79,28 @@ for ii=1:length(files)
             end
         end
     end
-    trial_idx = [trial_idx ;[TrialData.TargetID * ones(trial_seg,1)]];
+
+    if length(data_trial)==0
+        len = 1;
+    else
+        len = length(data_trial)+1;
+    end
+
+
+    data_trial(len).xdata=xdata;
+    data_trial(len).ydata=ydata;
+    data_trial(len).TargetID = TrialData.TargetID;
+    
+    if bci_type==0
+        data_trial(len).BCI_context = 'OL';
+    elseif    bci_type==1
+        data_trial(len).BCI_context = 'CL';
+    end
+
+    data_trial(len).Day=day_idx;
+
+
+    %trial_idx = [trial_idx ;[TrialData.TargetID * ones(trial_seg,1)]];
 end
 
 
