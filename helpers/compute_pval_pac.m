@@ -1,5 +1,11 @@
-function [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase)
+function [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase,varargin)
 
+
+if isempty(varargin)
+    b1=false;
+else
+    b1=true;
+end
 
 
 pval=[];
@@ -8,7 +14,12 @@ r = abs(mean(pac));
 parfor iter=1:1000
     %fprintf('%d',iter)
     %disp(iter)
-    pac_boot=zeros(length(alpha_phase),253);
+    if b1==false
+        pac_boot=zeros(length(alpha_phase),253);
+    else
+        pac_boot=zeros(length(alpha_phase),128);
+    end
+
     for i = 1:length(alpha_phase)
         alp = alpha_phase{i};
         hg = hg_alpha_phase{i};

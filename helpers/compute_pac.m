@@ -1,4 +1,4 @@
-function [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2)
+function [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2,varargin)
 
 
 %load the data and extract PAC at each channel
@@ -6,9 +6,19 @@ idx=0;
 pac=[];
 hg_alpha_phase={};
 alpha_phase={};
-bad_ch=[108 113 118];
-good_ch=ones(256,1);
-good_ch(bad_ch)=0;
+if length(varargin)==0
+    b1=false;
+else
+    b1=true;
+end
+
+if b1==false
+    bad_ch=[108 113 118];
+    good_ch=ones(256,1);
+    good_ch(bad_ch)=0;
+else
+    good_ch=(ones(128,1));
+end
 
 for ii=1:length(files)
     disp(ii/length(files)*100)
@@ -109,7 +119,7 @@ pac=pac(:,logical(good_ch));
 pac = exp(1i*pac);
 %pac_r = abs(mean(pac_r));
 
-% 
+%
 % % temp plotting
 % tmp = (pac(:,50));
 % [t,r]=rose(angle(tmp),20);
