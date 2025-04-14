@@ -45,20 +45,36 @@ for ii=1:length(files)
         kinax4 = find(TrialData.TaskState==4);
         tid = TrialData.TargetID;
 
-        data1 = cell2mat(TrialData.SmoothedNeuralFeatures(kinax1))';
+        data1 = cell2mat(TrialData.NeuralFeatures(kinax1))';
         l1 =  size(data1,1);
-        data2 = cell2mat(TrialData.SmoothedNeuralFeatures(kinax2))';
+        data2 = cell2mat(TrialData.NeuralFeatures(kinax2))';
         l2 =  size(data2,1);
         data4 = cell2mat(TrialData.SmoothedNeuralFeatures(kinax4))';
         l4 = size(data4,1);
-        data3 = cell2mat(TrialData.SmoothedNeuralFeatures(kinax3))';
+        data3 = cell2mat(TrialData.NeuralFeatures(kinax3))';
         l3 = size(data3,1);
 
-        % get the hG signals alone
+        % get the hG signals alone or whatever features you care about
         hg =  data3(:,1537:end);
+        %hg =  data3(:,257:512); % delta
 
         % remove bad channels
         hg = hg(:,logical(good_ch));
+
+        % % operating on the raw data and then extracting the features
+        % data1=cell2mat(TrialData.BroadbandData(kinax1)');
+        % data2=cell2mat(TrialData.BroadbandData(kinax2)');
+        % data3=cell2mat(TrialData.BroadbandData(kinax3)');
+        % data4=cell2mat(TrialData.BroadbandData(kinax4)');
+        % l1 =  size(data1,1); l2 =  size(data2,1); l4 = size(data4,1);l3 = size(data3,1);
+        % data = [data1;data2;data3];
+        % data = abs(hilbert(filter(d2,data)));
+        % m = mean(data(l1+12+1:end,:));
+        % data = filtfilt(d1,data);
+        % data = m + data(l1+l2+1:end,:);
+        % hg = data(:,logical(good_ch));
+
+
 
         % store
         if tid==1
@@ -137,7 +153,7 @@ for ch=1:253 %channels
         end
     end
     D = squareform((D'));
-    D_chan(ch) = mean(D);
+    D_chan(ch) = median(D);
 end
 
 mahab_dist = D_chan;

@@ -1,5 +1,6 @@
+
 %% (MAIN): LOOKING at the the relationship b/w decoding information at each channel and 
-% PAC b/w hg and alpha at that channel
+% PAC b/w hg and alpha/delta at that channel
 
 
 
@@ -28,17 +29,29 @@ else
 end
 
 
+% d1 = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+%     'SampleRate',1e3);
+
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
     'SampleRate',1e3);
+
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
     'SampleRate',1e3);
 
+d3 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'SampleRate',1e3);
+
 reg_days=[];
 mahab_dist_days=[];
+plot_true = true;
 for i=1:length(session_data)
+
+    
 
     folders_imag =  strcmp(session_data(i).folder_type,'I');
     folders_online = strcmp(session_data(i).folder_type,'O');
@@ -48,8 +61,20 @@ for i=1:length(session_data)
 
     imag_idx = find(folders_imag==1);
     online_idx = find(folders_online==1);
-    batch_idx = find(folders_batch==1);
-    batch_idx1 = find(folders_batch1==1);
+    %batch_idx = find(folders_batch==1);
+    %batch_idx1 = find(folders_batch1==1);
+
+    imag_idx = find(folders_imag==1);
+    online_idx = find(folders_online==1);
+    if sum(folders_batch1)==0
+        batch_idx = find(folders_batch==1);
+    else
+        batch_idx = find(folders_batch1==1);
+    end
+
+
+
+
     %     if sum(folders_batch1)==0
     %         batch_idx = find(folders_batch==1);
     %     else
@@ -57,11 +82,13 @@ for i=1:length(session_data)
     %     end
     %     %batch_idx = [online_idx batch_idx];
 
+    
+
     online_idx=[online_idx batch_idx];
     %batch_idx = [online_idx batch_idx_overall];
 
 
-    % %%%%%% get imagined data files
+    % %%%%% get imagined data files
     % folders = session_data(i).folders(imag_idx);
     % day_date = session_data(i).Day;
     % files=[];
@@ -85,7 +112,7 @@ for i=1:length(session_data)
     % ylabel('PAC')
 
 
-     %%%%%% getting online files now
+    %%%%%% getting online files now
     folders = session_data(i).folders(online_idx);
     day_date = session_data(i).Day;
     files=[];
@@ -99,45 +126,152 @@ for i=1:length(session_data)
     disp(['Processing Day ' num2str(i) ' CL'])
     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
 
-    % plot pac on brain
-    pac_tmp = abs(mean(pac));
-    ch_wts = [pac_tmp(1:107) 0 pac_tmp(108:111) 0  pac_tmp(112:115) 0 ...
-        pac_tmp(116:end)];
-    figure;
-    imagesc(ch_wts(ecog_grid))
 
     % get the mahab dist at each channel
     [mahab_dist] = get_mahab_dist(files);
 
-    % plot mahab dist on brain grid
-    ch_wts = [mahab_dist(1:107) 0 mahab_dist(108:111) 0  mahab_dist(112:115) 0 ...
-        mahab_dist(116:end)];
-    figure;
-    imagesc(ch_wts(ecog_grid))
+
+    if plot_true
+
+        figure;
 
 
-    % plot and see?
-    figure;
-    plot(mahab_dist,abs(mean(pac)),'.','MarkerSize',20)
-    xlabel('Mahab Dist')
-    ylabel('PAC')
-    title(['CL Day ' num2str(i)])
-    ylim([0 0.7])
-    plot_beautify
+        % plot pac on brain
+        pac_tmp = abs(mean(pac));
+        ch_wts = [pac_tmp(1:107) 0 pac_tmp(108:111) 0  pac_tmp(112:115) 0 ...
+            pac_tmp(116:end)];
+        %figure;
+        subplot(1,3,1)
+        imagesc(ch_wts(ecog_grid))
+        title(['PAC Day ' num2str(i)])
+
+        % plot mahab dist on brain grid
+        ch_wts = [mahab_dist(1:107) 0 mahab_dist(108:111) 0  mahab_dist(112:115) 0 ...
+            mahab_dist(116:end)];
+        %figure;
+        subplot(1,3,2)
+        imagesc(ch_wts(ecog_grid))
+        title(['Mahab dist Day ' num2str(i)])
+
+        % hand knob weights
+        %hnd2 = ch_wts(ecog_grid(2:3,3:4));
+
+
+        % plot and see?
+        %figure;
+        subplot(1,3,3)
+        plot(mahab_dist,abs(mean(pac)),'.','MarkerSize',20)
+        xlabel('Mahab Dist')
+        ylabel('PAC')
+        title(['CL Day ' num2str(i)])
+        ylim([0 0.7])
+        plot_beautify
+        hold on
+    end
+
+
     
     
     % regression
     y = abs(mean(pac))';
     x = mahab_dist';
     x = [ones(size(x,1),1) x];
-    [B,BINT,R,RINT,STATS1] = regress(y,x);
+    [B,BINT,R,RINT,STATS1] = regress(y,x);    
+    yhat = x*B;
+    plot(x(:,2),yhat,'k')
+
     reg_days(:,i) = [B; STATS1(3)];
+
+    % 
+    % %%%%%%%%% getting batch files now
+    % folders = session_data(i).folders(batch_idx);
+    % day_date = session_data(i).Day;
+    % files=[];
+    % for ii=1:length(folders)
+    %     folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+    %     %cd(folderpath)
+    %     files = [files;findfiles('mat',folderpath)'];
+    % end
+    % 
+    % % get the phase locking value
+    % disp(['Processing Day ' num2str(i) ' CL'])
+    % [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+    % 
+    % 
+    % % get the mahab dist at each channel
+    % [mahab_dist] = get_mahab_dist(files);
+    % 
+    % 
+    % % plot pac on brain
+    % pac_tmp = abs(mean(pac));
+    % ch_wts = [pac_tmp(1:107) 0 pac_tmp(108:111) 0  pac_tmp(112:115) 0 ...
+    %     pac_tmp(116:end)];
+    % figure;
+    % imagesc(ch_wts(ecog_grid))
+    % 
+    % % plot mahab dist on brain grid
+    % ch_wts = [mahab_dist(1:107) 0 mahab_dist(108:111) 0  mahab_dist(112:115) 0 ...
+    %     mahab_dist(116:end)];
+    % figure;
+    % imagesc(ch_wts(ecog_grid))
+    % 
+    % % hand knob weights
+    % hnd9b = ch_wts(ecog_grid(2:3,3:4));
+    % 
+    % 
+    % % plot and see?
+    % figure;
+    % plot(mahab_dist,abs(mean(pac)),'.','MarkerSize',20)
+    % xlabel('Mahab Dist')
+    % ylabel('PAC')
+    % title(['CL Day ' num2str(i)])
+    % ylim([0 0.7])
+    % plot_beautify
+    % 
 
 
 end
 
-figure;plot((reg_days(2,:)),'LineWidth',1)
+figure;hold on
+plot(log(reg_days(3,:)),'.','MarkerSize',20)
 xlabel('Days')
-ylabel('Regression Slope')
-plot_beautify
+ylabel('Log P-value')
 xticks(1:10)
+y = log(reg_days(3,:))';
+x = (1:10)';
+x = [ones(size(x,1),1) x];
+[B,BINT,R,RINT,STATS1] = regress(y,x);
+yhat = x*B;
+plot(x(:,2),yhat,'k')
+plot_beautify
+title('Evolution of delta hG PAC (sig)')
+hline(log(0.01),'--r')
+
+
+
+figure;hold on
+plot((reg_days(2,:)),'.','MarkerSize',20)
+xlabel('Days')
+ylabel('Regression slope')
+xticks(1:10)
+y = reg_days(2,:)';
+x = (1:10)';
+x = [ones(size(x,1),1) x];
+[B,BINT,R,RINT,STATS1] = regress(y,x);
+yhat = x*B;
+plot(x(:,2),yhat,'k')
+plot_beautify
+title('Evolution of delta hG PAC')
+
+save mahab_pac_alpha_hg_B3_Hand -v7.3
+
+
+
+
+
+tmp=angle(mean(pac));
+I=find(pac_tmp>0.3);
+figure;rose(tmp(I))
+title('Preferred angle between hG and alpha')
+plot_beautify
+
