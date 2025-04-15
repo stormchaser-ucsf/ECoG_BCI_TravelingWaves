@@ -242,17 +242,17 @@ x = (1:10)';
 x = [ones(size(x,1),1) x];
 [B,BINT,R,RINT,STATS1] = regress(y,x);
 yhat = x*B;
-plot(x(:,2),yhat,'k')
+%plot(x(:,2),yhat,'k')
 plot_beautify
-title('Evolution of delta hG PAC (sig)')
-hline(log(0.01),'--r')
+title('Evolution of alpha-hG PAC and discriminability (sig)')
+hline(log(0.05),'--r')
 
 
 
 figure;hold on
 plot((reg_days(2,:)),'.','MarkerSize',20)
 xlabel('Days')
-ylabel('Regression slope')
+ylabel('Slope b/w PAC and decoding info.')
 xticks(1:10)
 y = reg_days(2,:)';
 x = (1:10)';
@@ -261,7 +261,8 @@ x = [ones(size(x,1),1) x];
 yhat = x*B;
 plot(x(:,2),yhat,'k')
 plot_beautify
-title('Evolution of delta hG PAC')
+title('Evolution of alpha-hG PAC and discriminability')
+xlim([0.5 10.5])
 
 save mahab_pac_alpha_hg_B3_Hand -v7.3
 
