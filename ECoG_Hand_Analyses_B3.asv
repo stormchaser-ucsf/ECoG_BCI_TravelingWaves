@@ -1968,9 +1968,9 @@ vline(stat)
 % code for plotting phase angle and PLV on grid. Taken from ecog hand
 % project code
 %day_idx=1;
-pac_day1 = pac_raw_values(4).pac;
+pac_day1 = pac_raw_values(23).pac;
 plv  = abs(mean(pac_day1));
-pval_day1 = pval_cl(2,:);
+pval_day1 = pval_cl(10,:);
 sig = pval_day1<=0.05;
 ns = pval_day1>0.05;
 pref_phase = angle(mean(pac_day1));
@@ -2006,7 +2006,7 @@ for j=1:length(sig)
     [xx yy]=find(ecog_grid==j);
     ch = ch_layout(xx,yy);
     if sig(j)==1
-        ms = ch_wts(j)*10;
+        ms = plv(j)*10;
         [aa bb]=min(abs(pref_phase(j) - phMap));
         c=ChColorMap(bb,:);
         e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
