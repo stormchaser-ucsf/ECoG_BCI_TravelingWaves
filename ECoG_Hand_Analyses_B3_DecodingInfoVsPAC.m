@@ -1,5 +1,5 @@
 
-%% (MAIN): LOOKING at the the relationship b/w decoding information at each channel and 
+%% (MAIN): LOOKING at the the relationship b/w decoding information at each channel and
 % PAC b/w hg and alpha/delta at that channel
 
 
@@ -51,7 +51,7 @@ mahab_dist_days=[];
 plot_true = true;
 for i=1:length(session_data)
 
-    
+
 
     folders_imag =  strcmp(session_data(i).folder_type,'I');
     folders_online = strcmp(session_data(i).folder_type,'O');
@@ -82,7 +82,7 @@ for i=1:length(session_data)
     %     end
     %     %batch_idx = [online_idx batch_idx];
 
-    
+
 
     online_idx=[online_idx batch_idx];
     %batch_idx = [online_idx batch_idx_overall];
@@ -97,14 +97,14 @@ for i=1:length(session_data)
     %     %cd(folderpath)
     %     files = [files;findfiles('mat',folderpath)'];
     % end
-    % 
+    %
     % % get the phase locking value
     % disp(['Processing Day ' num2str(i) ' OL'])
     % [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
-    % 
+    %
     % % get the mahab dist at each channel
     % [mahab_dist] = get_mahab_dist(files);
-    % 
+    %
     % % plot and see?
     % figure;
     % plot(mahab_dist,abs(mean(pac)),'.','MarkerSize',20)
@@ -134,9 +134,7 @@ for i=1:length(session_data)
     if plot_true
 
         figure;
-
-
-        % plot pac on brain
+        % plot pac as brain image
         pac_tmp = abs(mean(pac));
         ch_wts = [pac_tmp(1:107) 0 pac_tmp(108:111) 0  pac_tmp(112:115) 0 ...
             pac_tmp(116:end)];
@@ -144,14 +142,16 @@ for i=1:length(session_data)
         subplot(1,3,1)
         imagesc(ch_wts(ecog_grid))
         title(['PAC Day ' num2str(i)])
+        ch_wts_pac=ch_wts;        
 
-        % plot mahab dist on brain grid
+        % plot mahab dist as brain image
         ch_wts = [mahab_dist(1:107) 0 mahab_dist(108:111) 0  mahab_dist(112:115) 0 ...
             mahab_dist(116:end)];
         %figure;
         subplot(1,3,2)
         imagesc(ch_wts(ecog_grid))
         title(['Mahab dist Day ' num2str(i)])
+        ch_wts_mahab=ch_wts;
 
         % hand knob weights
         %hnd2 = ch_wts(ecog_grid(2:3,3:4));
@@ -167,22 +167,35 @@ for i=1:length(session_data)
         ylim([0 0.7])
         plot_beautify
         hold on
+
     end
 
 
-    
-    
+
+
     % regression
     y = abs(mean(pac))';
     x = mahab_dist';
     x = [ones(size(x,1),1) x];
-    [B,BINT,R,RINT,STATS1] = regress(y,x);    
+    [B,BINT,R,RINT,STATS1] = regress(y,x);
     yhat = x*B;
     plot(x(:,2),yhat,'k')
 
+    if plot_true
+
+        % plot mahab dist on brain
+        plot_on_brain(ch_wts_mahab,cortex,elecmatrix,ecog_grid)
+          title(['hG decoding info CL Day ' num2str(i)])
+
+        % plot PAC on brain
+        plot_on_brain(ch_wts_pac,cortex,elecmatrix,ecog_grid)
+        title(['hG-delta PAC CL Day ' num2str(i)])
+
+    end
+
     reg_days(:,i) = [B; STATS1(3)];
 
-    % 
+    %
     % %%%%%%%%% getting batch files now
     % folders = session_data(i).folders(batch_idx);
     % day_date = session_data(i).Day;
@@ -192,33 +205,33 @@ for i=1:length(session_data)
     %     %cd(folderpath)
     %     files = [files;findfiles('mat',folderpath)'];
     % end
-    % 
+    %
     % % get the phase locking value
     % disp(['Processing Day ' num2str(i) ' CL'])
     % [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
-    % 
-    % 
+    %
+    %
     % % get the mahab dist at each channel
     % [mahab_dist] = get_mahab_dist(files);
-    % 
-    % 
+    %
+    %
     % % plot pac on brain
     % pac_tmp = abs(mean(pac));
     % ch_wts = [pac_tmp(1:107) 0 pac_tmp(108:111) 0  pac_tmp(112:115) 0 ...
     %     pac_tmp(116:end)];
     % figure;
     % imagesc(ch_wts(ecog_grid))
-    % 
+    %
     % % plot mahab dist on brain grid
     % ch_wts = [mahab_dist(1:107) 0 mahab_dist(108:111) 0  mahab_dist(112:115) 0 ...
     %     mahab_dist(116:end)];
     % figure;
     % imagesc(ch_wts(ecog_grid))
-    % 
+    %
     % % hand knob weights
     % hnd9b = ch_wts(ecog_grid(2:3,3:4));
-    % 
-    % 
+    %
+    %
     % % plot and see?
     % figure;
     % plot(mahab_dist,abs(mean(pac)),'.','MarkerSize',20)
@@ -227,7 +240,7 @@ for i=1:length(session_data)
     % title(['CL Day ' num2str(i)])
     % ylim([0 0.7])
     % plot_beautify
-    % 
+    %
 
 
 end
