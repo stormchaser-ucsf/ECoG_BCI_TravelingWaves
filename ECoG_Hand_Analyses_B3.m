@@ -1960,6 +1960,8 @@ end
 figure;hist(boot)
 vline(stat)
 
+figure;boxplot([ol' cl'])
+
 
 % day 1, OL, channel 50 has the highest PLV: look at its relationship in hg
 % vs alpha
@@ -1968,11 +1970,11 @@ vline(stat)
 % code for plotting phase angle and PLV on grid. Taken from ecog hand
 % project code
 %day_idx=1;
-pac_day1 = pac_raw_values(23).pac;
+pac_day1 = pac_raw_values(24).pac;
 plv  = abs(mean(pac_day1));
-pval_day1 = pval_cl(10,:);
-[pfdr,pval1]=fdr(pval_day1,0.05);pfdr
-%pfdr=0.05;
+pval_day1 = pval_batch(10,:);
+%[pfdr,pval1]=fdr(pval_day1,0.05);pfdr
+pfdr=0.05;
 sig = pval_day1<=pfdr;
 ns = pval_day1>pfdr;
 pref_phase = angle(mean(pac_day1));
@@ -2106,6 +2108,10 @@ P = signrank(ol,cl)
 
 
 %% LOOKING AT THE AVERAGE ALPHA ERPS
+
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',4,'HalfPowerFrequency2',8, ...
+    'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 
 %files loaded from prior sections
