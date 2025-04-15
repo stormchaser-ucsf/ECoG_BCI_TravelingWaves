@@ -1912,10 +1912,10 @@ for i=1:10
     pfdr=0.05;
     cl(i) = sum(ptmp<=pfdr)/length(ptmp);
 end
-figure;
-hold on
-plot(ol,'.b','MarkerSize',20)
-plot(cl,'.r','MarkerSize',20)
+% figure;
+% hold on
+% plot(ol,'.b','MarkerSize',20)
+% plot(cl,'.r','MarkerSize',20)
 
 days=1:10;
 X = [ones(length(days),1) days'];
