@@ -1747,7 +1747,7 @@ end
 
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    'HalfPowerFrequency1',20,'HalfPowerFrequency2',24, ...
     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -1878,7 +1878,7 @@ toc
 
 
 cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
-save PAC_B3_Hand_rawValues_deltaToHg -v7.3
+save PAC_B3_Hand_rawValues_betaToHg -v7.3
 
 %% PLOTTING CONTINUATION FROM ABOVE
 
@@ -1903,13 +1903,13 @@ xlim([0 0.7])
 ol=[];cl=[];
 for i=1:10
     ptmp=pval_ol(i,:);
-    %[pfdr,pmask]=fdr(ptmp,0.05);
-    pfdr=0.05;
+    [pfdr,pmask]=fdr(ptmp,0.05);
+    %pfdr=0.05;
     ol(i) = sum(ptmp<=pfdr)/length(ptmp);
 
     ptmp=pval_cl(i,:);
-    %[pfdr,pmask]=fdr(ptmp,0.05);
-    pfdr=0.05;
+    [pfdr,pmask]=fdr(ptmp,0.05);
+    %pfdr=0.05;
     cl(i) = sum(ptmp<=pfdr)/length(ptmp);
 end
 figure;
@@ -1968,9 +1968,9 @@ vline(stat)
 % code for plotting phase angle and PLV on grid. Taken from ecog hand
 % project code
 %day_idx=1;
-pac_day1 = pac_raw_values(23).pac;
+pac_day1 = pac_raw_values(4).pac;
 plv  = abs(mean(pac_day1));
-pval_day1 = pval_cl(10,:);
+pval_day1 = pval_cl(2,:);
 sig = pval_day1<=0.05;
 ns = pval_day1>0.05;
 pref_phase = angle(mean(pac_day1));
@@ -1982,9 +1982,12 @@ pax = plot_phases(pref_phase(sig));
 pac_tmp = abs(mean(pac_day1));
 ch_wts = [pac_tmp(1:107) 0 pac_tmp(108:111) 0  pac_tmp(112:115) 0 ...
     pac_tmp(116:end)];
+sig1 = [sig(1:107) 0 sig(108:111) 0  sig(112:115) 0 ...
+    sig(116:end)];
 figure;
 imagesc(ch_wts(ecog_grid))
-
+figure;
+imagesc(ch_wts(ecog_grid).*sig1(ecog_grid))
 
 % plot sig electrodes, with size denoted by PLV and color b preferred phase
 % need to plot this taking into account the location of the grid and not
@@ -2002,14 +2005,18 @@ figure
 %subplot(1,2,2)
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
 e_h = el_add(elecmatrix, 'color', 'w','msize',2);
+% elecmatrix1 = [elecmatrix(1:107,:); zeros(1,3); elecmatrix(108:111,:); zeros(1,3) ; ...
+%     elecmatrix(112:115,:) ;zeros(1,3); elecmatrix(116:end,:)];
 for j=1:length(sig)
     [xx yy]=find(ecog_grid==j);
-    ch = ch_layout(xx,yy);
-    if sig(j)==1
-        ms = plv(j)*10;
-        [aa bb]=min(abs(pref_phase(j) - phMap));
-        c=ChColorMap(bb,:);
-        e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
+    if ~isempty(xx)
+        ch = ch_layout(xx,yy);
+        if sig1(j)==1
+            ms = ch_wts(j)*10;
+            %[aa bb]=min(abs(pref_phase(j) - phMap));
+            c=ChColorMap(bb,:);
+            e_h = el_add(elecmatrix1(ch,:), 'color', 'b','msize',ms);
+        end
     end
 end
 set(gcf,'Color','w')
