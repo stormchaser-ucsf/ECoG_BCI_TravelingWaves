@@ -1747,7 +1747,7 @@ end
 
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    'HalfPowerFrequency1',20,'HalfPowerFrequency2',24, ...
     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -1878,7 +1878,7 @@ toc
 
 
 cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
-save PAC_B3_Hand_rawValues_deltaToHg -v7.3
+save PAC_B3_Hand_rawValues_betaToHg -v7.3
 
 %% PLOTTING CONTINUATION FROM ABOVE
 
