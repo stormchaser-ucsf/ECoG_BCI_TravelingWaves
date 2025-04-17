@@ -48,7 +48,7 @@ d3 = designfilt('bandpassiir','FilterOrder',4, ...
 
 reg_days=[];
 mahab_dist_days=[];
-plot_true = true;
+plot_true = false;
 for i=1:length(session_data)
 
 
@@ -124,11 +124,13 @@ for i=1:length(session_data)
 
     % get the phase locking value
     disp(['Processing Day ' num2str(i) ' CL'])
-    [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+    %[pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+    pac=zeros(100,253);
 
 
     % get the mahab dist at each channel
     [mahab_dist] = get_mahab_dist(files);
+    mahab_dist_days(i,:) = mahab_dist;
 
 
     if plot_true
@@ -174,26 +176,28 @@ for i=1:length(session_data)
 
 
     % regression
-    y = abs(mean(pac))';
-    x = mahab_dist';
-    x = [ones(size(x,1),1) x];
-    [B,BINT,R,RINT,STATS1] = regress(y,x);
-    yhat = x*B;
-    plot(x(:,2),yhat,'k')
+    % y = abs(mean(pac))';
+    % x = mahab_dist';
+    % x = [ones(size(x,1),1) x];
+    % [B,BINT,R,RINT,STATS1] = regress(y,x);
+   
 
     if plot_true
 
-        % plot mahab dist on brain
-        plot_on_brain(ch_wts_mahab,cortex,elecmatrix,ecog_grid)
-          title(['hG decoding info CL Day ' num2str(i)])
+        yhat = x*B;
+        plot(x(:,2),yhat,'k')
 
-        % plot PAC on brain
-        plot_on_brain(ch_wts_pac,cortex,elecmatrix,ecog_grid)
-        title(['hG-delta PAC CL Day ' num2str(i)])
+        % % plot mahab dist on brain
+        % plot_on_brain(ch_wts_mahab,cortex,elecmatrix,ecog_grid)
+        %   title(['hG decoding info CL Day ' num2str(i)])
+        % 
+        % % plot PAC on brain
+        % plot_on_brain(ch_wts_pac,cortex,elecmatrix,ecog_grid)
+        % title(['hG-delta PAC CL Day ' num2str(i)])
 
     end
 
-    reg_days(:,i) = [B; STATS1(3)];
+    %reg_days(:,i) = [B; STATS1(3)];
 
     %
     % %%%%%%%%% getting batch files now

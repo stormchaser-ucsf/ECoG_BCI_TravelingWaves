@@ -55,7 +55,7 @@ for ii=1:length(files)
         l3 = size(data3,1);
 
         % get the hG signals alone or whatever features you care about
-        hg =  data3(:,1537:end);
+        hg =  data3(:,1537:end); %hg
         %hg =  data3(:,257:512); % delta
 
         % remove bad channels

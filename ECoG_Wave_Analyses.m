@@ -8,6 +8,7 @@ cd(root_path)
 load('ECOG_Grid_8596_000067_B3.mat')
 
 % add the circ stats toolbox
+addpath('C:\Users\nikic\Documents\MATLAB')
 addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
 addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim\helpers')
 addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
@@ -17,7 +18,7 @@ imaging_B3;close all
 %% OPEN LOOP OSCILLATION CLUSTERS
 % get all the files from a particular day
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230511\HandImagined';
-filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230523\HandOnline';
+filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
 
 files = findfiles('.mat',filepath,1)';
 
@@ -120,6 +121,22 @@ length(ch_idx)/253
 I = zeros(256,1);
 I(ch_idx)=1;
 figure;imagesc(I(ecog_grid))
+
+% get all electrodes within 16 and 20Hz
+ch_idx=[];
+for i=1:length(spectral_peaks)
+    if sum(i==bad_ch)==0
+        f = spectral_peaks(i).freqs;
+        if sum( (f>=16) .* (f<=20) ) >= 1
+            ch_idx=[ch_idx i];
+        end
+    end
+end
+length(ch_idx)/253
+I = zeros(256,1);
+I(ch_idx)=1;
+figure;imagesc(I(ecog_grid))
+
 
 %% ON TRIAL AVERAGED POWER SPECTRUM
 % 
