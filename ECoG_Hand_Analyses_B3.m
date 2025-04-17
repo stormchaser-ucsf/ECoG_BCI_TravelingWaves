@@ -1747,7 +1747,7 @@ end
 
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',20,'HalfPowerFrequency2',24, ...
+    'HalfPowerFrequency1',15,'HalfPowerFrequency2',20, ...
     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -1878,7 +1878,7 @@ toc
 
 
 cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
-save PAC_B3_Hand_rawValues_betaToHg -v7.3
+save PAC_B3_Hand_rawValues_betaToHg_15To20Hz -v7.3
 
 %% PLOTTING CONTINUATION FROM ABOVE
 
@@ -1903,13 +1903,13 @@ xlim([0 0.7])
 ol=[];cl=[];
 for i=1:10
     ptmp=pval_ol(i,:);
-    [pfdr,pmask]=fdr(ptmp,0.05);
-    %pfdr=0.05;
+    %[pfdr,pmask]=fdr(ptmp,0.05);
+    pfdr=0.05;
     ol(i) = sum(ptmp<=pfdr)/length(ptmp);
 
     ptmp=pval_cl(i,:);
-    [pfdr,pmask]=fdr(ptmp,0.05);
-    %pfdr=0.05;
+    %[pfdr,pmask]=fdr(ptmp,0.05);
+    pfdr=0.05;
     cl(i) = sum(ptmp<=pfdr)/length(ptmp);
 end
 % figure;
@@ -1970,9 +1970,9 @@ figure;boxplot([ol' cl'])
 % code for plotting phase angle and PLV on grid. Taken from ecog hand
 % project code
 %day_idx=1;
-pac_day1 = pac_raw_values(24).pac;
+pac_day1 = pac_raw_values(2).pac;
 plv  = abs(mean(pac_day1));
-pval_day1 = pval_batch(10,:);
+pval_day1 = pval_cl(1,:);
 %[pfdr,pval1]=fdr(pval_day1,0.05);pfdr
 pfdr=0.05;
 sig = pval_day1<=pfdr;
@@ -2110,7 +2110,7 @@ P = signrank(ol,cl)
 %% LOOKING AT THE AVERAGE ALPHA ERPS
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',4,'HalfPowerFrequency2',8, ...
+    'HalfPowerFrequency1',15,'HalfPowerFrequency2',20, ...
     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 
