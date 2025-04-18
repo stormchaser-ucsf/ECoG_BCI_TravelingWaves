@@ -47,7 +47,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 # load the data 
-filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate clicker/alpha_dynamics_hG_200Hz_All5Days_DaysLabeled_B1_7DoF.mat'
+filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate clicker/beta_dynamics_hG_200Hz_AllDays_DaysLabeled_B1_7DoF.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_hG_200Hz_1st5Days_DaysLabeled_B1_7DoF.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
 
@@ -85,7 +85,7 @@ for iter in np.arange(iterations):
     Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal_B1(xdata,ydata,labels,0.7,labels_days)                        
     #del xdata, ydata
     
-    # # circular shifting the data for null stats
+    # circular shifting the data for null stats
     # random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
     # for i in np.arange(len(random_shifts)):
     #     Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
@@ -243,7 +243,8 @@ plt.figure();
 plt.plot(tmp)
 
 plt.figure();
-plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
+#plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
+plt.boxplot([(np.log(ol_mse_days[0,:].flatten())),np.log((cl_mse_days[0,:].flatten()))])
 
 ol_mse_days_null=ol_mse_days
 cl_mse_days_null = cl_mse_days

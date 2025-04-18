@@ -11,6 +11,7 @@ for ii=1:length(files)
         load(files{ii})
     catch
         loaded=0;
+        disp(['not loaded file  ' files{ii}])
     end
 
     if loaded==1
@@ -75,8 +76,9 @@ for ii=1:length(files)
                 trial_seg = trial_seg+1;
             end
         end
+        trial_idx = [trial_idx ;[TrialData.TargetID * ones(trial_seg,1)]];
     end
-    trial_idx = [trial_idx ;[TrialData.TargetID * ones(trial_seg,1)]];
+    
 end
 
 

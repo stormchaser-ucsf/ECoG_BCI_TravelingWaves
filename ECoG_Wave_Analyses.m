@@ -18,7 +18,8 @@ imaging_B3;close all
 %% OPEN LOOP OSCILLATION CLUSTERS
 % get all the files from a particular day
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230511\HandImagined';
-filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
+filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230223\Robot3DArrow';
 
 files = findfiles('.mat',filepath,1)';
 
@@ -29,6 +30,7 @@ for i=1:length(files)
     end
 end
 files=files1;
+files=files(1:100);
 
 bad_ch=[108 113 118];
 osc_clus=[];
@@ -127,7 +129,7 @@ ch_idx=[];
 for i=1:length(spectral_peaks)
     if sum(i==bad_ch)==0
         f = spectral_peaks(i).freqs;
-        if sum( (f>=16) .* (f<=20) ) >= 1
+        if sum( (f>=26) .* (f<=32) ) >= 1
             ch_idx=[ch_idx i];
         end
     end

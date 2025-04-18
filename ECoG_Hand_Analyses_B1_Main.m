@@ -1,0 +1,1002 @@
+% main code for the hand project
+%
+% this includes the data recently collected with multipe sequences of hand
+% movements
+
+% overall, the methods to do are:
+% covariance matrix and reimann classifiers of the hand actions
+% covariance matrix and then using a GRU for low-D representation
+% maybe a variational autoencoder for classification? Time-series
+% traveling waves and seeing differences
+% travling waves with a transformer
+
+
+%% SESSION DATA FOR HAND EXPERIMENTS 
+
+clc;clear
+session_data=[];
+root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker';
+cd(root_path)
+
+%day1
+session_data(1).Day = '20230421';
+session_data(1).folders = {'135818','140708','141436','142253','142936',...
+    '144212','144820','145512','150244','151515'};
+session_data(1).folder_type={'I','I','I','I','I','O','O','O','O',...
+    'B'};
+session_data(1).AM_PM = {'pm','pm','pm','pm','pm','pm','pm','pm','pm','pm'};
+
+%day2
+session_data(2).Day = '20230428';
+session_data(2).folders = {'134224','135107','140247','140924','141455',...
+    '142804','143248','143755','144547',...
+    '145812','150746'};
+session_data(2).folder_type={'I','I','I','I','I','O','O','O','O',...
+    'B','B'};
+session_data(2).AM_PM = {'pm','pm','pm','pm','pm','pm','pm','pm','pm','pm','pm'};
+
+%day3 -> this has to be reuploaded from box
+session_data(3).Day = '20230505';
+session_data(3).folders = {'110553','111203','111808','112152','113118','113451',...
+    '114430','114929','115412','115953',...
+    '120747','121326'};
+session_data(3).folder_type={'I','I','I','I','I','I','O','O','O','O'...
+    'B','B'};
+session_data(3).AM_PM = {'am','am','am','am','am','am','am','am','am','am',...
+    'am','am'};
+
+%day4    -> this has to be reuploaded from box
+session_data(4).Day = '20230510';
+session_data(4).folders = {'103338','104124','114511','105158','105560','110015',...    
+    '110943','111353','111812','112222',...
+    '113101','113848'};
+session_data(4).folder_type={'I','I','I','I','I','I','O','O','O','O'...
+    'B','B'};
+session_data(4).AM_PM = {'am','am','am','am','am','am','am','am','am','am',...
+    'am','am'};
+
+%day5 
+session_data(5).Day = '20230519';
+session_data(5).folders = {'104503','105053','105633','110010','110535','110913',...    
+    '112006','112551','113226','113919',...
+    '114925','115323'};
+session_data(5).folder_type={'I','I','I','I','I','I','O','O','O','O'...
+    'B','B'};
+session_data(5).AM_PM = {'am','am','am','am','am','am','am','am','am','am',...
+    'am','am'};
+
+%day6 -> this has to be reuploaded from box
+session_data(6).Day = '20240522';
+session_data(6).folders = {'103410','104032','104409','105436','105817','110148','110624',...    
+    '112404','112809','113728','114116','114913',...
+    '120606','120855','121135',...
+    '121959','122204','122358'};
+session_data(6).folder_type={'I','I','I','I','I','I','I',...
+    'O','O','O','O','O'...
+    'B','B','B',...
+    'B1','B1','B1'};
+session_data(6).AM_PM = {'am','am','am','am','am','am','am','am','am','am',...
+    'am','am','am','am','am','am','am','am'};
+
+%day7 -> needs to be re uploaded to box as its not there, entries below
+%have to edited
+session_data(7).Day = '20240524';
+session_data(7).folders = {'103410','104032','104409','105436','105817','110148','110624',...    
+    '112404','112809','113728','114116','114913',...
+    '120606','120855','121135',...
+    '121959','122204','122358'};
+session_data(7).folder_type={'I','I','I','I','I','I','I',...
+    'O','O','O','O','O'...
+    'B','B','B',...
+    'B1','B1','B1'};
+session_data(7).AM_PM = {'am','am','am','am','am','am','am','am','am','am',...
+    'am','am','am','am','am','am','am','am'};
+
+
+
+save session_data_B1_Hand session_data
+
+
+%% OPEN LOOP OSCILLATION CLUSTERS
+% get all the files from a particular day
+
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250315\HandImagined';
+
+
+
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20230519\HandOnline';
+filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20240515\Robot3DArrow';
+
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250120\RealRobotBatch';
+
+
+
+files = findfiles('.mat',filepath,1)';
+
+files1=[];
+for i=1:length(files)
+    if isempty(regexp(files{i},'kf_params'))
+        files1=[files1;files(i)];
+    end
+end
+files=files1;
+files=files(1:100);
+
+%bad_ch=[108 113 118];
+bad_ch=[];
+osc_clus=[];
+stats=[];
+for ii=1:length(files)
+    disp(ii/length(files)*100)
+    loaded=true;
+    try
+        load(files{ii})
+    catch
+        loaded=false;
+    end
+
+    if sum(TrialData.TargetID == [1 3 7 ]) > 0
+        hand=true;
+    else 
+        hand=false;
+    end
+
+    if loaded && hand
+        data_trial = (TrialData.BroadbandData');
+
+        % run power spectrum and 1/f stats on a single trial basis
+        task_state = TrialData.TaskState;
+        kinax = find(task_state==3);
+        data = cell2mat(data_trial(kinax));
+        spectral_peaks=[];
+        stats_tmp=[];
+        parfor i=1:size(data,2)
+            x = data(:,i);
+            [Pxx,F] = pwelch(x,1024,512,1024,1e3);
+            idx = logical((F>0) .* (F<=40));
+            F1=F(idx);
+            F1=log2(F1);
+            power_spect = Pxx(idx);
+            power_spect = log2(power_spect);
+            %[bhat p wh se ci t_stat]=robust_fit(F1,power_spect,1);
+            tb=fitlm(F1,power_spect,'RobustOpts','on');
+            stats_tmp = [stats_tmp tb.Coefficients.pValue(2)];
+            bhat = tb.Coefficients.Estimate;
+            x = [ones(length(F1),1) F1];
+            yhat = x*bhat;
+
+            %plot
+            %         figure;
+            %         plot(F1,power_spect,'LineWidth',1);
+            %         hold on
+            %         plot(F1,yhat,'LineWidth',1);
+
+            % get peaks in power spectrum at specific frequencies
+            power_spect = zscore(power_spect - yhat);
+            [aa bb]=findpeaks(power_spect);
+            peak_loc = bb(find(power_spect(bb)>1));
+            freqs = 2.^F1(peak_loc);
+            pow = power_spect(peak_loc);
+
+            %store
+            spectral_peaks(i).freqs = freqs;
+            spectral_peaks(i).pow = pow;
+        end
+
+
+        % getting oscillation clusters
+        osc_clus_tmp=[];
+        for f=2:40
+            ff = [f-1 f+1];
+            tmp=0;ch_tmp=[];
+            for j=1:length(spectral_peaks)
+                if sum(j==bad_ch)==0
+                    freqs = spectral_peaks(j).freqs;
+                    for k=1:length(freqs)
+                        if ff(1) <= freqs(k)  && freqs(k) <= ff(2)
+                            tmp=tmp+1;
+                            ch_tmp = [ch_tmp j];
+                        end
+                    end
+                end
+            end
+            osc_clus_tmp = [osc_clus_tmp tmp];
+        end
+        osc_clus = [osc_clus;osc_clus_tmp];
+    end
+end
+
+
+% plot oscillation clusters
+f=2:40;
+figure;
+hold on
+plot(f,osc_clus,'Color',[.5 .5 .5 .5],'LineWidth',.5)
+plot(f,median(osc_clus,1),'b','LineWidth',2)
+
+% get all the electrodes with peak between 8.0Hz and 10Hz
+ch_idx=[];
+for i=1:length(spectral_peaks)
+    if sum(i==bad_ch)==0
+        f = spectral_peaks(i).freqs;
+        if sum( (f>=7) .* (f<=10) ) >= 1
+            ch_idx=[ch_idx i];
+        end
+    end
+end
+length(ch_idx)/128
+I = zeros(128,1);
+I(ch_idx)=1;
+ecog_grid = TrialData.Params.ChMap
+figure;imagesc(I(ecog_grid))
+
+% get all electrodes within 16 and 20Hz
+ch_idx=[];
+for i=1:length(spectral_peaks)
+    if sum(i==bad_ch)==0
+        f = spectral_peaks(i).freqs;
+        if sum( (f>=2) .* (f<=6) ) >= 1
+            ch_idx=[ch_idx i];
+        end
+    end
+end
+length(ch_idx)/128
+I = zeros(128,1);
+I(ch_idx)=1;
+ecog_grid = TrialData.Params.ChMap
+figure;imagesc(I(ecog_grid))
+
+%% RUNNING LDA TO GET DECODING PERFORMANCE
+
+clc;clear
+root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\';
+addpath('C:\Users\nikic\Documents\MATLAB')
+foldernames = {'20250315'}'%{'20220302','20220223'};20220302 is online hand...amaze
+cd(root_path)
+
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\\HandImagined';
+
+imagined_files=[];
+for i=1:length(foldernames)
+    if i==1
+       folderpath = fullfile(root_path, foldernames{i},'HandOnline');
+    else
+       folderpath = fullfile(root_path, foldernames{i},'Hand');
+    end
+    %folderpath = fullfile(root_path, foldernames{i},'HandImagined');
+
+    D=dir(folderpath);
+    
+
+    for j=3:length(D)
+        filepath=fullfile(folderpath,D(j).name,'Imagined');
+        if ~exist(filepath)
+            filepath=fullfile(folderpath,D(j).name,'BCI_Fixed');
+        end
+        tmp=dir(filepath);
+        imagined_files = [imagined_files;findfiles('',filepath)'];
+    end
+end
+
+res_overall=[];
+for iter=1:5
+    disp(iter)
+
+
+    % load the data for the imagined files, if they belong to right thumb,
+    % index, middle, ring, pinky, pinch, tripod, power
+    D1i={};
+    D2i={};
+    D3i={};
+    D4i={};
+    D5i={};
+    D6i={};
+    D7i={};
+    D8i={};
+    D9i={};
+    D10i={};
+    idx = randperm(length(imagined_files),round(0.8*length(imagined_files)));
+    train_files = imagined_files(idx);
+    I = ones(length(imagined_files),1);
+    I(idx)=0;
+    test_files = imagined_files(find(I==1));
+
+    for i=1:length(train_files)
+        %disp(i/length(train_files)*100)
+        try
+            load(train_files{i})
+            file_loaded = true;
+        catch
+            file_loaded=false;
+            disp(['Could not load ' files{j}]);
+        end
+
+
+        if file_loaded
+            action = TrialData.TargetID;
+            features  = TrialData.SmoothedNeuralFeatures;
+            kinax = TrialData.TaskState;
+            kinax = find(kinax==3);
+            temp = cell2mat(features(kinax));
+            temp = temp(:,1:end);
+
+            % get the smoothed and pooled data
+            % get smoothed delta hg and beta features
+            % new_temp=[];
+            % [xx yy] = size(TrialData.Params.ChMap);
+            % for k=1:size(temp,2)
+            %     tmp1 = temp(129:256,k);tmp1 = tmp1(TrialData.Params.ChMap);
+            %     tmp2 = temp(513:640,k);tmp2 = tmp2(TrialData.Params.ChMap);
+            %     tmp3 = temp(769:896,k);tmp3 = tmp3(TrialData.Params.ChMap);
+            %     tmp4 = temp(641:768,k);tmp4 = tmp4(TrialData.Params.ChMap);
+            %     tmp5 = temp(385:512,k);tmp5 = tmp5(TrialData.Params.ChMap);
+            %     pooled_data=[];
+            %     for i=1:2:xx
+            %         for j=1:2:yy
+            %             delta = (tmp1(i:i+1,j:j+1));delta=mean(delta(:));
+            %             beta = (tmp2(i:i+1,j:j+1));beta=mean(beta(:));
+            %             hg = (tmp3(i:i+1,j:j+1));hg=mean(hg(:));
+            %             lg = (tmp4(i:i+1,j:j+1));lg=mean(lg(:));
+            %             %alp = (tmp5(i:i+1,j:j+1));alp=mean(alp(:));
+            %             pooled_data = [pooled_data; delta;beta;hg];
+            %             %pooled_data = [pooled_data; hg];
+            %         end
+            %     end
+            %     new_temp= [new_temp pooled_data];
+            % end
+            % temp=new_temp;
+            % data_seg = temp(1:end,:); % only high gamma
+            %data_seg = mean(data_seg,2);
+
+            % get the features in B3 format            
+            temp = temp([257:512 1025:1280 1537:1792],:);
+            bad_ch = [108 113 118 ];
+            good_ch = ones(size(temp,1),1);
+            for ii=1:length(bad_ch)                
+                bad_ch_tmp = bad_ch(ii)+(256*[0 1 2]);
+                good_ch(bad_ch_tmp)=0;
+            end
+            temp = temp(logical(good_ch),:);
+
+            % 2-norm
+            for ii=1:size(temp,2)
+                temp(:,ii) = temp(:,ii)./norm(temp(:,ii));
+            end
+
+            data_seg = temp(1:end,:);
+            
+
+            if action ==1
+                D1i = cat(2,D1i,data_seg);
+                %D1f = cat(2,D1f,feat_stats1);
+            elseif action ==2
+                D2i = cat(2,D2i,data_seg);
+                %D2f = cat(2,D2f,feat_stats1);
+            elseif action ==3
+                D3i = cat(2,D3i,data_seg);
+                %D3f = cat(2,D3f,feat_stats1);
+            elseif action ==4
+                D4i = cat(2,D4i,data_seg);
+                %D4f = cat(2,D4f,feat_stats1);
+            elseif action ==5
+                D5i = cat(2,D5i,data_seg);
+                %D5f = cat(2,D5f,feat_stats1);
+            elseif action ==6
+                D6i = cat(2,D6i,data_seg);
+                %D6f = cat(2,D6f,feat_stats1);
+            elseif action ==7
+                D7i = cat(2,D7i,data_seg);
+                %D7f = cat(2,D7f,feat_stats1);
+            elseif action ==8
+                D8i = cat(2,D8i,data_seg);
+                %D7f = cat(2,D7f,feat_stats1);
+            elseif action ==9
+                D9i = cat(2,D9i,data_seg);
+            elseif action ==10
+                D10i = cat(2,D10i,data_seg);
+            end
+        end
+    end
+
+    data=[];
+    Y=[];
+    data=[data cell2mat(D1i)]; Y=[Y;0*ones(size(cell2mat(D1i),2),1)];
+    data=[data cell2mat(D2i)];  Y=[Y;1*ones(size(cell2mat(D2i),2),1)];
+    data=[data cell2mat(D3i)];  Y=[Y;2*ones(size(cell2mat(D3i),2),1)];
+    data=[data cell2mat(D4i)];  Y=[Y;3*ones(size(cell2mat(D4i),2),1)];
+    data=[data cell2mat(D5i)];  Y=[Y;4*ones(size(cell2mat(D5i),2),1)];
+    %data=[data cell2mat(D6i)];  Y=[Y;5*ones(size(cell2mat(D6i),2),1)];
+    %data=[data cell2mat(D7i)];  Y=[Y;6*ones(size(cell2mat(D7i),2),1)];
+    %data=[data cell2mat(D8i)];  Y=[Y;7*ones(size(cell2mat(D8i),2),1)];
+    %data=[data cell2mat(D9i)];  Y=[Y;6*ones(size(cell2mat(D9i),2),1)];
+    %data=[data cell2mat(D10i)];  Y=[Y;7*ones(size(cell2mat(D10i),2),1)];
+    data=data';
+
+    % run LDA
+    W = LDA(data,Y);
+
+    % run it on the held out files and get classification accuracies
+    acc=zeros(size(W,1));
+    for i=1:length(test_files)
+        %disp(i/length(test_files)*100)
+        try
+            load(test_files{i})
+            file_loaded = true;
+        catch
+            file_loaded=false;
+            disp(['Could not load ' files{j}]);
+        end
+
+
+        if file_loaded
+            action = TrialData.TargetID;
+            features  = TrialData.SmoothedNeuralFeatures;
+            kinax = TrialData.TaskState;
+            kinax = find(kinax==3);
+            temp = cell2mat(features(kinax));
+            temp = temp(:,1:end);
+
+            % % get the smoothed and pooled data
+            % % get smoothed delta hg and beta features
+            % new_temp=[];
+            % [xx yy] = size(TrialData.Params.ChMap);
+            % for k=1:size(temp,2)
+            %     tmp1 = temp(129:256,k);tmp1 = tmp1(TrialData.Params.ChMap);
+            %     tmp2 = temp(513:640,k);tmp2 = tmp2(TrialData.Params.ChMap);
+            %     tmp3 = temp(769:896,k);tmp3 = tmp3(TrialData.Params.ChMap);
+            %     tmp4 = temp(641:768,k);tmp4 = tmp4(TrialData.Params.ChMap);
+            %     tmp5 = temp(385:512,k);tmp5 = tmp5(TrialData.Params.ChMap);
+            %     pooled_data=[];
+            %     for i=1:2:xx
+            %         for j=1:2:yy
+            %             delta = (tmp1(i:i+1,j:j+1));delta=mean(delta(:));
+            %             beta = (tmp2(i:i+1,j:j+1));beta=mean(beta(:));
+            %             hg = (tmp3(i:i+1,j:j+1));hg=mean(hg(:));
+            %             lg = (tmp4(i:i+1,j:j+1));lg=mean(lg(:));
+            %             %alp = (tmp5(i:i+1,j:j+1));alp=mean(alp(:));
+            %             pooled_data = [pooled_data; delta;beta;hg];
+            %             %pooled_data = [pooled_data; hg];
+            %         end
+            %     end
+            %     new_temp= [new_temp pooled_data];
+            % end
+            % temp=new_temp;
+            % data_seg = temp(1:end,:); % only high gamma
+            %data_seg = mean(data_seg,2);
+
+            % get in b3 format
+            temp = temp([257:512 1025:1280 1537:1792],:);
+            bad_ch = [108 113 118 ];
+            good_ch = ones(size(temp,1),1);
+            for ii=1:length(bad_ch)
+                bad_ch_tmp = bad_ch(ii)+(256*[0 1 2]);
+                good_ch(bad_ch_tmp)=0;
+            end
+            temp = temp(logical(good_ch),:);
+
+            % 2-norm
+            for ii=1:size(temp,2)
+                temp(:,ii) = temp(:,ii)./norm(temp(:,ii));
+            end
+
+            data_seg = temp(1:end,:);
+        end
+        data_seg = data_seg';
+
+        % run it thru the LDA
+        L = [ones(size(data_seg,1),1) data_seg] * W';
+
+        % get classification prob
+        P = exp(L) ./ repmat(sum(exp(L),2),[1 size(L,2)]);
+
+        %average prob
+        decision = nanmean(P(1:end,:));
+        %decision = P;
+        [aa bb]=max(decision);
+
+        % correction for online trials
+%         if TrialData.TargetID==9
+%             TrialData.TargetID = 7;
+%         elseif TrialData.TargetID==10
+%             TrialData.TargetID = 8;
+%         end
+
+
+        % store results
+        if TrialData.TargetID <=5
+            acc(TrialData.TargetID,bb) = acc(TrialData.TargetID,bb)+1;
+        end
+    end
+
+    for i=1:length(acc)
+        acc(i,:)= acc(i,:)/sum(acc(i,:));
+    end
+    %figure;imagesc(acc)
+    %diag(acc)
+    %mean(ans)
+
+    res_overall(iter,:,:)=acc;
+
+end
+
+acc=squeeze(nanmean(res_overall,1));
+figure;imagesc(acc)
+diag(acc)
+mean(ans)
+colormap bone
+caxis([0 1])
+set(gcf,'Color','w')
+title(['Av. Classif. Acc of ' num2str(mean(diag(acc))) '%'])
+xticks(1:5)
+yticks(1:5)
+xticklabels({'Thumb','Index','Middle','Ring','Little'})
+yticklabels({'Thumb','Index','Middle','Ring','Little'})
+set(gca,'FontSize',14)
+
+%% PERFORMANCE IMAGINED - ONLINE- BATCH FOR B3 HAND EXPERIMENTS
+
+clc;clear
+close all
+clc;clear;
+root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
+addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
+cd(root_path)
+addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
+load session_data_B3_Hand
+addpath 'C:\Users\nikic\Documents\MATLAB'
+acc_imagined_days=[];
+acc_online_days=[];
+acc_batch_days=[];
+iterations=5;
+plot_true=true;
+acc_batch_days_overall=[];
+for i=1:length(session_data)
+    folders_imag =  strcmp(session_data(i).folder_type,'I');
+    folders_online = strcmp(session_data(i).folder_type,'O');
+    folders_batch = strcmp(session_data(i).folder_type,'B');
+
+    imag_idx = find(folders_imag==1);
+    online_idx = find(folders_online==1);
+    batch_idx = find(folders_batch==1);
+
+    %disp([session_data(i).Day '  ' num2str(length(batch_idx))]);
+
+    %%%%%% cross_val classification accuracy for imagined data
+    folders = session_data(i).folders(imag_idx);
+    day_date = session_data(i).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
+        %cd(folderpath)
+        files = [files;findfiles('',folderpath)'];
+    end
+
+    %load the data
+    load('ECOG_Grid_8596_000067_B3.mat')
+    condn_data = load_data_for_MLP_TrialLevel_B3(files,ecog_grid);
+    % save the data
+    filename = ['condn_data_Hand_B3_ImaginedTrials_Day' num2str(i)];
+    save(filename, 'condn_data', '-v7.3')
+
+    % get cross-val classification accuracy
+    [acc_imagined,train_permutations] = ...
+        accuracy_imagined_data_Hand_B3(condn_data, iterations);
+    acc_imagined=squeeze(nanmean(acc_imagined,1));
+    if plot_true
+        figure;imagesc(acc_imagined)
+        colormap bone
+        clim([0 1])
+        set(gcf,'color','w')
+        title(['Accuracy of ' num2str(100*mean(diag(acc_imagined)))])
+        xticks(1:12)
+        yticks(1:12)
+        xticklabels({'Thumb','Index','Middle','Ring','Pinky','Power',...
+            'Pinch','Tripod','Wrist In','Wrist Out','Wrist Flex','Wrist Extend'})
+        yticklabels({'Thumb','Index','Middle','Ring','Pinky','Power',...
+            'Pinch','Tripod','Wrist In','Wrist Out','Wrist Flex','Wrist Extend'})
+    end
+    acc_imagined_days(:,i) = diag(acc_imagined);
+
+
+    %%%%%% get classification accuracy for online data
+    folders = session_data(i).folders(online_idx);
+    day_date = session_data(i).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        %cd(folderpath)
+        files = [files;findfiles('',folderpath)'];
+    end
+
+    % get the classification accuracy
+    acc_online = accuracy_online_data_Hand(files,12);
+    if plot_true
+        figure;imagesc(acc_online)
+        colormap bone
+        clim([0 1])
+        set(gcf,'color','w')
+        title(['Accuracy of ' num2str(100*mean(diag(acc_online)))])
+        xticks(1:12)
+        yticks(1:12)
+        xticklabels({'Thumb','Index','Middle','Ring','Pinky','Power',...
+            'Pinch','Tripod','Wrist In','Wrist Out','Wrist Flex','Wrist Extend'})
+        yticklabels({'Thumb','Index','Middle','Ring','Pinky','Power',...
+            'Pinch','Tripod','Wrist In','Wrist Out','Wrist Flex','Wrist Extend'})
+    end
+    acc_online_days(:,i) = diag(acc_online);
+
+
+    %%%%%% classification accuracy for batch data
+    folders = session_data(i).folders(batch_idx);
+    day_date = session_data(i).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        %cd(folderpath)
+        files = [files;findfiles('',folderpath)'];
+    end
+
+    % get the classification accuracy
+    acc_batch = accuracy_online_data_Hand(files,12);
+    if plot_true
+        figure;imagesc(acc_batch)
+        colormap bone
+        clim([0 1])
+        set(gcf,'color','w')
+        title(['Accuracy of ' num2str(100*mean(diag(acc_batch)))])
+        xticks(1:12)
+        yticks(1:12)
+        xticklabels({'Thumb','Index','Middle','Ring','Pinky','Power',...
+            'Pinch','Tripod','Wrist In','Wrist Out','Wrist Flex','Wrist Extend'})
+        yticklabels({'Thumb','Index','Middle','Ring','Pinky','Power',...
+            'Pinch','Tripod','Wrist In','Wrist Out','Wrist Flex','Wrist Extend'})       
+
+    end
+    acc_batch_days(:,i) = diag(acc_batch);
+    acc_batch_days_overall(:,:,i)=acc_batch;
+end
+
+% combining wrist actions into one class
+acc_batch_new = zeros(10);
+acc_batch_new(1:8,1:8) = acc_batch(1:8,1:8);
+tmp = mean(acc_batch(9:10,1:8),1);
+acc_batch_new(9,1:8) = tmp;
+acc_batch_new(9,9) = 1-sum(tmp);
+tmp = mean(acc_batch(11:12,1:10),1);
+tmp=[tmp(1:8) sum(tmp(9:10))];
+acc_batch_new(10,1:9)=tmp;
+acc_batch_new(10,10) = 1-sum(tmp);
+figure;imagesc(acc_batch_new*100)
+colormap bone
+clim([0 100])
+set(gcf,'color','w')
+set(gca,'FontSize',14);
+title(['Accuracy of ' num2str(round(100*mean(diag(acc_batch_new)))) '%'])
+xticks(1:10)
+ xticklabels({'Thumb','Index','Middle','Ring','Pinky','Power',...
+            'Pinch','Tripod','Wrist Add/Abd','Wrist Flex/Extend'})
+ yticks(1:10)
+ yticklabels({'Thumb','Index','Middle','Ring','Pinky','Power',...
+            'Pinch','Tripod','Wrist Add/Abd','Wrist Flex/Extend'})
+
+
+%% Phase amplitude coupling between hG and alpha waves (MAIN)
+% do it for an example day, over all electrodes
+% then branch out to all days, OL vs. CL for comparisons
+
+% also change for PAC b/w hG and delta 
+
+
+clc;clear
+close all
+
+
+
+if ispc
+    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker';
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
+    cd(root_path)
+    addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
+    load session_data_B1_Hand
+    addpath 'C:\Users\nikic\Documents\MATLAB'
+    %load('ECOG_Grid_8596_000067_B3.mat')
+    addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
+    addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers')
+
+else
+    root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
+    cd(root_path)
+    load session_data_B3_Hand
+    load('ECOG_Grid_8596_000067_B3.mat')
+    addpath(genpath('/home/reza/Repositories/ECoG_BCI_TravelingWaves'))
+end
+
+
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    'SampleRate',1e3); % 8 to 10 or 0.5 to 5
+
+d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'SampleRate',1e3);
+
+pac_ol=[];pval_ol=[];
+pac_cl=[];pval_cl=[];
+pac_batch=[];pval_batch=[];
+rboot_ol=[];rboot_cl=[];rboot_batch=[];
+pac_raw_values={};k=1;
+tic
+for i=1:length(session_data)
+
+    folders_imag =  strcmp(session_data(i).folder_type,'I');
+    folders_online = strcmp(session_data(i).folder_type,'O');
+    folders_batch = strcmp(session_data(i).folder_type,'B');
+    folders_batch1 = strcmp(session_data(i).folder_type,'B1');
+    %batch_idx_overall = [find(folders_batch==1) find(folders_batch1==1)];
+
+    imag_idx = find(folders_imag==1);
+    online_idx = find(folders_online==1);
+    batch_idx = find(folders_batch==1);
+    batch_idx1 = find(folders_batch1==1);
+    %     if sum(folders_batch1)==0
+    %         batch_idx = find(folders_batch==1);
+    %     else
+    %         batch_idx = find(folders_batch1==1);
+    %     end
+    %     %batch_idx = [online_idx batch_idx];
+
+    online_idx=[online_idx batch_idx];
+    %batch_idx = [online_idx batch_idx_overall];
+
+
+    %%%%%% get imagined data files
+    folders = session_data(i).folders(imag_idx);
+    day_date = session_data(i).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+
+    % get the phase locking value
+    disp(['Processing Day ' num2str(i) ' OL'])
+    [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2,1);
+
+
+
+    % run permutation test and get pvalue for each channel
+    [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase,1);
+
+    %sum(pac_r>0.3)/253
+    pval_ol(i,:) = pval;
+    pac_ol(i,:) = abs(mean(pac));
+    pac_raw_values(k).pac = pac;
+    pac_raw_values(k).boot = rboot;
+    pac_raw_values(k).type = 'OL';
+    pac_raw_values(k).Day = i;
+    k=k+1;
+
+
+    %%%%%% getting online files now
+    folders = session_data(i).folders(online_idx);
+    day_date = session_data(i).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+
+    % get the phase locking value
+    disp(['Processing Day ' num2str(i) ' CL'])
+    [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2,1);
+
+    % run permutation test and get pvalue for each channel
+    [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase,1);
+
+    %sum(pac_r>0.3)/253
+    pval_cl(i,:) = pval;
+    pac_cl(i,:) = abs(mean(pac));
+    pac_raw_values(k).pac = pac;
+    pac_raw_values(k).boot = rboot;
+    pac_raw_values(k).type = 'CL';
+    pac_raw_values(k).Day = i;
+    k=k+1;
+
+    %%%%%% getting batch udpated (CL2) files now
+    folders = session_data(i).folders(batch_idx1);
+    day_date = session_data(i).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+
+    if ~isempty(files)
+
+        % get the phase locking value
+        disp(['Processing Day ' num2str(i) ' Batch'])
+        [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+
+        % run permutation test and get pvalue for each channel
+        [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+
+        pval_batch(i,:) = pval;
+        pac_batch(i,:) = abs(mean(pac));
+        %rboot_batch(i,:,:) = rboot;
+        pac_raw_values(k).pac = pac;
+        pac_raw_values(k).boot = rboot;
+        pac_raw_values(k).type = 'Batch';
+        pac_raw_values(k).Day = i;
+        k=k+1;
+
+
+    else
+        pac_batch(i,:)=NaN(1,253);
+        pval_batch(i,:)=NaN(1,253);
+    end
+
+end
+
+toc
+
+
+cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
+save PAC_B3_Hand_rawValues_betaToHg_15To20Hz -v7.3
+
+
+%% NEW HAND DATA MULTI CYCLIC
+% % extract single trials
+% % get the time-freq features in raw and in hG
+% % train a bi-GRU
+% 
+% 
+% clc;clear
+% root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\';
+% foldernames = {'20220608','20220610','20220622','20220624'};
+% cd(root_path)
+% 
+% imagined_files=[];
+% for i=1:length(foldernames)
+%     folderpath = fullfile(root_path, foldernames{i},'HandImagined')
+%     D=dir(folderpath);
+% 
+%     for j=3:length(D)
+%         filepath=fullfile(folderpath,D(j).name,'Imagined');
+%         if ~exist(filepath)
+%             filepath=fullfile(folderpath,D(j).name,'BCI_Fixed');
+%         end
+%         tmp=dir(filepath);
+%         imagined_files = [imagined_files;findfiles('',filepath)'];
+%     end
+% end
+% 
+% 
+% % load the data for the imagined files, if they belong to right thumb,
+% % index, middle, ring, pinky, pinch, tripod, power
+% D1i={};
+% D2i={};
+% D3i={};
+% D4i={};
+% D5i={};
+% D6i={};
+% D7i={};
+% D8i={};
+% D9i={};
+% D10i={};
+% D11i={};
+% D12i={};
+% D13i={};
+% D14i={};
+% for i=1:length(imagined_files)
+%     disp(i/length(imagined_files)*100)
+%     try
+%         load(imagined_files{i})
+%         file_loaded = true;
+%     catch
+%         file_loaded=false;
+%         disp(['Could not load ' files{j}]);
+%     end
+% 
+%     if file_loaded
+%         action = TrialData.TargetID;
+%         %disp(action)
+% 
+%         % find the bins when state 3 happened and then extract each
+%         % individual cycle (2.6s length) as a trial
+% 
+%         % get times for state 3 from the sample rate of screen refresh
+%         time  = TrialData.Time;
+%         time = time - time(1);
+%         idx = find(TrialData.TaskState==3) ;
+%         task_time = time(idx);
+% 
+%         % get the kinematics and extract times in state 3 when trials
+%         % started and ended
+%         kin = TrialData.CursorState;
+%         kin=kin(1,idx);
+%         kind = [0 diff(kin)];
+%         aa=find(kind==0);
+%         kin_st=[];
+%         kin_stp=[];
+%         for j=1:length(aa)-1
+%             if (aa(j+1)-aa(j))>1
+%                 kin_st = [kin_st aa(j)];
+%                 kin_stp = [kin_stp aa(j+1)-1];
+%             end
+%         end
+% 
+%         %getting start and stop times
+%         start_time = task_time(kin_st);
+%         stp_time = task_time(kin_stp);
+% 
+% 
+%         % get corresponding neural times indices
+%         %         neural_time  = TrialData.NeuralTime;
+%         %         neural_time = neural_time-neural_time(1);
+%         %         neural_st=[];
+%         %         neural_stp=[];
+%         %         st_time_neural=[];
+%         %         stp_time_neural=[];
+%         %         for j=1:length(start_time)
+%         %             [aa bb]=min(abs(neural_time-start_time(j)));
+%         %             neural_st = [neural_st; bb];
+%         %             st_time_neural = [st_time_neural;neural_time(bb)];
+%         %             [aa bb]=min(abs(neural_time-stp_time(j)));
+%         %             neural_stp = [neural_stp; bb-1];
+%         %             stp_time_neural = [stp_time_neural;neural_time(bb)];
+%         %         end
+% 
+%         % get the broadband data for each trial
+%         raw_data=cell2mat(TrialData.BroadbandData');
+% 
+%         % extract the broadband data (Fs-1KhZ) based on rough estimate of
+%         % the start and stop times from the kinematic data
+%         start_time_neural = round(start_time*1e3);
+%         stop_time_neural = round(stp_time*1e3);
+%         data_seg={};
+%         for j=1:length(start_time_neural)
+%             tmp = (raw_data(start_time_neural(j):stop_time_neural(j),:));
+%             tmp=tmp(1:round(size(tmp,1)/2),:);
+%             % pca step
+%             %m=mean(tmp);
+%             %[c,s,l]=pca(tmp,'centered','off');
+%             %tmp = (s(:,1)*c(:,1)')+m;
+%             data_seg = cat(2,data_seg,tmp);
+%         end
+% 
+%         if action==1
+%             D1i = cat(2,D1i,data_seg);
+%         elseif action==2
+%             D2i = cat(2,D2i,data_seg);
+%         elseif action==3
+%             D3i = cat(2,D3i,data_seg);
+%         elseif action==4
+%             D4i = cat(2,D4i,data_seg);
+%         elseif action==5
+%             D5i = cat(2,D5i,data_seg);
+%         elseif action==6
+%             D6i = cat(2,D6i,data_seg);
+%         elseif action==7
+%             D7i = cat(2,D7i,data_seg);
+%         elseif action==8
+%             D8i = cat(2,D8i,data_seg);
+%         elseif action==9
+%             D9i = cat(2,D9i,data_seg);
+%         elseif action==10
+%             D10i = cat(2,D10i,data_seg);
+%         elseif action==11
+%             D11i = cat(2,D11i,data_seg);
+%         elseif action==12
+%             D12i = cat(2,D12i,data_seg);
+%         elseif action==13
+%             D13i = cat(2,D13i,data_seg);
+%         elseif action==14
+%             D14i = cat(2,D14i,data_seg);
+%         end
+%     end
+% end
+% 
+

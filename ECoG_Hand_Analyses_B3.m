@@ -2304,7 +2304,8 @@ for ii=1:length(files)
 end
 
 
-%% getting the alpha signals for the 7 DoF dataset
+%% getting the alpha signals for the 7 DoF dataset (B1)
+% alpha or whatever wave signals are present 
 
 clc;clear
 close all
@@ -2321,11 +2322,11 @@ labels_batch=[];
 days=[];
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'HalfPowerFrequency1',22,'HalfPowerFrequency2',26, ...
     'SampleRate',1e3);
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'HalfPowerFrequency1',22,'HalfPowerFrequency2',26, ...
     'SampleRate',200);
 
 
@@ -2438,7 +2439,7 @@ end
 
 %save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
 %save alpha_dynamics_hG_200Hz_AllDays_DaysLabeled_B1_7DoF xdata ydata labels labels_batch days -v7.3
-save alpha_dynamics_hG_200Hz_All5Days_DaysLabeled_B1_7DoF xdata ydata labels labels_batch days -v7.3
+save beta_dynamics_hG_200Hz_AllDays_DaysLabeled_B1_7DoF xdata ydata labels labels_batch days -v7.3
 
 
 
@@ -2660,7 +2661,7 @@ end
 
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
     'SampleRate',1e3);
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...

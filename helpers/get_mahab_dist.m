@@ -55,8 +55,13 @@ for ii=1:length(files)
         l3 = size(data3,1);
 
         % get the hG signals alone or whatever features you care about
-        hg =  data3(:,1537:end); %hg
-        %hg =  data3(:,257:512); % delta
+        if b1==false
+            hg =  data3(:,1537:end); %hg
+            %hg =  data3(:,257:512); % delta
+
+        else
+            hg = data3(:,769:896);
+        end
 
         % remove bad channels
         hg = hg(:,logical(good_ch));
@@ -137,7 +142,13 @@ condn_data{12} = D12;
 
 % now doing it channel by channel 
 D_chan=[];
-for ch=1:253 %channels
+if b1==false
+    ch_len=253;
+else
+    ch_len=128;
+end
+
+for ch=1:ch_len %channels
     D=zeros(12);
     for j=1:length(condn_data)
         tmp = condn_data{j};
