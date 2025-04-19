@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Sat Apr 19 10:15:12 2025
+
+@author: nikic
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Tue Mar 11 19:13:24 2025
 
 @author: nikic
@@ -40,7 +47,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 # load the data 
-filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
+filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate clicker/alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_hG_alpha_PAC_200Hz_AllDays_DaysLabeled.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
 
@@ -117,7 +124,7 @@ for iter in np.arange(iterations):
     if 'model' in locals():
         del model 
    
-    model = Autoencoder3D(ksize,num_classes,input_size,lstm_size).to(device)
+    #model = Autoencoder3D(ksize,num_classes,input_size,lstm_size).to(device)
     
     # getparams and train the model 
     num_epochs=150
@@ -126,7 +133,13 @@ for iter in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10
-    nn_filename = 'i3DAE_B3.pth' 
+    b3Trf_filename = 'i3DAE_B3.pth' 
+    nn_filename = 'i3DAE_B1_253.pth' 
+    
+    model = Autoencoder3D(ksize,num_classes,input_size,lstm_size)    
+    model.load_state_dict(torch.load(b3Trf_filename))
+    model=model.to(device)
+    model.train()
     
     model,acc = training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
                         patience,gradient_clipping,nn_filename,
@@ -161,6 +174,13 @@ for iter in np.arange(iterations):
         #print(cl_error)
         #cl_mse.append(cl_error)
         
+        # distriubtion of cl error
+        cl_error_dist=[]
+        for j in np.arange(recon_cl.shape[0]):
+            xx = np.sum( (recon_cl[j,:] - Ytest_cl[j,:])**2 )
+            cl_error_dist.append(xx)
+            
+        
             
         recon_ol = tmp_recon[idx_ol,:].cpu().detach().numpy()
         Ytest_ol = tmp_ydata[idx_ol,:]
@@ -168,6 +188,12 @@ for iter in np.arange(iterations):
         ol_mse_days[iter,i] = ol_error
         #print(ol_error)
         #ol_mse.append(ol_error)
+        
+        # distriubtion of ol error
+        ol_error_dist=[]
+        for j in np.arange(recon_ol.shape[0]):
+            xx = np.sum( (recon_ol[j,:] - Ytest_ol[j,:])**2 )
+            ol_error_dist.append(xx)
     
         # # decoding accuracy
         # decodes1 = convert_to_ClassNumbers(decodes).cpu().detach().numpy()           
@@ -239,10 +265,6 @@ plt.show()
 tmp = np.mean(balanced_acc_days,axis=0)
 plt.figure();
 plt.plot(tmp)
-
-plt.figure();
-plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
-
 
 plt.figure();
 plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])

@@ -929,7 +929,7 @@ class Decoder3D(nn.Module):
         x = self.elu(x)
         
         x = self.deconv4(x)
-        x = torch.tanh(x) # squish between -1 and 1
+        #x = torch.tanh(x) # squish between -1 and 1
         return x
     
     
@@ -1179,7 +1179,7 @@ def validation_loss_3DCNNAE_fullVal(model,Xval,Yval,labels_val,batch_val,val_typ
         loss2 = crit_classif_val(zpred,z)    
         #loss1  = loss1/x.shape[0]
         #loss2 = loss2/x.shape[0]
-        loss_val = 15*loss1.item() + loss2.item()    #30
+        loss_val = 30*loss1.item() + loss2.item()    #30
         
     #zlabels = convert_to_ClassNumbers(z)        
     zlabels=z
@@ -1297,7 +1297,7 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
     #classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
     classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')    
     
-    opt = torch.optim.AdamW(model.parameters(),lr=learning_rate)
+    opt = torch.optim.AdamW(model.parameters(),lr=learning_rate,weight_decay=1e-5)
     print('Starting training')
     goat_loss=99999
     counter=0
@@ -1337,7 +1337,7 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
           recon_loss = (recon_criterion(recon,Ytrain_batch))#/Ytrain_batch.shape[0]
           decodes = decodes.squeeze() # for BCE loss
           classif_loss = (classif_criterion(decodes,labels_batch))#/labels_batch.shape[0]      
-          loss = 15*recon_loss + classif_loss#30
+          loss = 30*recon_loss + classif_loss#30
           total_loss = loss.item()
           #print(classif_loss.item())
           
@@ -1380,9 +1380,7 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
           break
     
     model_goat = Autoencoder3D(ksize,num_classes,input_size,lstm_size)
-    #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)
-    #model_goat = iAutoencoder(input_size,hidden_size,latent_dims,num_classes)  
-    #model_goat = iAutoencoder_B3(input_size,hidden_size,latent_dims,num_classes)
+    #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
     model_goat.load_state_dict(torch.load(filename))
     model_goat=model_goat.to(device)
     model_goat.eval()

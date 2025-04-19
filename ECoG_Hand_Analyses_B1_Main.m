@@ -102,10 +102,10 @@ save session_data_B1_Hand session_data
 
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250315\HandImagined';
 
-
+%20240515, 20240517, 20240614, 20240619, 20240621, 20240626
 
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20230519\HandOnline';
-filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20240515\Robot3DArrow';
+filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20240517\Robot3DArrow';
 
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250120\RealRobotBatch';
 
@@ -120,7 +120,7 @@ for i=1:length(files)
     end
 end
 files=files1;
-files=files(1:100);
+%files=files(1:100);
 
 %bad_ch=[108 113 118];
 bad_ch=[];
@@ -135,11 +135,12 @@ for ii=1:length(files)
         loaded=false;
     end
 
-    if sum(TrialData.TargetID == [1 3 7 ]) > 0
-        hand=true;
-    else 
-        hand=false;
-    end
+    % if sum(TrialData.TargetID == [1 3 7 ]) > 0
+    %     hand=true;
+    % else 
+    %     hand=false;
+    % end
+    hand=true;
 
     if loaded && hand
         data_trial = (TrialData.BroadbandData');
@@ -213,6 +214,7 @@ figure;
 hold on
 plot(f,osc_clus,'Color',[.5 .5 .5 .5],'LineWidth',.5)
 plot(f,median(osc_clus,1),'b','LineWidth',2)
+
 
 % get all the electrodes with peak between 8.0Hz and 10Hz
 ch_idx=[];
@@ -845,6 +847,139 @@ toc
 
 cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
 save PAC_B3_Hand_rawValues_betaToHg_15To20Hz -v7.3
+
+
+%% GETTING ALPHA WAVE FOR ARROW DATA
+
+
+
+clc;clear
+close all
+
+if ispc
+    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker';
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
+    cd(root_path)
+    addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')    
+    addpath 'C:\Users\nikic\Documents\MATLAB'
+    load('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\ECOG_Grid_8596_000067_B3.mat')
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers'))
+
+else
+    root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
+    cd(root_path)
+    load session_data_B3_Hand
+    load('ECOG_Grid_8596_000067_B3.mat')
+    addpath(genpath('/home/reza/Repositories/ECoG_BCI_TravelingWaves/helpers'))
+
+end
+
+xdata={};
+ydata={};
+labels=[];
+labels_batch=[];
+days=[];
+mvmt_labels=[];
+trial_number=[];
+data={};
+
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',9, ...
+    'SampleRate',1e3);
+
+d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',9, ...
+    'SampleRate',200);
+
+
+folders={'20240515', '20240517', '20240614', '20240619', '20240621', '20240626'};
+
+
+
+hg_alpha_switch=false; %1 means get hG, 0 means get alpha dynamics
+
+for i=1:length(folders)
+
+    folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
+    D= dir(folderpath);
+    D = D(3:end);
+    imag_idx=[];
+    online_idx=[];
+    for j=1:length(D)
+        subfoldername = dir(fullfile(folderpath,D(j).name));
+        if strcmp(subfoldername(3).name,'Imagined')
+            imag_idx=[imag_idx j];
+        elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+            online_idx=[online_idx j];
+        end
+    end
+
+    %%%%%% get imagined data files    
+    files=[];
+    for ii=1:length(imag_idx)
+        imag_folderpath = fullfile(folderpath, D(imag_idx(ii)).name,'Imagined');        
+        files = [files;findfiles('mat',imag_folderpath)'];
+    end
+
+    if hg_alpha_switch
+        [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
+
+    else
+        [xdata,ydata,idx,trial_idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata);
+
+    end
+
+    labels = [labels; zeros(idx,1)];
+    days = [days;ones(idx,1)*i];
+    labels_batch = [labels_batch;zeros(idx,1)];
+    mvmt_labels= [mvmt_labels;trial_idx];
+
+    %%%%%% getting online files now
+    files=[];
+    for ii=1:length(online_idx)
+        imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
+        files = [files;findfiles('mat',imag_folderpath)'];
+    end
+
+    if hg_alpha_switch
+        [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
+
+    else
+        [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata);
+
+    end
+
+    labels = [labels; ones(idx,1)];
+    days = [days;ones(idx,1)*i];
+    labels_batch = [labels_batch;zeros(idx,1)];
+
+
+    % %%%%%% getting batch udpated (CL2) files now
+    % folders = session_data(i).folders(batch_idx1);
+    % day_date = session_data(i).Day;
+    % files=[];
+    % for ii=1:length(folders)
+    %     folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+    %     %cd(folderpath)
+    %     files = [files;findfiles('mat',folderpath)'];
+    % end
+    % 
+    % if hg_alpha_switch
+    %     [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
+    % 
+    % else
+    %     [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata);
+    % 
+    % end
+    % 
+    % labels = [labels; ones(idx,1)];
+    % days = [days;ones(idx,1)*i];
+    % labels_batch = [labels_batch;ones(idx,1)];
+
+end
+
+%save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
+save alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled xdata ydata labels labels_batch days -v7.3
 
 
 %% NEW HAND DATA MULTI CYCLIC
