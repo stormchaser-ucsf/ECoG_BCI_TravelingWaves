@@ -979,7 +979,7 @@ for i=1:length(folders)
 end
 
 %save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
-save alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled xdata ydata labels labels_batch days -v7.3
+save alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_AC xdata ydata labels labels_batch days -v7.3
 
 
 %% NEW HAND DATA MULTI CYCLIC

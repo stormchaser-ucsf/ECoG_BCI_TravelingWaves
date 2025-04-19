@@ -63,7 +63,7 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 5
+iterations = 1
 days = np.unique(labels_days)
 
 decoding_acc=[]
@@ -78,6 +78,14 @@ ce_loss = np.zeros((iterations,len(days)))
 print(xdata.shape)
 
 del data_dict
+
+# testing some stuff out
+# idx = np.where(labels_days==1)
+# labels_days[idx]=10
+# idx = np.where(labels_days==4)
+# labels_days[idx]=1
+# idx = np.where(labels_days==10)
+# labels_days[idx]=4
 
 for iter in np.arange(iterations):    
     
