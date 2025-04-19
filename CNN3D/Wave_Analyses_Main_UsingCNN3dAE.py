@@ -255,11 +255,11 @@ cd_loss_null = ce_loss
 
 
 
-# np.savez('Alpha_200Hz_AllDays_null', 
-#           ce_loss = ce_loss,
-#           balanced_acc_days = balanced_acc_days,
-#           ol_mse_days = ol_mse_days,
-#           cl_mse_days=cl_mse_days)
+np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model', 
+          ce_loss = ce_loss,
+          balanced_acc_days = balanced_acc_days,
+          ol_mse_days = ol_mse_days,
+          cl_mse_days=cl_mse_days)
 
 
 #%% plotting amplitude differences

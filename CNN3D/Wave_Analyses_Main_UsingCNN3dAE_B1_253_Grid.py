@@ -87,10 +87,19 @@ for iter in np.arange(iterations):
     Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.7,labels_days)                        
     #del xdata, ydata
     
-    # # circular shifting the data for null stats
+    # circular shifting the data for null stats
     # random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
     # for i in np.arange(len(random_shifts)):
     #     Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
+    
+    
+    idx=np.where(np.abs(Xtrain)>10)
+    Xtrain[idx]=0
+    Ytrain[idx]=0
+    idx=np.where(np.abs(Ytrain)>10)
+    Xtrain[idx]=0
+    Ytrain[idx]=0
+    
     
 
     
@@ -133,7 +142,7 @@ for iter in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10
-    b3Trf_filename = 'i3DAE_B3.pth' 
+    b3Trf_filename = 'i3DAE_B3.pth'  
     nn_filename = 'i3DAE_B1_253.pth' 
     
     model = Autoencoder3D(ksize,num_classes,input_size,lstm_size)    
@@ -277,11 +286,11 @@ cd_loss_null = ce_loss
 
 
 
-# np.savez('Alpha_200Hz_AllDays_null', 
-#           ce_loss = ce_loss,
-#           balanced_acc_days = balanced_acc_days,
-#           ol_mse_days = ol_mse_days,
-#           cl_mse_days=cl_mse_days)
+np.savez('Alpha_200Hz_AllDays_B1_253Grid_Arrow', 
+          ce_loss = ce_loss,
+          balanced_acc_days = balanced_acc_days,
+          ol_mse_days = ol_mse_days,
+          cl_mse_days=cl_mse_days)
 
 
 #%% plotting amplitude differences

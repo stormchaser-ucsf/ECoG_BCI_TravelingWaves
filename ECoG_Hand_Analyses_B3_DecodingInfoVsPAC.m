@@ -329,7 +329,7 @@ end
 %     'SampleRate',1e3);
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',9, ...
     'SampleRate',1e3);
 
 
@@ -349,6 +349,7 @@ folders={'20240515', '20240517', '20240614', '20240619', '20240621', '20240626'}
 reg_days=[];
 mahab_dist_days=[];
 plot_true = true;
+pac_days=[];
 for i=1:length(folders)
 
 
@@ -403,6 +404,7 @@ for i=1:length(folders)
     disp(['Processing Day ' num2str(i) ' CL'])
     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
     %pac=zeros(100,253);
+    pac_days(i,:)=abs(mean(pac));
 
 
     % get the mahab dist at each channel
@@ -530,9 +532,9 @@ figure;hold on
 plot(log(reg_days(3,:)),'.','MarkerSize',20)
 xlabel('Days')
 ylabel('Log P-value')
-xticks(1:10)
+xticks(1:size(reg_days,2))
 y = log(reg_days(3,:))';
-x = (1:10)';
+x = (1:size(reg_days,2))';
 x = [ones(size(x,1),1) x];
 [B,BINT,R,RINT,STATS1] = regress(y,x);
 yhat = x*B;
@@ -547,16 +549,16 @@ figure;hold on
 plot((reg_days(2,:)),'.','MarkerSize',20)
 xlabel('Days')
 ylabel('Slope b/w PAC and decoding info.')
-xticks(1:10)
+xticks(1:size(reg_days,2))
 y = reg_days(2,:)';
-x = (1:10)';
+x = (1:size(reg_days,2))';
 x = [ones(size(x,1),1) x];
 [B,BINT,R,RINT,STATS1] = regress(y,x);
 yhat = x*B;
 plot(x(:,2),yhat,'k')
 plot_beautify
 title('Evolution of alpha-hG PAC and discriminability')
-xlim([0.5 10.5])
+xlim([0.5 6.5])
 
 
 % tmp=angle(mean(pac));
@@ -567,6 +569,6 @@ xlim([0.5 10.5])
 
 
 
-save mahab_pac_delta_hg_B1_253_7DoF -v7.3
+save mahab_pac_alpha_hg_B1_253_7DoF -v7.3
 
 

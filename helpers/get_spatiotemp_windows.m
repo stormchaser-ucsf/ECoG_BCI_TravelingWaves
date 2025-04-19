@@ -58,13 +58,24 @@ for ii=1:length(files)
                 tmpy = df(yst:ystp,:);
                 a=[];
                 for j=1:size(tmpx,1)
+                    
                     aa = tmpx(j,:);
+
+                    % Artifact correction
+                    idx1=find(abs(aa)>5);
+                    aa(idx1) = randn(size(idx1))*1e-5;
+
                     aa = aa(ecog_grid);
                     a(j,:,:) = aa;
                 end
                 b=[];
                 for j=1:size(tmpy,1)
                     bb = tmpy(j,:);
+                    
+                    % Artifact correction
+                    idx1=find(abs(bb)>5);
+                    bb(idx1) = randn(size(idx1))*1e-5;
+
                     bb = bb(ecog_grid);
                     b(j,:,:) = bb;
                 end
@@ -74,6 +85,9 @@ for ii=1:length(files)
                 ydata = cat(1,(ydata),(b));
                 idx=idx+1;
                 trial_seg = trial_seg+1;
+                if max(abs(a(:)))>5
+                    disp(length(xdata));
+                end
             end
         end
         trial_idx = [trial_idx ;[TrialData.TargetID * ones(trial_seg,1)]];
