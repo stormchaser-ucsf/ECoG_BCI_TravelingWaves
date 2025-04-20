@@ -41,7 +41,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 # load the data 
 #filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
-filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/beta_dynamics_hG_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
+filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/hG_LFO_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorrected.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
 
 
