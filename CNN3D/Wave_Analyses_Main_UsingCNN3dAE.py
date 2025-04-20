@@ -40,8 +40,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 # load the data 
-filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
-#filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_hG_alpha_PAC_200Hz_AllDays_DaysLabeled.mat'
+#filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
+filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/beta_dynamics_hG_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
 
 
@@ -70,7 +70,7 @@ ce_loss = np.zeros((iterations,len(days)))
 
 print(xdata.shape)
 
-del data_dict
+#del data_dict
 
 for iter in np.arange(iterations):    
     
@@ -255,7 +255,7 @@ cd_loss_null = ce_loss
 
 
 
-np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model', 
+np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData', 
           ce_loss = ce_loss,
           balanced_acc_days = balanced_acc_days,
           ol_mse_days = ol_mse_days,

@@ -16,8 +16,8 @@ Created on Tue Mar 11 19:13:24 2025
 
 import os
 
-#os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
-os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
+os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
+#os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
 
 
 from iAE_utils_models import *

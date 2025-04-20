@@ -1212,11 +1212,11 @@ trial_number=[];
 data={};
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'HalfPowerFrequency1',28,'HalfPowerFrequency2',32, ...
     'SampleRate',1e3);
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'HalfPowerFrequency1',28,'HalfPowerFrequency2',32, ...
     'SampleRate',200);
 
 
@@ -1316,7 +1316,7 @@ for i=1:length(session_data)
 end
 
 %save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
-save alpha_dynamics_hG_200Hz_AllDays_DaysLabeled xdata ydata labels labels_batch days -v7.3
+save beta_dynamics_hG_200Hz_AllDays_DaysLabeled_ArtifactCorr xdata ydata labels labels_batch days -v7.3
 
 
 
