@@ -9,8 +9,8 @@ Created on Tue Mar 11 19:13:24 2025
 
 import os
 
-#os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
-os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
+os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
+#os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
 
 
 from iAE_utils_models import *
@@ -126,7 +126,7 @@ for iter in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10
-    nn_filename = 'i3DAE_B3.pth' 
+    nn_filename = 'i3DAE_beta_B3.pth' 
     
     model,acc = training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
                         patience,gradient_clipping,nn_filename,

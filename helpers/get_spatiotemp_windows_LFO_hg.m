@@ -1,9 +1,9 @@
-function [xdata,ydata,idx] = ...
-    get_spatiotemp_windows_hg_alpha(files,d2,ecog_grid,xdata,ydata,d1)
+function [xdata,ydata,idx,trial_idx] = ...
+    get_spatiotemp_windows_LFO_hg(files,d2,ecog_grid,xdata,ydata,d1)
 
 %load the data and extract the features in 8 to 10Hz range, 200ms
 %snippets, 201 ms prediction, in 50ms increments
-idx=0;
+idx=0;trial_idx=[];
 for ii=1:length(files)
     disp(ii/length(files)*100)
     loaded=1;
@@ -40,43 +40,59 @@ for ii=1:length(files)
         data_hg = abs(hilbert(filtfilt(d1,data)));
 
         % resample and filter
-        data = resample(data,200,1000);
+        data = resample(data_hg,200,1000);
         df = filtfilt(d2,data);
         df = df(l11+1:end,:);
 
-        data_hg = resample(data_hg,200,1000);
-        df_hg = filtfilt(d2,data_hg);
-        df_hg = df_hg(l11+1:end,:);
+
+        % keep track of trial segments
+        trial_seg=0;
 
 
         % filter at 1khz
         %df = filtfilt(d1,data);
-        for xx=1:39:size(df,1) %39 is the original step forward, 40 if full
+        for xx=1:39:length(df) %39 is the original step forward
             if size(df,1)-xx > 42
                 st = xx;
-                stp = xx+39; %39
-                %yst=xx+1;
-                %ystp = xx+1+39;
+                stp = xx+39;
+                yst=xx+1;
+                ystp = xx+1+39;
                 tmpx = df(st:stp,:);
-                tmpy = df_hg(st:stp,:);
+                tmpy = df(yst:ystp,:);
                 a=[];
                 for j=1:size(tmpx,1)
+
                     aa = tmpx(j,:);
+
+                    % Artifact correction
+                    idx1=find(abs(aa)>5);
+                    aa(idx1) = randn(size(idx1))*1e-5;
+
                     aa = aa(ecog_grid);
                     a(j,:,:) = aa;
                 end
                 b=[];
                 for j=1:size(tmpy,1)
                     bb = tmpy(j,:);
+
+                    % Artifact correction
+                    idx1=find(abs(bb)>5);
+                    bb(idx1) = randn(size(idx1))*1e-5;
+
                     bb = bb(ecog_grid);
                     b(j,:,:) = bb;
                 end
 
-                
+
                 xdata = cat(1,(xdata),(a));
                 ydata = cat(1,(ydata),(b));
                 idx=idx+1;
+                trial_seg = trial_seg+1;
+                if max(abs(a(:)))>5
+                    disp(length(xdata));
+                end
             end
         end
+        trial_idx = [trial_idx ;[TrialData.TargetID * ones(trial_seg,1)]];
     end
 end

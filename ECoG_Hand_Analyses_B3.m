@@ -1316,7 +1316,7 @@ for i=1:length(session_data)
 end
 
 %save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
-save beta_dynamics_hG_200Hz_AllDays_DaysLabeled_ArtifactCorr xdata ydata labels labels_batch days -v7.3
+save hg_LFO_dynamics_hG_200Hz_AllDays_DaysLabeled_ArtifactCorr xdata ydata labels labels_batch days -v7.3
 
 
 
@@ -1437,7 +1437,7 @@ save alpha_dynamics_1s_100Hz_AllDays_DaysLabeled_TrialLevel data_trial -v7.3
 
 
 %% getting alpha osc. of hg amplitude for PAC via CNN recon
-
+% or just get the low freq component of hG 
 
 
 clc;clear
@@ -1473,7 +1473,7 @@ d1 = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',1e3);
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
     'SampleRate',200);
 
 
@@ -1517,7 +1517,7 @@ for i=1:length(session_data)
 
     else
         [xdata,ydata,idx] = ...
-            get_spatiotemp_windows_hg_alpha(files,d2,ecog_grid,xdata,ydata,d1);
+            get_spatiotemp_windows_LFO_hg(files,d2,ecog_grid,xdata,ydata,d1);
 
     end
 
@@ -1540,7 +1540,7 @@ for i=1:length(session_data)
 
     else
         [xdata,ydata,idx] = ...
-            get_spatiotemp_windows_hg_alpha(files,d2,ecog_grid,xdata,ydata,d1);
+            get_spatiotemp_windows_LFO_hg(files,d2,ecog_grid,xdata,ydata,d1);
 
     end
 
@@ -1564,7 +1564,7 @@ for i=1:length(session_data)
 
     else
         [xdata,ydata,idx] = ...
-            get_spatiotemp_windows_hg_alpha(files,d2,ecog_grid,xdata,ydata,d1);
+            get_spatiotemp_windows_LFO_hg(files,d2,ecog_grid,xdata,ydata,d1);
 
     end
 
@@ -1575,7 +1575,7 @@ for i=1:length(session_data)
 end
 
 %save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
-save alpha_dynamics_hG_alpha_PAC_200Hz_AllDays_DaysLabeled xdata ydata labels labels_batch days -v7.3
+save hG_LFO_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorrected xdata ydata labels labels_batch days -v7.3
 
 
 
