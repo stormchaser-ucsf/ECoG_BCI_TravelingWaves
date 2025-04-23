@@ -126,7 +126,7 @@ for iter in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10
-    nn_filename = 'i3DAE_beta_B3.pth' 
+    nn_filename = 'i3DAE_hglfo_B3.pth' 
     
     model,acc = training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
                         patience,gradient_clipping,nn_filename,
