@@ -32,6 +32,12 @@ end
 files=files1;
 files=files(1:100);
 
+% if you want to examine hG waves
+Fs=1000;
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'SampleRate',Fs);
+
 bad_ch=[108 113 118];
 osc_clus=[];
 stats=[];
@@ -42,8 +48,13 @@ for ii=1:length(files)
 
     % run power spectrum and 1/f stats on a single trial basis
     task_state = TrialData.TaskState;
+    l2 = find(task_state==2);
     kinax = find(task_state==3);
     data = cell2mat(data_trial(kinax));
+    
+    % extract hG alone
+    %data=abs(hilbert(filtfilt(bpFilt,data)));
+
     spectral_peaks=[];
     stats_tmp=[];
     parfor i=1:size(data,2)
@@ -102,6 +113,13 @@ for ii=1:length(files)
 end
 
 
+% get spectral peaks
+pks=[];
+for i=1:length(spectral_peaks)
+    pks=[pks ;spectral_peaks(i).freqs];
+end
+figure;hist(pks,16)
+
 % plot oscillation clusters
 f=2:40;
 figure;
@@ -129,7 +147,7 @@ ch_idx=[];
 for i=1:length(spectral_peaks)
     if sum(i==bad_ch)==0
         f = spectral_peaks(i).freqs;
-        if sum( (f>=26) .* (f<=32) ) >= 1
+        if sum( (f>=20) .* (f<=26) ) >= 1
             ch_idx=[ch_idx i];
         end
     end
