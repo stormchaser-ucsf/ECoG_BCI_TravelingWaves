@@ -41,8 +41,9 @@ from sklearn.preprocessing import MinMaxScaler
 
 # load the data 
 #filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
-filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/hG_LFO_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorrected.mat'
-#filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
+filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
+filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled'
+
 
 
 data_dict = mat73.loadmat(filename)
@@ -56,7 +57,7 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 5
+iterations = 10
 days = np.unique(labels_days)
 
 decoding_acc=[]
@@ -126,7 +127,7 @@ for iter in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10
-    nn_filename = 'i3DAE_hglfo_B3.pth' 
+    nn_filename = 'i3DAE_B3_loop.pth' 
     
     model,acc = training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
                         patience,gradient_clipping,nn_filename,
