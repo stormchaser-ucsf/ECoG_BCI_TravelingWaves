@@ -1179,7 +1179,7 @@ def validation_loss_3DCNNAE_fullVal(model,Xval,Yval,labels_val,batch_val,val_typ
         loss2 = crit_classif_val(zpred,z)    
         #loss1  = loss1/x.shape[0]
         #loss2 = loss2/x.shape[0]
-        loss_val = 30*loss1.item() + loss2.item()    #30
+        loss_val = 20*loss1.item() + loss2.item()    #30
         
     #zlabels = convert_to_ClassNumbers(z)        
     zlabels=z
@@ -1337,7 +1337,7 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
           recon_loss = (recon_criterion(recon,Ytrain_batch))#/Ytrain_batch.shape[0]
           decodes = decodes.squeeze() # for BCE loss
           classif_loss = (classif_criterion(decodes,labels_batch))#/labels_batch.shape[0]      
-          loss = 30*recon_loss + classif_loss#30
+          loss = 20*recon_loss + classif_loss#30
           total_loss = loss.item()
           #print(classif_loss.item())
           
