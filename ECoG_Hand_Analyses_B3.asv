@@ -659,20 +659,21 @@ for i=1:length(session_data) % 20230518 has the best hand data performance
     day_date = session_data(i).Day;
     files=[];
     for ii=1:length(folders)
-        files=[];
         folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
         %cd(folderpath)
         files = [files;findfiles('',folderpath)'];
-        [acc_online,acc_online_bin,trial_len,bino_pdf,decodes_trial] = ...
-            accuracy_online_data_Hand(files,12);
-        acc_CL_bins(kk).CL = 'CL1';
-        acc_CL_bins(kk).perf = mean(diag(acc_online_bin));
-        acc_CL_bins(kk).day = day_date;
-        acc_CL_bins(kk).foldername = folders{ii};
-        kk=kk+1;
     end
    
-      
+    % get the classification accuracy
+    [acc_online,acc_online_bin,trial_len,bino_pdf,decodes_trial] = ...
+        accuracy_online_data_Hand(files,12);
+
+    acc_CL_bins(kk).CL = 'CL1';
+    acc_CL_bins(kk).perf = mean(diag(acc_online_bin));
+    acc_CL_bins(kk).day = day_date;
+    kk=kk+1;
+
+  
     acc_online_days(:,:,i) = (acc_online);
     binomial_res(i).online = [bino_pdf.pval];
 
@@ -691,7 +692,7 @@ for i=1:length(session_data) % 20230518 has the best hand data performance
         acc_CL_bins(kk).CL = 'CL2';
         acc_CL_bins(kk).perf = mean(diag(acc_batch_bin));
         acc_CL_bins(kk).day = day_date;
-        acc_CL_bins(kk).foldername = folders{ii};
+        acc_CL_bins(kk).day = day_date;
         kk=kk+1;
     end
     num_trials = [num_trials length(files)];
