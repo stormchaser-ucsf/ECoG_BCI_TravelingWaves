@@ -16,8 +16,8 @@ Created on Tue Mar 11 19:13:24 2025
 
 import os
 
-#os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
-os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
+os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
+#os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
 
 
 from iAE_utils_models import *
@@ -49,9 +49,9 @@ from sklearn.preprocessing import MinMaxScaler
 # load the data 
 #alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr
 #alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled
-filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate clicker/alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
+#filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate clicker/alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
 
-#filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_hG_alpha_PAC_200Hz_AllDays_DaysLabeled.mat'
+filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
 
 
@@ -66,7 +66,7 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 1
+iterations = 10
 days = np.unique(labels_days)
 
 decoding_acc=[]
@@ -80,7 +80,7 @@ ce_loss = np.zeros((iterations,len(days)))
 
 print(xdata.shape)
 
-del data_dict
+#del data_dict
 
 # testing some stuff out
 # idx = np.where(labels_days==1)
@@ -104,12 +104,12 @@ for iter in np.arange(iterations):
     #     Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
     
     
-    idx=np.where(np.abs(Xtrain)>10)
-    Xtrain[idx]=0
-    Ytrain[idx]=0
-    idx=np.where(np.abs(Ytrain)>10)
-    Xtrain[idx]=0
-    Ytrain[idx]=0
+    # idx=np.where(np.abs(Xtrain)>10)
+    # Xtrain[idx]=0
+    # Ytrain[idx]=0
+    # idx=np.where(np.abs(Ytrain)>10)
+    # Xtrain[idx]=0
+    # Ytrain[idx]=0
     
     
 
@@ -289,10 +289,10 @@ plt.plot(tmp)
 plt.figure();
 plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 
-ol_mse_days_null=ol_mse_days
-cl_mse_days_null = cl_mse_days
-balanced_acc_days_null = balanced_acc_days
-cd_loss_null = ce_loss
+# ol_mse_days_null=ol_mse_days
+# cl_mse_days_null = cl_mse_days
+# balanced_acc_days_null = balanced_acc_days
+# cd_loss_null = ce_loss
 
 
 
