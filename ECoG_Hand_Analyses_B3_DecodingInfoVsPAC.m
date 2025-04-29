@@ -335,8 +335,8 @@ end
 %     'SampleRate',1e3);
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',7,'HalfPowerFrequency2',9, ...
-    'SampleRate',1e3);
+    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    'SampleRate',1e3); % or 7 to 9 for b1 253 grid
 
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -344,7 +344,7 @@ d2 = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',1e3);
 
 d3 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',7,'HalfPowerFrequency2',9, ...
+    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
     'SampleRate',1e3);
 
 
@@ -473,15 +473,15 @@ for i=1:length(folders)
         yhat = x*B;
         plot(x(:,2),yhat,'k')
 
-        % % plot mahab dist on brain
-        % ch_wts_mahab=mahab_dist;
-        % plot_on_brain_B1_253(ch_wts_mahab,cortex,elecmatrix,ecog_grid,10)
-        %   title(['hG decoding info CL Day ' num2str(i)])
-        % 
-        % % plot PAC on brain
-        % ch_wts_pac = abs(mean(pac));
-        % plot_on_brain_B1_253(ch_wts_pac,cortex,elecmatrix,ecog_grid,20)
-        % title(['hG-delta PAC CL Day ' num2str(i)])
+        % plot mahab dist on brain
+        ch_wts_mahab=mahab_dist;
+        plot_on_brain_B1_253(ch_wts_mahab,cortex,elecmatrix,ecog_grid,15)
+          title(['hG decoding info CL Day ' num2str(i)])
+
+        % plot PAC on brain
+        ch_wts_pac = abs(mean(pac));
+        plot_on_brain_B1_253(ch_wts_pac,cortex,elecmatrix,ecog_grid,25)
+        title(['hG-delta PAC CL Day ' num2str(i)])
 
     end
 
@@ -568,7 +568,7 @@ x = [ones(size(x,1),1) x];
 yhat = x*B;
 plot(x(:,2),yhat,'k')
 plot_beautify
-title('Evolution of alpha-hG PAC and discriminability')
+title('Evolution of delta-hG PAC and discriminability')
 xlim([0.5 6.5])
 
 
@@ -580,6 +580,6 @@ xlim([0.5 6.5])
 
 
 
-save mahab_pac_alpha_hg_B1_253_7DoF -v7.3
+save mahab_pac_delta_hg_B1_253_7DoF -v7.3
 
 

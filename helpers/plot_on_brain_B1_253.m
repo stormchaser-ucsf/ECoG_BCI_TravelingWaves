@@ -11,7 +11,7 @@ function plot_on_brain_B1_253(ch_wts,cortex,elecmatrix,ecog_grid,weighting)
 % ch_layout = (fliplr(ch_layout));
 figure
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
-e_h = el_add(elecmatrix, 'color', 'w','msize',2);
+e_h = el_add(elecmatrix, 'color', 'w','msize',1);
 for j=1:253%length(sig)        
     
     ms = ch_wts(j)*weighting;
