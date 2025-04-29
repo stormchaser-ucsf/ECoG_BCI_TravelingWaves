@@ -849,6 +849,168 @@ cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data
 save PAC_B3_Hand_rawValues_betaToHg_15To20Hz -v7.3
 
 
+%% Phase amplitude coupling between hG and alpha waves (MAIN) 253 channel
+% 253 channel grid 
+% do it for an example day, over all electrodes
+% then branch out to all days, OL vs. CL for comparisons
+
+% also change for PAC b/w hG and delta 
+
+
+clc;clear
+close all
+
+
+
+if ispc
+    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker';
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
+    cd(root_path)
+    addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
+    load session_data_B1_Hand
+    addpath 'C:\Users\nikic\Documents\MATLAB'
+    %load('ECOG_Grid_8596_000067_B3.mat')
+    addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
+    addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers')
+
+else
+    root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
+    cd(root_path)
+    load session_data_B3_Hand
+    load('ECOG_Grid_8596_000067_B3.mat')
+    addpath(genpath('/home/reza/Repositories/ECoG_BCI_TravelingWaves'))
+end
+
+
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',9, ...
+    'SampleRate',1e3); % 7 to 9 or 0.5 to 4
+
+d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'SampleRate',1e3);
+
+
+folders={'20240515', '20240517', '20240614', '20240619', '20240621', '20240626'};
+
+pac_ol=[];pval_ol=[];
+pac_cl=[];pval_cl=[];
+pac_batch=[];pval_batch=[];
+rboot_ol=[];rboot_cl=[];rboot_batch=[];
+pac_raw_values={};k=1;
+tic
+for i=1:length(folders)
+
+    folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
+    D= dir(folderpath);
+    D = D(3:end);
+    imag_idx=[];
+    online_idx=[];
+    for j=1:length(D)
+        subfoldername = dir(fullfile(folderpath,D(j).name));
+        if strcmp(subfoldername(3).name,'Imagined')
+            imag_idx=[imag_idx j];
+        elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+            online_idx=[online_idx j];
+        end
+    end
+
+
+
+    %%%%%% get imagined data files
+    files=[];
+    for ii=1:length(imag_idx)
+        imag_folderpath = fullfile(folderpath, D(imag_idx(ii)).name,'Imagined');
+        files = [files;findfiles('mat',imag_folderpath)'];
+    end
+
+
+    % get the phase locking value
+    disp(['Processing Day ' num2str(i) ' OL'])
+    [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2,1);
+
+
+
+    % run permutation test and get pvalue for each channel
+    [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase,1);
+
+    %sum(pac_r>0.3)/253
+    pval_ol(i,:) = pval;
+    pac_ol(i,:) = abs(mean(pac));
+    pac_raw_values(k).pac = pac;
+    pac_raw_values(k).boot = rboot;
+    pac_raw_values(k).type = 'OL';
+    pac_raw_values(k).Day = i;
+    k=k+1;
+
+
+    %%%%%% getting online files now
+     files=[];
+    for ii=1:length(online_idx)
+        imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
+        files = [files;findfiles('mat',imag_folderpath)'];
+    end
+
+
+    % get the phase locking value
+    disp(['Processing Day ' num2str(i) ' CL'])
+    [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2,1);
+
+    % run permutation test and get pvalue for each channel
+    [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase,1);
+
+    %sum(pac_r>0.3)/253
+    pval_cl(i,:) = pval;
+    pac_cl(i,:) = abs(mean(pac));
+    pac_raw_values(k).pac = pac;
+    pac_raw_values(k).boot = rboot;
+    pac_raw_values(k).type = 'CL';
+    pac_raw_values(k).Day = i;
+    k=k+1;
+
+    % %%%%%% getting batch udpated (CL2) files now
+    % folders = session_data(i).folders(batch_idx1);
+    % day_date = session_data(i).Day;
+    % files=[];
+    % for ii=1:length(folders)
+    %     folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+    %     %cd(folderpath)
+    %     files = [files;findfiles('mat',folderpath)'];
+    % end
+    % 
+    % if ~isempty(files)
+    % 
+    %     % get the phase locking value
+    %     disp(['Processing Day ' num2str(i) ' Batch'])
+    %     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+    % 
+    %     % run permutation test and get pvalue for each channel
+    %     [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+    % 
+    %     pval_batch(i,:) = pval;
+    %     pac_batch(i,:) = abs(mean(pac));
+    %     %rboot_batch(i,:,:) = rboot;
+    %     pac_raw_values(k).pac = pac;
+    %     pac_raw_values(k).boot = rboot;
+    %     pac_raw_values(k).type = 'Batch';
+    %     pac_raw_values(k).Day = i;
+    %     k=k+1;
+    % 
+    % 
+    % else
+    %     pac_batch(i,:)=NaN(1,253);
+    %     pval_batch(i,:)=NaN(1,253);
+    % end
+
+end
+
+toc
+
+
+cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
+save PAC_B3_Hand_rawValues_betaToHg_15To20Hz -v7.3
+
+
 %% GETTING ALPHA WAVE FOR ARROW DATA, 253 grid
 
 

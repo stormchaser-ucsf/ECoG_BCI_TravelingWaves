@@ -20,6 +20,7 @@ if ispc
     load('ECOG_Grid_8596_000067_B3.mat')
     addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
     addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers')
+    
 
 else
     root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
@@ -49,7 +50,9 @@ d3 = designfilt('bandpassiir','FilterOrder',4, ...
 
 reg_days=[];
 mahab_dist_days=[];
-plot_true = false;
+plot_true = true;
+close all
+
 for i=1:length(session_data)
 
 
@@ -189,10 +192,12 @@ for i=1:length(session_data)
         plot(x(:,2),yhat,'k')
 
         % % plot mahab dist on brain
+        % %figure;
         % plot_on_brain(ch_wts_mahab,cortex,elecmatrix,ecog_grid)
         %   title(['hG decoding info CL Day ' num2str(i)])
         % 
         % % plot PAC on brain
+        % %figure
         % plot_on_brain(ch_wts_pac,cortex,elecmatrix,ecog_grid)
         % title(['hG-delta PAC CL Day ' num2str(i)])
 
@@ -313,6 +318,7 @@ if ispc
     addpath 'C:\Users\nikic\Documents\MATLAB'
     load('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\ECOG_Grid_8596_000067_B3.mat')
     addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers'))
+    imaging_B1_253;close all
 
 else
     root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
@@ -350,6 +356,7 @@ reg_days=[];
 mahab_dist_days=[];
 plot_true = true;
 pac_days=[];
+
 for i=1:length(folders)
 
 
@@ -467,11 +474,13 @@ for i=1:length(folders)
         plot(x(:,2),yhat,'k')
 
         % % plot mahab dist on brain
-        % plot_on_brain(ch_wts_mahab,cortex,elecmatrix,ecog_grid)
+        % ch_wts_mahab=mahab_dist;
+        % plot_on_brain_B1_253(ch_wts_mahab,cortex,elecmatrix,ecog_grid,10)
         %   title(['hG decoding info CL Day ' num2str(i)])
         % 
         % % plot PAC on brain
-        % plot_on_brain(ch_wts_pac,cortex,elecmatrix,ecog_grid)
+        % ch_wts_pac = abs(mean(pac));
+        % plot_on_brain_B1_253(ch_wts_pac,cortex,elecmatrix,ecog_grid,20)
         % title(['hG-delta PAC CL Day ' num2str(i)])
 
     end
@@ -527,6 +536,8 @@ for i=1:length(folders)
 
 
 end
+
+% plotting 
 
 figure;hold on
 plot(log(reg_days(3,:)),'.','MarkerSize',20)
