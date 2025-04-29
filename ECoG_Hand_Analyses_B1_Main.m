@@ -899,7 +899,7 @@ pac_batch=[];pval_batch=[];
 rboot_ol=[];rboot_cl=[];rboot_batch=[];
 pac_raw_values={};k=1;
 tic
-for i=1:length(folders)
+for i=[1 6]%1:length(folders)
 
     folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
     D= dir(folderpath);
@@ -1006,9 +1006,12 @@ end
 
 toc
 
-
-cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
-save PAC_B3_Hand_rawValues_betaToHg_15To20Hz -v7.3
+if ~ispc
+    cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
+else
+    cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker')
+end
+save PAC_B1_7DoF_rawValues_alphaToHg -v7.3
 
 
 %% GETTING ALPHA WAVE FOR ARROW DATA, 253 grid
