@@ -1011,7 +1011,9 @@ if ~ispc
 else
     cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker')
 end
-save PAC_B1_7DoF_rawValues_alphaToHg -v7.3
+save PAC_B1_253Grid_7DoF_rawValues_alphaToHg -v7.3
+
+
 
 
 toc
@@ -1022,6 +1024,8 @@ toc
 % plot significant channel on brain with preferred phase
 % show how it traverses across days
 
+imaging_B1_253;
+close all
 
 % plotting example of null hypothesis testing
 tmp = pac_raw_values(1).pac;
@@ -1035,7 +1039,7 @@ xlabel('PLV')
 plot_beautify
 xlim([0 0.7])
 
-% no. sign channels over days after fdr correction
+% num. sign channels over days after fdr correction
 ol=[];cl=[];
 for i=1:size(pval_cl,1)
     ptmp=pval_ol(i,:);
@@ -1068,10 +1072,10 @@ plot(days,X*B1,'b','LineWidth',2)
 xlabel('Days')
 ylabel('Prop. of sig channels, p = 0.05 level')
 set(gcf,'Color','w')
-xlim([0.5 10.5])
+xlim([0.5 size(pval_cl,1)+0.5])
 set(gca,'LineWidth',1)
 set(gca,'FontSize',12)
-xticks(1:10)
+xticks(1:size(pval_cl,1))
 legend({'','OL','','CL'})
 
 % is diff in regression slope sig?
@@ -1132,11 +1136,6 @@ imagesc(ch_wts(ecog_grid).*sig1(ecog_grid))
 % plot sig electrodes, with size denoted by PLV and color b preferred phase
 % need to plot this taking into account the location of the grid and not
 % just channel numbers
-ch_layout=[];
-for i=1:23:253
-    ch_layout = [ch_layout; i:i+22 ];
-end
-ch_layout = (fliplr(ch_layout));
 
 %plv(sig) = zscore(plv(sig))+4;
 phMap = linspace(-pi,pi,253)';
@@ -1147,16 +1146,13 @@ c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
 e_h = el_add(elecmatrix, 'color', 'w','msize',2);
 % elecmatrix1 = [elecmatrix(1:107,:); zeros(1,3); elecmatrix(108:111,:); zeros(1,3) ; ...
 %     elecmatrix(112:115,:) ;zeros(1,3); elecmatrix(116:end,:)];
-for j=1:256%length(sig)
-    [xx yy]=find(ecog_grid==j);
-    if ~isempty(xx)
-        ch = ch_layout(xx,yy);
-        if sig1(j)==1
-            ms = ch_wts(j)*20;
-            %[aa bb]=min(abs(pref_phase(j) - phMap));
-            c=ChColorMap(bb,:);
-            e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
-        end
+ch_wts1=pac_tmp;
+for j=1:253
+    if sig(j)==1
+        ms = ch_wts1(j)*20;
+        %[aa bb]=min(abs(pref_phase(j) - phMap));
+        c=ChColorMap(bb,:);
+        e_h = el_add(elecmatrix(j,:), 'color', 'b','msize',ms);
     end
 end
 set(gcf,'Color','w')
