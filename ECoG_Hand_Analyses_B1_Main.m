@@ -1115,9 +1115,9 @@ figure;boxplot([ol' cl'])
 % code for plotting phase angle and PLV on grid. Taken from ecog hand
 % project code
 %day_idx=1;
-pac_day1 = pac_raw_values(2).pac;
+pac_day1 = pac_raw_values(12).pac;
 plv  = abs(mean(pac_day1));
-pval_day1 = pval_cl(1,:);
+pval_day1 = pval_cl(6,:);
 [pfdr,pval1]=fdr(pval_day1,0.05);pfdr
 %pfdr=0.05;
 sig = pval_day1<=pfdr;
@@ -1209,7 +1209,7 @@ cl = cl_plv;
 % plot(ol,'.b','MarkerSize',20)
 % plot(cl,'.r','MarkerSize',20)
 
-days=1:10;
+days=1:6;
 X = [ones(length(days),1) days'];
 [B,BINT,R,RINT,STATS] = regress(ol',X);
 [B1,BINT,R,RINT,STATS1] = regress(cl',X);
@@ -1224,10 +1224,10 @@ plot(days,X*B1,'b','LineWidth',2)
 xlabel('Days')
 ylabel('Mean PLV over sig channels')
 set(gcf,'Color','w')
-xlim([0.5 10.5])
+xlim([0.5 6.5])
 set(gca,'LineWidth',1)
 set(gca,'FontSize',12)
-xticks(1:10)
+xticks(1:6)
 legend({'','OL','','CL'})
 
 figure;
