@@ -1,12 +1,23 @@
 
 
+if ispc
+    dirn=pwd;
+    addpath('C:\Users\nikic\Documents\MATLAB\ctmr_gauss_plot_April2016\ctmr_gauss_plot_April2016')
+    cd('C:\Users\nikic\Documents\MATLAB\ctmr_gauss_plot_April2016\ctmr_gauss_plot_April2016')
+    load('BRAVO1_lh_pial')
+    %load('BRAVO1_elecs_all')
+    load('bravo1r_elecs_all_042024_blackrock_order')
 
-dirn=pwd;
-addpath('C:\Users\nikic\Documents\MATLAB\ctmr_gauss_plot_April2016\ctmr_gauss_plot_April2016')
-cd('C:\Users\nikic\Documents\MATLAB\ctmr_gauss_plot_April2016\ctmr_gauss_plot_April2016')
-load('BRAVO1_lh_pial')
-%load('BRAVO1_elecs_all')
-load('bravo1r_elecs_all_042024_blackrock_order')
+    addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
+
+else
+    dirn=pwd;
+    cd('/home/reza/Repositories/ECoG_BCI_TravelingWaves/helpers')
+    load('BRAVO1_lh_pial')
+    %load('BRAVO1_elecs_all')
+    load('bravo1r_elecs_all_042024_blackrock_order')
+    
+end
 
 ch=1:size(anatomy,1);
 figure
@@ -22,7 +33,6 @@ cd(dirn)
 
 
 % plotting by ROI
-addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
 figure
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
 set(gcf,'Color','w')
@@ -37,7 +47,7 @@ for j=1:size(anatomy,1)
             e_h = el_add(elecmatrix(j,:), ...
                 'color', col, 'msize',8);
         end
-    end 
+    end
 end
 
 
