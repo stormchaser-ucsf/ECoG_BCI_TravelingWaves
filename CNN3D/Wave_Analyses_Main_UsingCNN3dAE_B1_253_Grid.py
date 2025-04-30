@@ -16,8 +16,8 @@ Created on Tue Mar 11 19:13:24 2025
 
 import os
 
-os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
-#os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
+#os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
+os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
 
 
 from iAE_utils_models import *
@@ -49,9 +49,9 @@ from sklearn.preprocessing import MinMaxScaler
 # load the data 
 #alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr
 #alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled
-#filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate clicker/alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
+filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate clicker/alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
 
-filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
+#filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
 
 
@@ -66,7 +66,7 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 10
+iterations = 25
 days = np.unique(labels_days)
 
 decoding_acc=[]
@@ -98,10 +98,10 @@ for iter in np.arange(iterations):
     Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.7,labels_days)                        
     #del xdata, ydata
     
-    # circular shifting the data for null stats
-    # random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
-    # for i in np.arange(len(random_shifts)):
-    #     Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
+    #circular shifting the data for null stats
+    random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
+    for i in np.arange(len(random_shifts)):
+        Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
     
     
     # idx=np.where(np.abs(Xtrain)>10)
@@ -154,7 +154,7 @@ for iter in np.arange(iterations):
     patience=6
     gradient_clipping=10
     b3Trf_filename = 'i3DAE_B3.pth'  
-    nn_filename = 'i3DAE_B1_253.pth' 
+    nn_filename = 'i3DAE_B1_253_null.pth' 
     
     model = Autoencoder3D(ksize,num_classes,input_size,lstm_size)    
     model.load_state_dict(torch.load(b3Trf_filename))
@@ -289,19 +289,44 @@ plt.plot(tmp)
 plt.figure();
 plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 
-# ol_mse_days_null=ol_mse_days
-# cl_mse_days_null = cl_mse_days
-# balanced_acc_days_null = balanced_acc_days
-# cd_loss_null = ce_loss
 
 
+ol_mse_days_null=ol_mse_days
+cl_mse_days_null = cl_mse_days
+balanced_acc_days_null = balanced_acc_days
+ce_loss_null = ce_loss
 
 
-np.savez('Alpha_200Hz_AllDays_B1_253Grid_Arrow_10Iterations', 
-          ce_loss = ce_loss,
-          balanced_acc_days = balanced_acc_days,
-          ol_mse_days = ol_mse_days,
-          cl_mse_days=cl_mse_days)
+np.savez('Alpha_200Hz_AllDays_B1_253Grid_Arrow_25Iterations_Null', 
+          ce_loss_null = ce_loss_null,
+          balanced_acc_days_null = balanced_acc_days_null,
+          ol_mse_days_null = ol_mse_days_null,
+          cl_mse_days_null=cl_mse_days_null)
+
+# np.savez('Alpha_200Hz_AllDays_B1_253Grid_Arrow_25Iterations', 
+#           ce_loss = ce_loss,
+#           balanced_acc_days = balanced_acc_days,
+#           ol_mse_days = ol_mse_days,
+#           cl_mse_days=cl_mse_days)
+
+#%% PLOT BACK RESULTS
+
+
+data=np.load('Alpha_200Hz_AllDays_B1_253Grid_Arrow_10Iterations.npz')
+data1=np.load('Alpha_200Hz_2nd_5days_nullModel.npz')
+ol_mse = data.get('ol_mse')
+cl_mse = data.get('cl_mse')
+null_mse = data1.get('ol_mse_null')
+null_mse2 = data1.get('cl_mse_null')
+null_mse = np.concatenate((null_mse, null_mse2))
+
+decoding_acc = data.get('decoding_acc')
+
+plt.figure();
+plt.boxplot([np.log(ol_mse),np.log(cl_mse),np.log(null_mse)])
+hfont = {'fontname':'Arial'}
+plt.xticks(ticks=[1,2,3],labels=('OL','CL','null'),**hfont)
+plt.ylabel('Mean Sq. prediction error (log)')
 
 
 #%% plotting amplitude differences
