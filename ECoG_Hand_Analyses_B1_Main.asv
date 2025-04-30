@@ -1024,8 +1024,13 @@ toc
 % plot significant channel on brain with preferred phase
 % show how it traverses across days
 
+
 imaging_B1_253;
 close all
+
+cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker')
+load('PAC_B1_253Grid_7DoF_rawValues_alphaToHg.mat')
+
 
 % plotting example of null hypothesis testing
 tmp = pac_raw_values(1).pac;
@@ -1146,16 +1151,13 @@ c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
 e_h = el_add(elecmatrix, 'color', 'w','msize',2);
 % elecmatrix1 = [elecmatrix(1:107,:); zeros(1,3); elecmatrix(108:111,:); zeros(1,3) ; ...
 %     elecmatrix(112:115,:) ;zeros(1,3); elecmatrix(116:end,:)];
+ch_wts1=pac_tmp;
 for j=1:253
-    
-    
-        ch = ch_layout(xx,yy);
-        if sig1(j)==1
-            ms = ch_wts(j)*20;
-            %[aa bb]=min(abs(pref_phase(j) - phMap));
-            c=ChColorMap(bb,:);
-            e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
-        end
+    if sig(j)==1
+        ms = ch_wts1(j)*20;
+        %[aa bb]=min(abs(pref_phase(j) - phMap));
+        c=ChColorMap(bb,:);
+        e_h = el_add(elecmatrix(j,:), 'color', 'b','msize',ms);
     end
 end
 set(gcf,'Color','w')

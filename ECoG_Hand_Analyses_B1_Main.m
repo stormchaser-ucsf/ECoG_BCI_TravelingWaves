@@ -1024,8 +1024,13 @@ toc
 % plot significant channel on brain with preferred phase
 % show how it traverses across days
 
+
 imaging_B1_253;
 close all
+
+cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker')
+load('PAC_B1_253Grid_7DoF_rawValues_alphaToHg.mat')
+
 
 % plotting example of null hypothesis testing
 tmp = pac_raw_values(1).pac;
