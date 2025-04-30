@@ -297,7 +297,7 @@ plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 
 
 
-np.savez('Alpha_200Hz_AllDays_B1_253Grid_Arrow', 
+np.savez('Alpha_200Hz_AllDays_B1_253Grid_Arrow_10Iterations', 
           ce_loss = ce_loss,
           balanced_acc_days = balanced_acc_days,
           ol_mse_days = ol_mse_days,

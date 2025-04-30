@@ -925,9 +925,7 @@ for i=1:length(folders)
     end
 
 
-    % get the phase locking value
-    disp(['Processing Day ' num2str(i) ' OL'])
-    [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+   -
 
 
 
@@ -945,7 +943,7 @@ for i=1:length(folders)
 
 
     %%%%%% getting online files now
-    files=[];
+     files=[];
     for ii=1:length(online_idx)
         imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
         files = [files;findfiles('mat',imag_folderpath)'];
@@ -1004,17 +1002,15 @@ for i=1:length(folders)
 
 end
 
-
+toc
 
 if ~ispc
-    cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data/B1_253')
+    cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
 else
     cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker')
 end
 save PAC_B1_7DoF_rawValues_alphaToHg -v7.3
 
-
-toc
 
 %% PLOTTING CONTINUATION FROM ABOVE
 
