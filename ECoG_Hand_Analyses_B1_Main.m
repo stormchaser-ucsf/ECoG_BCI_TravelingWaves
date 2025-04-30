@@ -853,7 +853,7 @@ save PAC_B3_Hand_rawValues_betaToHg_15To20Hz -v7.3
 % 253 channel grid 
 % do it for an example day, over all electrodes
 % then branch out to all days, OL vs. CL for comparisons
-
+    
 % also change for PAC b/w hG and delta 
 
 
