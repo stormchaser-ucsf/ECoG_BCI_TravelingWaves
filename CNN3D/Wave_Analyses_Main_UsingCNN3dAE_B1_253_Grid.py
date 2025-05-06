@@ -313,20 +313,56 @@ np.savez('Alpha_200Hz_AllDays_B1_253Grid_Arrow_25Iterations_Null',
 
 
 data=np.load('Alpha_200Hz_AllDays_B1_253Grid_Arrow_10Iterations.npz')
-data1=np.load('Alpha_200Hz_2nd_5days_nullModel.npz')
-ol_mse = data.get('ol_mse')
-cl_mse = data.get('cl_mse')
-null_mse = data1.get('ol_mse_null')
-null_mse2 = data1.get('cl_mse_null')
+print(data.files)
+
+data1=np.load('Alpha_200Hz_AllDays_B1_253Grid_Arrow_25Iterations_Null.npz')
+print(data1.files)
+
+ol_mse = data.get('ol_mse_days')
+cl_mse = data.get('cl_mse_days')
+null_mse = data1.get('ol_mse_days_null')
+null_mse2 = data1.get('cl_mse_days_null')
 null_mse = np.concatenate((null_mse, null_mse2))
+cl_mse = np.concatenate((cl_mse, ol_mse))
 
 decoding_acc = data.get('decoding_acc')
 
+
 plt.figure();
-plt.boxplot([np.log(ol_mse),np.log(cl_mse),np.log(null_mse)])
+plt.boxplot([np.log(cl_mse.flatten()), np.log(null_mse.flatten())])
+hfont = {'fontname':'Arial'}
+plt.xticks(ticks=[1,2],labels=('Real','Null'),**hfont)
+plt.ylabel('Mean Sq. prediction error (log)')
+
+
+plt.figure();
+plt.boxplot([np.log(ol_mse.flatten()),np.log(cl_mse.flatten()),np.log(null_mse.flatten())])
 hfont = {'fontname':'Arial'}
 plt.xticks(ticks=[1,2,3],labels=('OL','CL','null'),**hfont)
 plt.ylabel('Mean Sq. prediction error (log)')
+
+
+# plotting differences in decoding accuracy 
+decoding_acc = data.get('balanced_acc_days')
+decoding_acc_null = data1.get('balanced_acc_days_null')
+plt.figure();
+plt.boxplot([decoding_acc.flatten(), decoding_acc_null.flatten()])
+#plt.axhline(y=0.5, color='k', linestyle=':', linewidth=1)
+hfont = {'fontname':'Arial'}
+plt.xticks(ticks=[1,2],labels=('Real','Null'),**hfont)
+plt.ylabel('Balanced Accuracy')
+
+# plotting MSE error between OL and CL, 1st two days
+ol_mse = data.get('ol_mse_days')
+cl_mse = data.get('cl_mse_days')
+tmp1 = ol_mse.flatten()
+tmp2 = cl_mse.flatten()
+plt.figure();
+plt.boxplot([tmp1,tmp2])
+hfont = {'fontname':'Arial'}
+plt.xticks(ticks=[1,2],labels=('OL','CL'),**hfont)
+plt.ylabel('Mean Sq. prediction error ')
+
 
 
 #%% plotting amplitude differences

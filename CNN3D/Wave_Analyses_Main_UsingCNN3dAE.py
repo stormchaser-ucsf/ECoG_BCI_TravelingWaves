@@ -9,8 +9,8 @@ Created on Tue Mar 11 19:13:24 2025
 
 import os
 
-os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
-#os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
+#os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
+os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
 
 
 from iAE_utils_models import *
@@ -35,14 +35,15 @@ from sklearn.metrics import balanced_accuracy_score as balan_acc
 from sklearn.preprocessing import MinMaxScaler
 
 
-#%% LOAD THE DATA
+#%% LOAD THE DATA AND RUN THE MODEL 
 
 
 
 # load the data 
+filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_M1_ArtifactCorr.mat'
 #filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
-filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
-filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled'
+#filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
+#filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled'
 
 
 
@@ -57,7 +58,7 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 10
+iterations = 5
 days = np.unique(labels_days)
 
 decoding_acc=[]
@@ -71,7 +72,7 @@ ce_loss = np.zeros((iterations,len(days)))
 
 print(xdata.shape)
 
-#del data_dict
+del data_dict
 
 for iter in np.arange(iterations):    
     
@@ -112,8 +113,10 @@ for iter in np.arange(iterations):
     
     # get the CNN architecture model
     num_classes=1
-    input_size=378
-    lstm_size=64
+    #input_size=378
+    #lstm_size=64
+    input_size=24
+    lstm_size=12
     ksize=2;
     if 'model' in locals():
         del model 
@@ -127,7 +130,7 @@ for iter in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10
-    nn_filename = 'i3DAE_B3_loop.pth' 
+    nn_filename = 'i3DAE_B3_ROI.pth' 
     
     model,acc = training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
                         patience,gradient_clipping,nn_filename,
@@ -248,15 +251,15 @@ plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
 plt.figure();
 plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 
-ol_mse_days_null=ol_mse_days
-cl_mse_days_null = cl_mse_days
-balanced_acc_days_null = balanced_acc_days
-cd_loss_null = ce_loss
+# ol_mse_days_null=ol_mse_days
+# cl_mse_days_null = cl_mse_days
+# balanced_acc_days_null = balanced_acc_days
+# cd_loss_null = ce_loss
 
 
 
 
-np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData', 
+np.savez('Alpha_M1_ROI_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData', 
           ce_loss = ce_loss,
           balanced_acc_days = balanced_acc_days,
           ol_mse_days = ol_mse_days,

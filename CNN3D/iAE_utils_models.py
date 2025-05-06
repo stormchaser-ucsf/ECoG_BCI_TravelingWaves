@@ -477,12 +477,13 @@ def training_test_val_split_CNN3DAE_equal_B1(xdata,Y,labels,prop,labels_days):
 # within each day, split the data into 70% training, 15% testing and 15% validation 
 def training_test_val_split_CNN3DAE_equal(xdata,Y,labels,prop,labels_days):
     days = np.unique(labels_days)
-    Xtrain=np.empty((0,40,11,23))
-    Xtest=np.empty((0,40,11,23))
-    Xval=np.empty((0,40,11,23))
-    Ytrain=np.empty((0,40,11,23))
-    Ytest=np.empty((0,40,11,23))
-    Yval=np.empty((0,40,11,23))
+    w,b,h=xdata.shape[1:]
+    Xtrain=np.empty((0,w,b,h))
+    Xtest=np.empty((0,w,b,h))
+    Xval=np.empty((0,w,b,h))
+    Ytrain=np.empty((0,w,b,h))
+    Ytest=np.empty((0,w,b,h))
+    Yval=np.empty((0,w,b,h))
     labels_train=[]
     labels_test=[]
     labels_val=[]
@@ -1179,7 +1180,7 @@ def validation_loss_3DCNNAE_fullVal(model,Xval,Yval,labels_val,batch_val,val_typ
         loss2 = crit_classif_val(zpred,z)    
         #loss1  = loss1/x.shape[0]
         #loss2 = loss2/x.shape[0]
-        loss_val = 20*loss1.item() + loss2.item()    #30
+        loss_val = 30*loss1.item() + loss2.item()    #30
         
     #zlabels = convert_to_ClassNumbers(z)        
     zlabels=z
@@ -1337,7 +1338,7 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
           recon_loss = (recon_criterion(recon,Ytrain_batch))#/Ytrain_batch.shape[0]
           decodes = decodes.squeeze() # for BCE loss
           classif_loss = (classif_criterion(decodes,labels_batch))#/labels_batch.shape[0]      
-          loss = 20*recon_loss + classif_loss#30
+          loss = 30*recon_loss + classif_loss#30
           total_loss = loss.item()
           #print(classif_loss.item())
           
@@ -2943,10 +2944,10 @@ def bootstrap_difference_test(a,b,test_type):
 
 
 # # # testing the various sizes of the convolutional layers 
-# input = torch.randn(32,1,8,16,40)
+# input = torch.randn(32,1,6,9,40)
 
 
-# # layer 1: 9,21,99 is output
+# # layer 1: 9,21,99 is output (this is for full grid)
 # m=nn.Conv3d(1,12,kernel_size=2,stride=(1,1,2))
 # a = nn.AvgPool3d(kernel_size=2,stride=1)
 # bn = nn.BatchNorm3d(num_features=12)
@@ -2973,16 +2974,19 @@ def bootstrap_difference_test(a,b,test_type):
 # # out = m(out)
 # # out = r(out)
 
-# # # pass to lstm for classification
-# # tmp = torch.flatten(out,start_dim=1,end_dim=3)
-# # x=tmp
-# # x = torch.permute(x,(0,2,1))
-# # rnn1 = nn.LSTM(input_size=180,hidden_size=24,batch_first=True,bidirectional=False)
-# # output,(hn,cn) = rnn1(x)
-# # #output1,(hn1,cn1) = rnn2(output)
-# # hn=torch.squeeze(hn)
-# # linear0 = nn.Linear(24,2)
-# # out=linear0(hn)
+# # pass to lstm for classification
+# tmp = torch.flatten(out,start_dim=1,end_dim=3)
+# x=tmp
+# x = torch.permute(x,(0,2,1))
+# input_size=x.shape[-1]
+# hidden_size=16
+# rnn1 = nn.LSTM(input_size=input_size,hidden_size=hidden_size,batch_first=True,
+#                bidirectional=False)
+# output,(hn,cn) = rnn1(x)
+# #output1,(hn1,cn1) = rnn2(output)
+# hn=torch.squeeze(hn)
+# linear0 = nn.Linear(hidden_size,2)
+# out_class=linear0(hn)
 
 
 # # tmp = out.view()
@@ -3004,7 +3008,8 @@ def bootstrap_difference_test(a,b,test_type):
 # out = r(out)
 
 # # layer 3
-# m = nn.ConvTranspose3d(12,12,kernel_size=2,stride=(1,2,2),output_padding=(0,1,0))
+# #m = nn.ConvTranspose3d(12,12,kernel_size=2,stride=(1,2,2),output_padding=(0,1,0))
+# m = nn.ConvTranspose3d(12,12,kernel_size=2,stride=(1,2,2),output_padding=(0,0,0))
 # out = m(out)
 # out = r(out)
 
