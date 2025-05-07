@@ -42,7 +42,7 @@ from sklearn.metrics import balanced_accuracy_score as balan_acc
 from sklearn.preprocessing import MinMaxScaler
 
 
-#%% LOAD THE DATA AND RUN THE MODEL 
+#%% LOAD THE DATA 
 
 
 
@@ -79,11 +79,7 @@ data_dict = mat73.loadmat(filename_grid)
 ecog_grid = data_dict.get('ecog_grid')
 ecog_grid = np.round(ecog_grid)
 
-# split into rows and cols of size 6 rows, 9 cols. 
-rows = np.arange(0,6,1)
-cols = np.arange(0,14,1)
-
-tmp=xdata[:32,:]
+#%%  RUN THE MODEL 
 
 results={}
 
@@ -310,7 +306,7 @@ for ii in np.arange(6):
 # # cd_loss_null = ce_loss
 
 
-
+#%% STORE RESULTS
 
 np.savez('Alpha_All_ROI_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData', 
           results = results,allow_pickle=True)
