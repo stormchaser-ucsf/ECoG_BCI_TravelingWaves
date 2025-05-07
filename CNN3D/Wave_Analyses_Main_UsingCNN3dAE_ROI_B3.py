@@ -69,15 +69,6 @@ ydata = np.concatenate(ydata)
 iterations = 1
 days = np.unique(labels_days)
 
-decoding_acc=[]
-balanced_decoding_acc=[];
-cl_mse=[]
-ol_mse=[]
-cl_mse_days=np.zeros((iterations,len(days)))
-ol_mse_days=np.zeros((iterations,len(days)))
-balanced_acc_days=np.zeros((iterations,len(days)))
-ce_loss = np.zeros((iterations,len(days)))
-
 print(xdata.shape)
 
 del data_dict
@@ -110,11 +101,22 @@ for ii in np.arange(6):
         #print(xx.shape)
         elec_list = ecog_grid[r,c]
         print()
-        print(elec_list)
+        #print(elec_list)
         
         # slice the data
         xdata_roi = xdata[:,:,r,c]
-        ydata_roi = ydata[:,:,r,c]            
+        ydata_roi = ydata[:,:,r,c]          
+        
+        
+        decoding_acc=[]
+        balanced_decoding_acc=[];
+        cl_mse=[]
+        ol_mse=[]
+        cl_mse_days=np.zeros((iterations,len(days)))
+        ol_mse_days=np.zeros((iterations,len(days)))
+        balanced_acc_days=np.zeros((iterations,len(days)))
+        ce_loss = np.zeros((iterations,len(days)))
+
     
         
         for iter in np.arange(iterations):    
@@ -269,55 +271,52 @@ for ii in np.arange(6):
 # plt.figure();
 # plt.stem(val)
 
-tmp = np.mean(ol_mse_days,axis=0)
-tmp1 = np.mean(cl_mse_days,axis=0)
-plt.figure();
-plt.plot(tmp)    
-plt.plot(tmp1)
-plt.show()
+# tmp = np.mean(ol_mse_days,axis=0)
+# tmp1 = np.mean(cl_mse_days,axis=0)
+# plt.figure();
+# plt.plot(tmp)    
+# plt.plot(tmp1)
+# plt.show()
 
-# now same but with regression line
-from sklearn.linear_model import LinearRegression
-x = days
-x = x.reshape(-1,1)
-y = tmp1
-mdl = LinearRegression()
-mdl.fit(x,y)
-plt.figure();
-plt.scatter(x,y)
-#x = np.concatenate((np.ones((10,1)),x),axis=1)
-yhat = mdl.predict(x)
-plt.plot(x,yhat,color='red')
-plt.show()
-
-
-tmp = np.mean(balanced_acc_days,axis=0)
-plt.figure();
-plt.plot(tmp)
-
-plt.figure();
-plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
+# # now same but with regression line
+# from sklearn.linear_model import LinearRegression
+# x = days
+# x = x.reshape(-1,1)
+# y = tmp1
+# mdl = LinearRegression()
+# mdl.fit(x,y)
+# plt.figure();
+# plt.scatter(x,y)
+# #x = np.concatenate((np.ones((10,1)),x),axis=1)
+# yhat = mdl.predict(x)
+# plt.plot(x,yhat,color='red')
+# plt.show()
 
 
-plt.figure();
-plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
+# tmp = np.mean(balanced_acc_days,axis=0)
+# plt.figure();
+# plt.plot(tmp)
 
-# ol_mse_days_null=ol_mse_days
-# cl_mse_days_null = cl_mse_days
-# balanced_acc_days_null = balanced_acc_days
-# cd_loss_null = ce_loss
-
+# plt.figure();
+# plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
 
 
+# plt.figure();
+# plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 
-np.savez('Alpha_STG_ROI_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData', 
-          ce_loss = ce_loss,
-          balanced_acc_days = balanced_acc_days,
-          ol_mse_days = ol_mse_days,
-          cl_mse_days=cl_mse_days)
+# # ol_mse_days_null=ol_mse_days
+# # cl_mse_days_null = cl_mse_days
+# # balanced_acc_days_null = balanced_acc_days
+# # cd_loss_null = ce_loss
 
 
 
+
+np.savez('Alpha_All_ROI_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData', 
+          results = results,allow_pickle=True)
+
+data=np.load('Alpha_All_ROI_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData.npz',allow_pickle=True)
+res=data.get('results')
 
 #%% plotting amplitude differences
 from scipy.stats import gaussian_kde
