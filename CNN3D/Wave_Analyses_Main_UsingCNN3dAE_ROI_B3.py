@@ -91,6 +91,9 @@ for ii in np.arange(6):
     results[ii]={}
     
     for j in np.arange(15):
+        
+        print()
+        print("ii =", ii, "j =", j)
         #c = np.arange(cols[j],cols[j]+9)
         c = slice(j,j+9)
         xx =  xdata[:,:,r,c]
