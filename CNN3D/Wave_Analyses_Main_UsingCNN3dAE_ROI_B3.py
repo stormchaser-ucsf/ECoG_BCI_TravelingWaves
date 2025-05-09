@@ -314,8 +314,12 @@ for ii in np.arange(6):
 np.savez('Alpha_All_ROI_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData', 
           results = results,allow_pickle=True)
 
+#%% plotting it all back
 data=np.load('Alpha_All_ROI_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData.npz',allow_pickle=True)
 res=data.get('results')
+
+
+
 
 #%% plotting amplitude differences
 from scipy.stats import gaussian_kde
