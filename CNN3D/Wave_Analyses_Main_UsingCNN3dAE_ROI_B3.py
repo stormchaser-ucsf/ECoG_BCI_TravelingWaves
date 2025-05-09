@@ -315,11 +315,32 @@ np.savez('Alpha_All_ROI_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData',
           results = results,allow_pickle=True)
 
 #%% plotting it all back
+
 data=np.load('Alpha_All_ROI_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData.npz',allow_pickle=True)
 res=data.get('results')
 
+res = res.item()
 
 
+recon_mse=np.zeros((6,15))
+
+for i in np.arange(6):    
+    for j in np.arange(15):
+        tmp = res[i][j]['cl_mse_days']
+        recon_mse[i][j]=np.median(tmp)
+
+
+plt.figure()
+img=plt.imshow(recon_mse)
+img.set_clim(10, 26)
+plt.colorbar()
+
+
+recon_mse = np.rot90(recon_mse,k=3)
+plt.figure()
+img=plt.imshow(recon_mse)
+img.set_clim(10, 26)
+plt.colorbar()
 
 #%% plotting amplitude differences
 from scipy.stats import gaussian_kde
