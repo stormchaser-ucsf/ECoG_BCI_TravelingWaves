@@ -180,8 +180,8 @@ for ii in np.arange(6):
             
             nn_filename = 'i3DAE_B1_253_ROI.pth' 
             
-            b3Trf_filename = 'i3DAE_B3_ROI.pth'  
-            nn_filename = 'i3DAE_B1_253_ROI.pth' 
+            #b3Trf_filename = 'i3DAE_B3_ROI.pth'  
+            #nn_filename = 'i3DAE_B1_253_ROI.pth' 
             
             # model = Autoencoder3D(ksize,num_classes,input_size,lstm_size)    
             # model.load_state_dict(torch.load(b3Trf_filename))
@@ -324,14 +324,37 @@ for ii in np.arange(6):
 
 #%% STORE RESULTS
 
-np.savez('Alpha_All_ROI_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData', 
+np.savez('Alpha_All_ROI_200Hz_AllDays_B1_253_New_L2Norm_AE_Model_ArtCorrData', 
           results = results,allow_pickle=True)
 
 #%% plotting it all back
-data=np.load('Alpha_All_ROI_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData.npz',allow_pickle=True)
+
+data=np.load('Alpha_All_ROI_200Hz_AllDays_B1_253_New_L2Norm_AE_Model_ArtCorrData.npz',allow_pickle=True)
 res=data.get('results')
 
 
+res = res.item()
+
+
+recon_mse=np.zeros((6,15))
+
+for i in np.arange(6):    
+    for j in np.arange(15):
+        tmp = res[i][j]['cl_mse_days']
+        recon_mse[i][j]=np.median(tmp)
+
+
+plt.figure()
+img=plt.imshow(recon_mse)
+img.set_clim(recon_mse.min(), recon_mse.max())
+plt.colorbar()
+
+
+recon_mse = np.rot90(recon_mse,k=3)
+plt.figure()
+img=plt.imshow(recon_mse)
+img.set_clim(recon_mse.min(), recon_mse.max())
+plt.colorbar()
 
 
 #%% plotting amplitude differences
