@@ -15,11 +15,11 @@ addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-ma
 addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
 imaging_B3;close all
 
-%% OPEN LOOP OSCILLATION CLUSTERS
+%%  OSCILLATION CLUSTERS
 % get all the files from a particular day
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230511\HandImagined';
-%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
-filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230223\Robot3DArrow';
+filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230223\Robot3DArrow';
 
 files = findfiles('.mat',filepath,1)';
 
@@ -30,12 +30,15 @@ for i=1:length(files)
     end
 end
 files=files1;
-files=files(1:100);
+%files=files(1:100);
 
-% if you want to examine hG waves
+% load ecog_grid
+load('ECOG_Grid_8596_000067_B3.mat')
+
+% enter wave frequencies if goal is to examine certain oscillatory peaks
 Fs=1000;
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'HalfPowerFrequency1',4,'HalfPowerFrequency2',8, ...
     'SampleRate',Fs);
 
 bad_ch=[108 113 118];
@@ -52,7 +55,7 @@ for ii=1:length(files)
     kinax = find(task_state==3);
     data = cell2mat(data_trial(kinax));
     
-    % extract hG alone
+    % extract freq alone
     %data=abs(hilbert(filtfilt(bpFilt,data)));
 
     spectral_peaks=[];
@@ -73,10 +76,10 @@ for ii=1:length(files)
         yhat = x*bhat;
 
         %plot
-%         figure;
-%         plot(F1,power_spect,'LineWidth',1);
-%         hold on
-%         plot(F1,yhat,'LineWidth',1);
+        % figure;
+        % plot(F1,power_spect,'LineWidth',1);
+        % hold on
+        % plot(F1,yhat,'LineWidth',1);
 
         % get peaks in power spectrum at specific frequencies
         power_spect = zscore(power_spect - yhat);
@@ -142,12 +145,13 @@ I = zeros(256,1);
 I(ch_idx)=1;
 figure;imagesc(I(ecog_grid))
 
-% get all electrodes within 16 and 20Hz
+
+% get all electrodes within 25 and 30Hz
 ch_idx=[];
 for i=1:length(spectral_peaks)
     if sum(i==bad_ch)==0
         f = spectral_peaks(i).freqs;
-        if sum( (f>=20) .* (f<=26) ) >= 1
+        if sum( (f>=28) .* (f<=30) ) >= 1
             ch_idx=[ch_idx i];
         end
     end

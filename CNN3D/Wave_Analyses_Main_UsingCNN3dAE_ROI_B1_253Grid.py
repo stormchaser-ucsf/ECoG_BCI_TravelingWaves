@@ -340,14 +340,14 @@ recon_mse=np.zeros((6,15))
 
 for i in np.arange(6):    
     for j in np.arange(15):
-        tmp = res[i][j]['cl_mse_days']
+        tmp = res[i][j]['ol_mse_days']
         recon_mse[i][j]=np.median(tmp)
 
 
-plt.figure()
-img=plt.imshow(recon_mse)
-img.set_clim(recon_mse.min(), recon_mse.max())
-plt.colorbar()
+# plt.figure()
+# img=plt.imshow(recon_mse)
+# img.set_clim(recon_mse.min(), recon_mse.max())
+# plt.colorbar()
 
 
 recon_mse = np.rot90(recon_mse,k=3)
@@ -355,6 +355,35 @@ plt.figure()
 img=plt.imshow(recon_mse)
 img.set_clim(recon_mse.min(), recon_mse.max())
 plt.colorbar()
+
+# now the same as above but with regression line to see trend across days within each ROI
+from sklearn.linear_model import LinearRegression
+slope_mse=np.zeros((6,15))
+days = np.arange(1,7)
+x = days
+x = x.reshape(-1,1)
+
+for i in np.arange(6):    
+    for j in np.arange(15):
+        tmp = res[i][j]['cl_mse_days']
+        y=np.transpose(tmp)
+        mdl = LinearRegression()
+        mdl.fit(x,y)
+        #slope_mse[i][j]=mdl.coef_
+        slope_mse[i][j]=mdl.coef_
+
+# plt.figure()
+# img=plt.imshow(slope_mse)
+# img.set_clim(slope_mse.min(), slope_mse.max())
+# plt.colorbar()
+
+slope_mse = np.rot90(slope_mse,k=3)
+plt.figure()
+img=plt.imshow(slope_mse)
+img.set_clim(slope_mse.min(), slope_mse.max())
+plt.colorbar()
+
+
 
 
 #%% plotting amplitude differences

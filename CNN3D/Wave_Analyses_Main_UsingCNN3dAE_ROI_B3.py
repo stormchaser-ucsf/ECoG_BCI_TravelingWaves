@@ -327,13 +327,13 @@ recon_mse=np.zeros((6,15))
 for i in np.arange(6):    
     for j in np.arange(15):
         tmp = res[i][j]['cl_mse_days']
-        recon_mse[i][j]=np.median(tmp)
+        recon_mse[i][j]=np.mean(tmp)
 
 
-plt.figure()
-img=plt.imshow(recon_mse)
-img.set_clim(10, 26)
-plt.colorbar()
+# plt.figure()
+# img=plt.imshow(recon_mse)
+# img.set_clim(10, 26)
+# plt.colorbar()
 
 
 recon_mse = np.rot90(recon_mse,k=3)
@@ -341,6 +341,58 @@ plt.figure()
 img=plt.imshow(recon_mse)
 img.set_clim(10, 26)
 plt.colorbar()
+
+# now the same as above but with regression line to see trend across days within each ROI
+from sklearn.linear_model import LinearRegression
+slope_mse=np.zeros((6,15))
+days = np.arange(1,11)
+x = days
+x = x.reshape(-1,1)
+
+for i in np.arange(6):    
+    for j in np.arange(15):
+        tmp = res[i][j]['cl_mse_days']
+        y=np.transpose(tmp)
+        mdl = LinearRegression()
+        mdl.fit(x,y)
+        slope_mse[i][j]=mdl.coef_
+        plt.figure();
+        plt.scatter(x,y)
+        yhat = mdl.predict(x)
+        plt.plot(x,yhat,color='red')
+        plt.show()
+        plt.title(f" i = {i:.2f}, j = {j:.2f}")
+        plt.ylim((10,33))
+
+
+# plt.figure()
+# img=plt.imshow(slope_mse)
+# img.set_clim(slope_mse.min(), slope_mse.max())
+# plt.colorbar()
+
+# plotting example of slope
+from sklearn.linear_model import LinearRegression
+days = np.arange(1,11)
+x = days
+x = x.reshape(-1,1)
+y = np.transpose(tmp)
+mdl = LinearRegression()
+mdl.fit(x,y)
+plt.figure();
+plt.scatter(x,y)
+#x = np.concatenate((np.ones((10,1)),x),axis=1)
+yhat = mdl.predict(x)
+plt.plot(x,yhat,color='red')
+plt.show()
+
+slope_mse = np.rot90(slope_mse,k=3)
+plt.figure()
+img=plt.imshow(slope_mse)
+img.set_clim(slope_mse.min(), slope_mse.max())
+plt.colorbar()
+
+
+
 
 #%% plotting amplitude differences
 from scipy.stats import gaussian_kde
