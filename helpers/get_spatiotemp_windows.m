@@ -1,5 +1,18 @@
 function [xdata,ydata,idx,trial_idx] = ...
-    get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata)
+    get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,hilbert_flag)
+%function [xdata,ydata,idx,trial_idx] = ...
+%    get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,hilbert_flag)
+
+
+
+if nargin<6
+    hilbert_flag=false;
+    disp('Extracting only real data')
+else
+    hilbert_flag=true;
+    disp('Extracting complex data')
+end
+
 
 %load the data and extract the features in 8 to 10Hz range, 200ms
 %snippets, 201 ms prediction, in 50ms increments
@@ -40,6 +53,11 @@ for ii=1:length(files)
         % resample and filter
         data = resample(data,200,1000);
         df = filtfilt(d2,data);
+
+        % get the hilbert transform of the signal 
+        if hilbert_flag
+            df= hilbert(df);
+        end
         df = df(l11+1:end,:);
 
         % keep track of trial segments
@@ -49,7 +67,7 @@ for ii=1:length(files)
         % filter at 1khz
         %df = filtfilt(d1,data);
         for xx=1:39:length(df) %39 is the original step forward
-            if size(df,1)-xx > 42
+            if size(df,1)-xx > 40
                 st = xx;
                 stp = xx+39;
                 yst=xx+1;
@@ -63,7 +81,11 @@ for ii=1:length(files)
 
                     % Artifact correction
                     idx1=find(abs(aa)>5);
-                    aa(idx1) = randn(size(idx1))*1e-5;
+                    if hilbert_flag
+                         aa(idx1) = (randn(size(idx1)) + 1i*randn(size(idx1)))*1e-5;
+                    else
+                        aa(idx1) = randn(size(idx1))*1e-5;
+                    end
 
                     aa = aa(ecog_grid);
                     a(j,:,:) = aa;
@@ -74,8 +96,11 @@ for ii=1:length(files)
                     
                     % Artifact correction
                     idx1=find(abs(bb)>5);
-                    bb(idx1) = randn(size(idx1))*1e-5;
-
+                    if hilbert_flag
+                        bb(idx1) = (randn(size(idx1)) + 1i*randn(size(idx1)))*1e-5;
+                    else
+                        bb(idx1) = randn(size(idx1))*1e-5;
+                    end
                     bb = bb(ecog_grid);
                     b(j,:,:) = bb;
                 end

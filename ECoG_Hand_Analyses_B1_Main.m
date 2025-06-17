@@ -11,6 +11,15 @@
 % travling waves with a transformer
 
 
+%% INIT
+clc;clear
+addpath('C:\Users\nikic\Documents\MATLAB')
+addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
+addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim\helpers')
+addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
+addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
+
+
 %% SESSION DATA FOR HAND EXPERIMENTS 
 
 clc;clear
@@ -105,11 +114,12 @@ save session_data_B1_Hand session_data
 %20240515, 20240517, 20240614, 20240619, 20240621, 20240626
 
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20230519\HandOnline';
-filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20240517\Robot3DArrow';
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20240517\Robot3DArrow';
+filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250120\RealRobotBatch';
 
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250120\RealRobotBatch';
 
-
+load('ECOG_Grid_8596_000067_B3.mat')
 
 files = findfiles('.mat',filepath,1)';
 
@@ -122,10 +132,20 @@ end
 files=files1;
 %files=files(1:100);
 
-%bad_ch=[108 113 118];
-bad_ch=[];
+%elec_list=1:256;
+elec_list = [137	143	148	152	155	23
+159	160	30	28	25	21
+134	140	170	174	178	182
+49	45	41	38	35	163
+221	62	59	56	52	48
+205	208	211	214	218	222];
+
+bad_ch=[108 113 118];
+%bad_ch=[];
 osc_clus=[];
 stats=[];
+pow_freq=[];
+ffreq=[];
 for ii=1:length(files)
     disp(ii/length(files)*100)
     loaded=true;
@@ -149,12 +169,18 @@ for ii=1:length(files)
         task_state = TrialData.TaskState;
         kinax = find(task_state==3);
         data = cell2mat(data_trial(kinax));
+
+        data=data(:,elec_list);
         spectral_peaks=[];
         stats_tmp=[];
         parfor i=1:size(data,2)
             x = data(:,i);
             [Pxx,F] = pwelch(x,1024,512,1024,1e3);
-            idx = logical((F>0) .* (F<=40));
+            pow_freq = [pow_freq;Pxx' ];
+            ffreq = [ffreq ;F'];
+            %idx = logical((F>0) .* (F<=40));
+            idx = logical((F>0) .* (F<=150));
+            %idx = logical((F>65) .* (F<=150));
             F1=F(idx);
             F1=log2(F1);
             power_spect = Pxx(idx);
@@ -166,11 +192,11 @@ for ii=1:length(files)
             x = [ones(length(F1),1) F1];
             yhat = x*bhat;
 
-            %plot
-            %         figure;
-            %         plot(F1,power_spect,'LineWidth',1);
-            %         hold on
-            %         plot(F1,yhat,'LineWidth',1);
+            % %plot
+            % figure;
+            % plot(F1,power_spect,'LineWidth',1);
+            % hold on
+            % plot(F1,yhat,'LineWidth',1);
 
             % get peaks in power spectrum at specific frequencies
             power_spect = zscore(power_spect - yhat);
@@ -187,7 +213,8 @@ for ii=1:length(files)
 
         % getting oscillation clusters
         osc_clus_tmp=[];
-        for f=2:40
+        for f=2:150 % 40 earlier
+        %for f=66:150 % 40 earlier
             ff = [f-1 f+1];
             tmp=0;ch_tmp=[];
             for j=1:length(spectral_peaks)
@@ -209,12 +236,21 @@ end
 
 
 % plot oscillation clusters
-f=2:40;
+%f=2:40;
+f=2:150;
+%f=66:150;
 figure;
 hold on
 plot(f,osc_clus,'Color',[.5 .5 .5 .5],'LineWidth',.5)
 plot(f,median(osc_clus,1),'b','LineWidth',2)
 
+
+% plot power spectrum
+figure;
+hold on
+plot(ffreq(1,:),log10(pow_freq'),'Color',[.5 .5 .5 .5])
+plot(ffreq(1,:),log10(mean(pow_freq,1)),'k','LineWidth',2)
+xlim([0 200])
 
 % get all the electrodes with peak between 8.0Hz and 10Hz
 ch_idx=[];
@@ -229,7 +265,7 @@ end
 length(ch_idx)/128
 I = zeros(128,1);
 I(ch_idx)=1;
-ecog_grid = TrialData.Params.ChMap
+ecog_grid = TrialData.Params.ChMap;
 figure;imagesc(I(ecog_grid))
 
 % get all electrodes within 16 and 20Hz
@@ -245,7 +281,7 @@ end
 length(ch_idx)/128
 I = zeros(128,1);
 I(ch_idx)=1;
-ecog_grid = TrialData.Params.ChMap
+ecog_grid = TrialData.Params.ChMap;
 figure;imagesc(I(ecog_grid))
 
 %% RUNNING LDA TO GET DECODING PERFORMANCE
@@ -535,54 +571,68 @@ xticklabels({'Thumb','Index','Middle','Ring','Little'})
 yticklabels({'Thumb','Index','Middle','Ring','Little'})
 set(gca,'FontSize',14)
 
-%% PERFORMANCE IMAGINED - ONLINE- BATCH FOR B3 HAND EXPERIMENTS
+%% PERFORMANCE IMAGINED - ONLINE- BATCH 
 
 clc;clear
 close all
 clc;clear;
-root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
+root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker';
 addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
 cd(root_path)
 addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
-load session_data_B3_Hand
 addpath 'C:\Users\nikic\Documents\MATLAB'
 acc_imagined_days=[];
 acc_online_days=[];
 acc_batch_days=[];
-iterations=5;
-plot_true=true;
+iterations=10;
+plot_true=false;
 acc_batch_days_overall=[];
-for i=1:length(session_data)
-    folders_imag =  strcmp(session_data(i).folder_type,'I');
-    folders_online = strcmp(session_data(i).folder_type,'O');
-    folders_batch = strcmp(session_data(i).folder_type,'B');
+folders={'20240515', '20240517', '20240614', '20240619', '20240621', '20240626'};
 
-    imag_idx = find(folders_imag==1);
-    online_idx = find(folders_online==1);
-    batch_idx = find(folders_batch==1);
+for i=1:length(folders)
 
-    %disp([session_data(i).Day '  ' num2str(length(batch_idx))]);
+    %folderpath = fullfile(root_path,'B1_253',folders{i},'Robot3DArrow');
+    folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
+    D= dir(folderpath);
+    D = D(3:end);
+    imag_idx=[];
+    online_idx=[];
+    for j=1:length(D)
+        subfoldername = dir(fullfile(folderpath,D(j).name));
+        if strcmp(subfoldername(3).name,'Imagined')
+            imag_idx=[imag_idx j];
+        elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+            online_idx=[online_idx j];
+        end
+    end
 
-    %%%%%% cross_val classification accuracy for imagined data
-    folders = session_data(i).folders(imag_idx);
-    day_date = session_data(i).Day;
+    %%%%%% get imagined data files
     files=[];
-    for ii=1:length(folders)
-        folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
-        %cd(folderpath)
-        files = [files;findfiles('',folderpath)'];
+    for ii=1:length(imag_idx)
+        imag_folderpath = fullfile(folderpath, D(imag_idx(ii)).name,'Imagined');
+        files = [files;findfiles('mat',imag_folderpath)'];
     end
 
     %load the data
     load('ECOG_Grid_8596_000067_B3.mat')
     condn_data = load_data_for_MLP_TrialLevel_B3(files,ecog_grid);
-    % save the data
-    filename = ['condn_data_Hand_B3_ImaginedTrials_Day' num2str(i)];
-    save(filename, 'condn_data', '-v7.3')
+    
+    condn_data1={};k=1;
+    for j=1:length(condn_data)
+        if condn_data(j).targetID <=7
+            condn_data1(k).neural = condn_data(j).neural;
+            condn_data1(k).trial_type = condn_data(j).trial_type;
+            condn_data1(k).targetID = condn_data(j).targetID;
+            k=k+1;
+        end
+    end
+    condn_data = condn_data1;
+    clear condn_data1
+    
 
-    % get cross-val classification accuracy
-    [acc_imagined,train_permutations] = ...
-        accuracy_imagined_data_Hand_B3(condn_data, iterations);
+    % get cross-val classification accuracy    
+    [acc_imagined,train_permutations,~,bino_pdf,bino_pdf_chance] =...
+        accuracy_imagined_data(condn_data, iterations);    
     acc_imagined=squeeze(nanmean(acc_imagined,1));
     if plot_true
         figure;imagesc(acc_imagined)
@@ -599,19 +649,37 @@ for i=1:length(session_data)
     end
     acc_imagined_days(:,i) = diag(acc_imagined);
 
-
-    %%%%%% get classification accuracy for online data
-    folders = session_data(i).folders(online_idx);
-    day_date = session_data(i).Day;
+    
+     %%%%%% getting online files now
     files=[];
-    for ii=1:length(folders)
-        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
-        %cd(folderpath)
-        files = [files;findfiles('',folderpath)'];
+    for ii=1:length(online_idx)
+        imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
+        files = [files;findfiles('mat',imag_folderpath)'];
     end
 
-    % get the classification accuracy
-    acc_online = accuracy_online_data_Hand(files,12);
+    %load the data
+    load('ECOG_Grid_8596_000067_B3.mat')
+    condn_data = load_data_for_MLP_TrialLevel_B3(files,ecog_grid);
+    
+    condn_data1={};k=1;
+    for j=1:length(condn_data)
+        if condn_data(j).targetID <=7
+            condn_data1(k).neural = condn_data(j).neural;
+            condn_data1(k).trial_type = condn_data(j).trial_type;
+            condn_data1(k).targetID = condn_data(j).targetID;
+            k=k+1;
+        end
+    end
+    condn_data = condn_data1;
+    clear condn_data1
+
+    % get the classification accuracy 
+    acc_online = accuracy_online_data(files(end-42:end));
+
+    % [acc_online,train_permutations,~,bino_pdf,bino_pdf_chance] =...
+    %     accuracy_imagined_data(condn_data, iterations);    
+    % acc_online=squeeze(nanmean(acc_online,1));
+
     if plot_true
         figure;imagesc(acc_online)
         colormap bone
@@ -627,35 +695,35 @@ for i=1:length(session_data)
     end
     acc_online_days(:,i) = diag(acc_online);
 
-
-    %%%%%% classification accuracy for batch data
-    folders = session_data(i).folders(batch_idx);
-    day_date = session_data(i).Day;
-    files=[];
-    for ii=1:length(folders)
-        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
-        %cd(folderpath)
-        files = [files;findfiles('',folderpath)'];
-    end
-
-    % get the classification accuracy
-    acc_batch = accuracy_online_data_Hand(files,12);
-    if plot_true
-        figure;imagesc(acc_batch)
-        colormap bone
-        clim([0 1])
-        set(gcf,'color','w')
-        title(['Accuracy of ' num2str(100*mean(diag(acc_batch)))])
-        xticks(1:12)
-        yticks(1:12)
-        xticklabels({'Thumb','Index','Middle','Ring','Pinky','Power',...
-            'Pinch','Tripod','Wrist In','Wrist Out','Wrist Flex','Wrist Extend'})
-        yticklabels({'Thumb','Index','Middle','Ring','Pinky','Power',...
-            'Pinch','Tripod','Wrist In','Wrist Out','Wrist Flex','Wrist Extend'})       
-
-    end
-    acc_batch_days(:,i) = diag(acc_batch);
-    acc_batch_days_overall(:,:,i)=acc_batch;
+    % 
+    % %%%%%% classification accuracy for batch data
+    % folders = session_data(i).folders(batch_idx);
+    % day_date = session_data(i).Day;
+    % files=[];
+    % for ii=1:length(folders)
+    %     folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+    %     %cd(folderpath)
+    %     files = [files;findfiles('',folderpath)'];
+    % end
+    % 
+    % % get the classification accuracy
+    % acc_batch = accuracy_online_data_Hand(files,12);
+    % if plot_true
+    %     figure;imagesc(acc_batch)
+    %     colormap bone
+    %     clim([0 1])
+    %     set(gcf,'color','w')
+    %     title(['Accuracy of ' num2str(100*mean(diag(acc_batch)))])
+    %     xticks(1:12)
+    %     yticks(1:12)
+    %     xticklabels({'Thumb','Index','Middle','Ring','Pinky','Power',...
+    %         'Pinch','Tripod','Wrist In','Wrist Out','Wrist Flex','Wrist Extend'})
+    %     yticklabels({'Thumb','Index','Middle','Ring','Pinky','Power',...
+    %         'Pinch','Tripod','Wrist In','Wrist Out','Wrist Flex','Wrist Extend'})       
+    % 
+    % end
+    % acc_batch_days(:,i) = diag(acc_batch);
+    % acc_batch_days_overall(:,:,i)=acc_batch;
 end
 
 % combining wrist actions into one class

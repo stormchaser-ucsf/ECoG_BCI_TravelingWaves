@@ -1,14 +1,6 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu May  8 20:27:46 2025
-
-@author: reza
-"""
-
-# -*- coding: utf-8 -*-
-"""
-Created on Wed May  7 10:04:06 2025
+Created on Mon Jun 16 11:53:15 2025
 
 @author: nikic
 """
@@ -50,11 +42,16 @@ from sklearn.metrics import balanced_accuracy_score as balan_acc
 from sklearn.preprocessing import MinMaxScaler
 
 
-#%% LOAD THE DATA 
+#%% LOAD THE DATA AND RUN THE MODEL 
 
 
 
-filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
+# load the data 
+filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_STG_ArtifactCorr.mat'
+#filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
+#filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
+#filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled'
+
 
 
 data_dict = mat73.loadmat(filename)
@@ -68,197 +65,142 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 1
+iterations = 5
 days = np.unique(labels_days)
+
+decoding_acc=[]
+balanced_decoding_acc=[];
+cl_mse=[]
+ol_mse=[]
+cl_mse_days=np.zeros((iterations,len(days)))
+ol_mse_days=np.zeros((iterations,len(days)))
+balanced_acc_days=np.zeros((iterations,len(days)))
+ce_loss = np.zeros((iterations,len(days)))
 
 print(xdata.shape)
 
-#del data_dict
+del data_dict
 
-# load ecog grid
-#filename_grid ='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/ECOG_Grid_8596_000067_B3.mat'
-filename_grid = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data/ECOG_Grid_8596_000067_B3.mat'
-data_dict = mat73.loadmat(filename_grid)
-ecog_grid = data_dict.get('ecog_grid')
-ecog_grid = np.round(ecog_grid)
-
-#%%  RUN THE MODEL 
-
-results={}
-
-for ii in np.arange(6):
-    #r = np.arange(rows[i],rows[i]+6)
-    r = slice(ii,ii+6)
+for iter in np.arange(iterations):    
     
-    # sub dictionary
-    results[ii]={}
     
-    for j in np.arange(15):
-        
-        print()
-        print("ii =", ii, "j =", j)
-        #c = np.arange(cols[j],cols[j]+9)
-        c = slice(j,j+9)
-        xx =  xdata[:,:,r,c]
-        #print(xx.shape)
-        elec_list = ecog_grid[r,c]
-        print()
-        #print(elec_list)
-        
-        # slice the data
-        xdata_roi = xdata[:,:,r,c]
-        ydata_roi = ydata[:,:,r,c]          
-        
-        
-        decoding_acc=[]
-        balanced_decoding_acc=[];
-        cl_mse=[]
-        ol_mse=[]
-        cl_mse_days=np.zeros((iterations,len(days)))
-        ol_mse_days=np.zeros((iterations,len(days)))
-        balanced_acc_days=np.zeros((iterations,len(days)))
-        ce_loss = np.zeros((iterations,len(days)))
+   
+    # parse into training, validation and testing datasets
+    Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.7,labels_days)                        
+    #del xdata, ydata
+    
+    # # circular shifting the data for null stats
+    # random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
+    # for i in np.arange(len(random_shifts)):
+    #     Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
+    
 
     
+    # expand dimensions for cnn 
+    Xtrain= np.expand_dims(Xtrain,axis=1)
+    Xtest= np.expand_dims(Xtest,axis=1)
+    Xval= np.expand_dims(Xval,axis=1)
+    Ytrain= np.expand_dims(Ytrain,axis=1)
+    Ytest= np.expand_dims(Ytest,axis=1)
+    Yval= np.expand_dims(Yval,axis=1)
+    Xtrain = np.transpose(Xtrain,(0,1,3,4,2)) 
+    Xtest = np.transpose(Xtest,(0,1,3,4,2)) 
+    Xval = np.transpose(Xval,(0,1,3,4,2)) 
+    Ytrain = np.transpose(Ytrain,(0,1,3,4,2)) 
+    Ytest = np.transpose(Ytest,(0,1,3,4,2)) 
+    Yval = np.transpose(Yval,(0,1,3,4,2)) 
+    
+    
+    # # convert labels to indicators
+    # labels_train = one_hot_convert(labels_train)
+    # labels_test = one_hot_convert(labels_test)
+    # labels_val = one_hot_convert(labels_val)
+    
+    
+    
+    # get the CNN architecture model
+    num_classes=1
+    #input_size=378
+    #lstm_size=64
+    input_size=24
+    lstm_size=12
+    ksize=2;
+    if 'model' in locals():
+        del model 
+   
+    model = Autoencoder3D(ksize,num_classes,input_size,lstm_size).to(device)
+    
+    # getparams and train the model 
+    num_epochs=150
+    batch_size=128
+    learning_rate=1e-3
+    batch_val=512
+    patience=6
+    gradient_clipping=10
+    nn_filename = 'i3DAE_B3_ROI.pth' 
+    
+    model,acc = training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
+                        patience,gradient_clipping,nn_filename,
+                        Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
+                        input_size,num_classes,ksize,lstm_size)
+    
+    # test the model on held out data 
+    # recon acc
+    Xtest1 = torch.from_numpy(Xtest).to(device).float()
+    model.eval()
+    with torch.no_grad():
+        recon, decodes = model(Xtest1)
         
-        for iter in np.arange(iterations):    
-            
-            
-           
-            # parse into training, validation and testing datasets
-            Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata_roi,ydata_roi,labels,0.7,labels_days)                        
-            #del xdata, ydata
-            
-            # # circular shifting the data for null stats
-            # random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
-            # for i in np.arange(len(random_shifts)):
-            #     Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
-            
+    for i in np.arange(len(days)): # loop over the 10 days 
+        idx_days = np.where(labels_test_days == days[i])[0]
+        tmp_labels = labels_test[idx_days]
+        tmp_ydata = Ytest[idx_days,:]
+        tmp_recon = recon[idx_days,:]
+        tmp_decodes = decodes[idx_days,:]
+        #decodes1 = convert_to_ClassNumbers(tmp_decodes).cpu().detach().numpy()           
+        decodes1 = convert_to_ClassNumbers_sigmoid(tmp_decodes).cpu().detach().numpy().squeeze()           
+        
+        #idx = convert_to_ClassNumbers(torch.from_numpy(tmp_labels)).detach().numpy()
+        idx = (tmp_labels)
+        idx_cl = np.where(idx==1)[0]
+        idx_ol = np.where(idx==0)[0]
+    
+        recon_cl = tmp_recon[idx_cl,:].cpu().detach().numpy()
+        Ytest_cl = tmp_ydata[idx_cl,:]
+        cl_error = (np.sum((recon_cl - Ytest_cl)**2)) / Ytest_cl.shape[0]
+        cl_mse_days[iter,i] = cl_error
+        #print(cl_error)
+        #cl_mse.append(cl_error)
         
             
-            # expand dimensions for cnn 
-            Xtrain= np.expand_dims(Xtrain,axis=1)
-            Xtest= np.expand_dims(Xtest,axis=1)
-            Xval= np.expand_dims(Xval,axis=1)
-            Ytrain= np.expand_dims(Ytrain,axis=1)
-            Ytest= np.expand_dims(Ytest,axis=1)
-            Yval= np.expand_dims(Yval,axis=1)
-            Xtrain = np.transpose(Xtrain,(0,1,3,4,2)) 
-            Xtest = np.transpose(Xtest,(0,1,3,4,2)) 
-            Xval = np.transpose(Xval,(0,1,3,4,2)) 
-            Ytrain = np.transpose(Ytrain,(0,1,3,4,2)) 
-            Ytest = np.transpose(Ytest,(0,1,3,4,2)) 
-            Yval = np.transpose(Yval,(0,1,3,4,2)) 
-            
-            
-            # # convert labels to indicators
-            # labels_train = one_hot_convert(labels_train)
-            # labels_test = one_hot_convert(labels_test)
-            # labels_val = one_hot_convert(labels_val)
-            
-            
-            
-            # get the CNN architecture model
-            num_classes=1
-            #input_size=378
-            #lstm_size=64
-            input_size=24
-            lstm_size=12
-            ksize=2;
-            if 'model' in locals():
-                del model 
-           
-            model = Autoencoder3D(ksize,num_classes,input_size,lstm_size).to(device)
-            
-            # getparams and train the model 
-            num_epochs=150
-            batch_size=128
-            learning_rate=1e-3
-            batch_val=512
-            patience=6
-            gradient_clipping=10
-            
-            nn_filename = 'i3DAE_B1_253_ROI.pth' 
-            
-            #b3Trf_filename = 'i3DAE_B3_ROI.pth'  
-            #nn_filename = 'i3DAE_B1_253_ROI.pth' 
-            
-            # model = Autoencoder3D(ksize,num_classes,input_size,lstm_size)    
-            # model.load_state_dict(torch.load(b3Trf_filename))
-            # model=model.to(device)
-            # model.train()
-           
-            
-            model,acc = training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
-                                patience,gradient_clipping,nn_filename,
-                                Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
-                                input_size,num_classes,ksize,lstm_size)
-            
-            # test the model on held out data 
-            # recon acc
-            Xtest1 = torch.from_numpy(Xtest).to(device).float()
-            model.eval()
-            with torch.no_grad():
-                recon, decodes = model(Xtest1)
-                
-            for i in np.arange(len(days)): # loop over the 10 days 
-                idx_days = np.where(labels_test_days == days[i])[0]
-                tmp_labels = labels_test[idx_days]
-                tmp_ydata = Ytest[idx_days,:]
-                tmp_recon = recon[idx_days,:]
-                tmp_decodes = decodes[idx_days,:]
-                #decodes1 = convert_to_ClassNumbers(tmp_decodes).cpu().detach().numpy()           
-                decodes1 = convert_to_ClassNumbers_sigmoid(tmp_decodes).cpu().detach().numpy().squeeze()           
-                
-                #idx = convert_to_ClassNumbers(torch.from_numpy(tmp_labels)).detach().numpy()
-                idx = (tmp_labels)
-                idx_cl = np.where(idx==1)[0]
-                idx_ol = np.where(idx==0)[0]
-            
-                recon_cl = tmp_recon[idx_cl,:].cpu().detach().numpy()
-                Ytest_cl = tmp_ydata[idx_cl,:]
-                cl_error = (np.sum((recon_cl - Ytest_cl)**2)) / Ytest_cl.shape[0]
-                cl_mse_days[iter,i] = cl_error
-                #print(cl_error)
-                #cl_mse.append(cl_error)
-                
-                    
-                recon_ol = tmp_recon[idx_ol,:].cpu().detach().numpy()
-                Ytest_ol = tmp_ydata[idx_ol,:]
-                ol_error = (np.sum((recon_ol - Ytest_ol)**2)) / Ytest_ol.shape[0]
-                ol_mse_days[iter,i] = ol_error
-                #print(ol_error)
-                #ol_mse.append(ol_error)
-            
-                # # decoding accuracy
-                # decodes1 = convert_to_ClassNumbers(decodes).cpu().detach().numpy()           
-                # accuracy = np.sum(idx == decodes1) / len(decodes1)
-                # print(accuracy*100)
-                # decoding_acc.append(accuracy*100)
-                
-                # balanced accuracy
-                balanced_acc = balan_acc(idx,decodes1)
-                balanced_acc_days[iter,i]=balanced_acc
-                #print(balanced_acc*100)
-                #balanced_decoding_acc.append(balanced_acc*100)
-                
-                # cross entropy loss
-                #classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
-                classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')# input. target
-                # classif_loss = (classif_criterion(tmp_decodes,
-                #                                   torch.from_numpy(tmp_labels).to(device))).item()
-                classif_loss = (classif_criterion(tmp_decodes.squeeze(),
-                                                  torch.from_numpy(tmp_labels).to(device).float())).item()
-                
-                ce_loss[iter,i]= classif_loss
-                
-                
-        # save it all in a giant dictionary 
-        results[ii][j] = {'elec_list': elec_list,
-                          'ce_loss':ce_loss,
-                          'balanced_acc_days': balanced_acc_days,
-                          'ol_mse_days': ol_mse_days,
-                          'cl_mse_days':cl_mse_days}
+        recon_ol = tmp_recon[idx_ol,:].cpu().detach().numpy()
+        Ytest_ol = tmp_ydata[idx_ol,:]
+        ol_error = (np.sum((recon_ol - Ytest_ol)**2)) / Ytest_ol.shape[0]
+        ol_mse_days[iter,i] = ol_error
+        #print(ol_error)
+        #ol_mse.append(ol_error)
+    
+        # # decoding accuracy
+        # decodes1 = convert_to_ClassNumbers(decodes).cpu().detach().numpy()           
+        # accuracy = np.sum(idx == decodes1) / len(decodes1)
+        # print(accuracy*100)
+        # decoding_acc.append(accuracy*100)
+        
+        # balanced accuracy
+        balanced_acc = balan_acc(idx,decodes1)
+        balanced_acc_days[iter,i]=balanced_acc
+        #print(balanced_acc*100)
+        #balanced_decoding_acc.append(balanced_acc*100)
+        
+        # cross entropy loss
+        #classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
+        classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')# input. target
+        # classif_loss = (classif_criterion(tmp_decodes,
+        #                                   torch.from_numpy(tmp_labels).to(device))).item()
+        classif_loss = (classif_criterion(tmp_decodes.squeeze(),
+                                          torch.from_numpy(tmp_labels).to(device).float())).item()
+        
+        ce_loss[iter,i]= classif_loss
     
 
 
@@ -283,105 +225,52 @@ for ii in np.arange(6):
 # plt.figure();
 # plt.stem(val)
 
-# tmp = np.mean(ol_mse_days,axis=0)
-# tmp1 = np.mean(cl_mse_days,axis=0)
-# plt.figure();
-# plt.plot(tmp)    
-# plt.plot(tmp1)
-# plt.show()
+tmp = np.mean(ol_mse_days,axis=0)
+tmp1 = np.mean(cl_mse_days,axis=0)
+plt.figure();
+plt.plot(tmp)    
+plt.plot(tmp1)
+plt.show()
 
-# # now same but with regression line
-# from sklearn.linear_model import LinearRegression
-# x = days
-# x = x.reshape(-1,1)
-# y = tmp1
-# mdl = LinearRegression()
-# mdl.fit(x,y)
-# plt.figure();
-# plt.scatter(x,y)
-# #x = np.concatenate((np.ones((10,1)),x),axis=1)
-# yhat = mdl.predict(x)
-# plt.plot(x,yhat,color='red')
-# plt.show()
-
-
-# tmp = np.mean(balanced_acc_days,axis=0)
-# plt.figure();
-# plt.plot(tmp)
-
-# plt.figure();
-# plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
-
-
-# plt.figure();
-# plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
-
-# # ol_mse_days_null=ol_mse_days
-# # cl_mse_days_null = cl_mse_days
-# # balanced_acc_days_null = balanced_acc_days
-# # cd_loss_null = ce_loss
-
-
-#%% STORE RESULTS
-
-np.savez('Alpha_All_ROI_200Hz_AllDays_B1_253_New_L2Norm_AE_Model_ArtCorrData', 
-          results = results,allow_pickle=True)
-
-#%% plotting it all back
-
-data=np.load('Alpha_All_ROI_200Hz_AllDays_B1_253_New_L2Norm_AE_Model_ArtCorrData.npz',allow_pickle=True)
-res=data.get('results')
-
-
-res = res.item()
-
-
-recon_mse=np.zeros((6,15))
-
-for i in np.arange(6):    
-    for j in np.arange(15):
-        tmp = res[i][j]['ol_mse_days']
-        recon_mse[i][j]=np.median(tmp)
-
-
-# plt.figure()
-# img=plt.imshow(recon_mse)
-# img.set_clim(recon_mse.min(), recon_mse.max())
-# plt.colorbar()
-
-
-recon_mse = np.rot90(recon_mse,k=3)
-plt.figure()
-img=plt.imshow(recon_mse)
-img.set_clim(recon_mse.min(), recon_mse.max())
-plt.colorbar()
-
-# now the same as above but with regression line to see trend across days within each ROI
+# now same but with regression line
 from sklearn.linear_model import LinearRegression
-slope_mse=np.zeros((6,15))
-days = np.arange(1,7)
 x = days
 x = x.reshape(-1,1)
+y = tmp1
+mdl = LinearRegression()
+mdl.fit(x,y)
+plt.figure();
+plt.scatter(x,y)
+#x = np.concatenate((np.ones((10,1)),x),axis=1)
+yhat = mdl.predict(x)
+plt.plot(x,yhat,color='red')
+plt.show()
 
-for i in np.arange(6):    
-    for j in np.arange(15):
-        tmp = res[i][j]['cl_mse_days']
-        y=np.transpose(tmp)
-        mdl = LinearRegression()
-        mdl.fit(x,y)
-        #slope_mse[i][j]=mdl.coef_
-        slope_mse[i][j]=mdl.coef_
 
-# plt.figure()
-# img=plt.imshow(slope_mse)
-# img.set_clim(slope_mse.min(), slope_mse.max())
-# plt.colorbar()
+tmp = np.mean(balanced_acc_days,axis=0)
+plt.figure();
+plt.plot(tmp)
 
-slope_mse = np.rot90(slope_mse,k=3)
-plt.figure()
-img=plt.imshow(slope_mse)
-img.set_clim(slope_mse.min(), slope_mse.max())
-plt.colorbar()
+plt.figure();
+plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
+
+
+plt.figure();
+plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
+
+# ol_mse_days_null=ol_mse_days
+# cl_mse_days_null = cl_mse_days
+# balanced_acc_days_null = balanced_acc_days
+# cd_loss_null = ce_loss
+
+
+
+
+np.savez('Alpha_STG_ROI_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData', 
+          ce_loss = ce_loss,
+          balanced_acc_days = balanced_acc_days,
+          ol_mse_days = ol_mse_days,
+          cl_mse_days=cl_mse_days)
 
 
 

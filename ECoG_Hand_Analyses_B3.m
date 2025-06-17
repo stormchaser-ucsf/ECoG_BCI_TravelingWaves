@@ -10,6 +10,13 @@
 % traveling waves and seeing differences
 % travling waves with a transformer
 
+%% INIT
+clc;clear
+addpath('C:\Users\nikic\Documents\MATLAB')
+addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
+addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim\helpers')
+addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
+addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
 
 
 
@@ -153,6 +160,185 @@ session_data(10).AM_PM = {'am','am','am','am','am','am',...
 
 % for accuracy -> take B1 ie CL3 or more...
 % for neural features, consider all CL2,3 as CL2.
+
+
+
+%% OPEN LOOP OSCILLATION CLUSTERS
+% get all the files from a particular day
+
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250315\HandImagined';
+
+%20240515, 20240517, 20240614, 20240619, 20240621, 20240626
+
+filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230511\HandImagined';
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230223\Robot3DArrow';
+
+load('ECOG_Grid_8596_000067_B3.mat')
+
+files = findfiles('.mat',filepath,1)';
+
+files1=[];
+for i=1:length(files)
+    if isempty(regexp(files{i},'kf_params'))
+        files1=[files1;files(i)];
+    end
+end
+files=files1;
+%files=files(1:100);
+
+%elec_list=1:256;
+elec_list = [137	143	148	152	155	23
+159	160	30	28	25	21
+134	140	170	174	178	182
+49	45	41	38	35	163
+221	62	59	56	52	48
+205	208	211	214	218	222];
+
+bad_ch=[108 113 118];
+%bad_ch=[];
+osc_clus=[];
+stats=[];
+pow_freq=[];
+ffreq=[];
+for ii=1:length(files)
+    disp(ii/length(files)*100)
+    loaded=true;
+    try
+        load(files{ii})
+    catch
+        loaded=false;
+    end
+
+    % if sum(TrialData.TargetID == [1 3 7 ]) > 0
+    %     hand=true;
+    % else 
+    %     hand=false;
+    % end
+    hand=true;
+
+    if loaded && hand
+        data_trial = (TrialData.BroadbandData');
+
+        % run power spectrum and 1/f stats on a single trial basis
+        task_state = TrialData.TaskState;
+        kinax = find(task_state==3);
+        data = cell2mat(data_trial(kinax));
+
+        data=data(:,elec_list);
+        spectral_peaks=[];
+        stats_tmp=[];
+        parfor i=1:size(data,2)
+            x = data(:,i);
+            [Pxx,F] = pwelch(x,1024,512,1024,1e3);
+            pow_freq = [pow_freq;Pxx' ];
+            ffreq = [ffreq ;F'];
+            %idx = logical((F>0) .* (F<=40));
+            %idx = logical((F>0) .* (F<=150));
+            idx = logical((F>65) .* (F<=150));
+            F1=F(idx);
+            F1=log2(F1);
+            power_spect = Pxx(idx);
+            power_spect = log2(power_spect);
+            %[bhat p wh se ci t_stat]=robust_fit(F1,power_spect,1);
+            tb=fitlm(F1,power_spect,'RobustOpts','on');
+            stats_tmp = [stats_tmp tb.Coefficients.pValue(2)];
+            bhat = tb.Coefficients.Estimate;
+            x = [ones(length(F1),1) F1];
+            yhat = x*bhat;
+
+            % %plot
+            % figure;
+            % plot(F1,power_spect,'LineWidth',1);
+            % hold on
+            % plot(F1,yhat,'LineWidth',1);
+
+            % get peaks in power spectrum at specific frequencies
+            power_spect = zscore(power_spect - yhat);
+            [aa ,bb]=findpeaks(power_spect);
+            peak_loc = bb(find(power_spect(bb)>1));
+            freqs = 2.^F1(peak_loc);
+            pow = power_spect(peak_loc);
+
+            %store
+            spectral_peaks(i).freqs = freqs;
+            spectral_peaks(i).pow = pow;
+        end
+
+
+        % getting oscillation clusters
+        osc_clus_tmp=[];
+        %for f=2:150 % 40 earlier
+        for f=66:150 % 40 earlier
+            ff = [f-1 f+1];
+            tmp=0;ch_tmp=[];
+            for j=1:length(spectral_peaks)
+                if sum(j==bad_ch)==0
+                    freqs = spectral_peaks(j).freqs;
+                    for k=1:length(freqs)
+                        if ff(1) <= freqs(k)  && freqs(k) <= ff(2)
+                            tmp=tmp+1;
+                            ch_tmp = [ch_tmp j];
+                        end
+                    end
+                end
+            end
+            osc_clus_tmp = [osc_clus_tmp tmp];
+        end
+        osc_clus = [osc_clus;osc_clus_tmp];
+    end
+end
+
+
+% plot oscillation clusters
+%f=2:40;
+%f=2:150;
+f=66:150;
+figure;
+hold on
+plot(f,osc_clus,'Color',[.5 .5 .5 .5],'LineWidth',.5)
+plot(f,mean(osc_clus,1),'b','LineWidth',2)
+
+% plot power spectrum
+figure;
+hold on
+plot(ffreq(1,:),log10(pow_freq'),'Color',[.5 .5 .5 .5])
+plot(ffreq(1,:),log10(mean(pow_freq,1)),'k','LineWidth',2)
+xlim([0 200])
+
+
+% get all the electrodes with peak between 8.0Hz and 10Hz
+ch_idx=[];
+for i=1:length(spectral_peaks)
+    if sum(i==bad_ch)==0
+        f = spectral_peaks(i).freqs;
+        if sum( (f>=7) .* (f<=10) ) >= 1
+            ch_idx=[ch_idx i];
+        end
+    end
+end
+length(ch_idx)/128
+I = zeros(128,1);
+I(ch_idx)=1;
+ecog_grid = TrialData.Params.ChMap
+figure;imagesc(I(ecog_grid))
+
+% get all electrodes within 16 and 20Hz
+ch_idx=[];
+for i=1:length(spectral_peaks)
+    if sum(i==bad_ch)==0
+        f = spectral_peaks(i).freqs;
+        if sum( (f>=2) .* (f<=6) ) >= 1
+            ch_idx=[ch_idx i];
+        end
+    end
+end
+length(ch_idx)/128
+I = zeros(128,1);
+I(ch_idx)=1;
+ecog_grid = TrialData.Params.ChMap
+figure;imagesc(I(ecog_grid))
+
 
 %% PERFORMANCE IMAGINED - ONLINE- BATCH FOR B3 HAND EXPERIMENTS
 
@@ -1436,6 +1622,145 @@ end
 %save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
 save hg_LFO_dynamics_hG_200Hz_AllDays_DaysLabeled_ArtifactCorr xdata ydata labels labels_batch days -v7.3
 
+
+%% loading data, filtering and extracting epochs for use in a COMPLEX CNN AE
+% MAIN
+
+
+clc;clear
+close all
+
+if ispc
+    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
+    cd(root_path)
+    addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
+    load session_data_B3_Hand
+    addpath 'C:\Users\nikic\Documents\MATLAB'
+    load('ECOG_Grid_8596_000067_B3.mat')
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers'))
+
+else
+    root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
+    cd(root_path)
+    load session_data_B3_Hand
+    load('ECOG_Grid_8596_000067_B3.mat')
+    addpath(genpath('/home/reza/Repositories/ECoG_BCI_TravelingWaves/helpers'))
+
+end
+
+xdata={};
+ydata={};
+labels=[];
+labels_batch=[];
+days=[];
+mvmt_labels=[];
+trial_number=[];
+data={};
+
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'SampleRate',1e3);
+
+d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'SampleRate',200);
+
+
+
+hg_alpha_switch=false; %1 means get hG, 0 means get alpha dynamics
+
+for i=1:length(session_data)
+    folders_imag =  strcmp(session_data(i).folder_type,'I');
+    folders_online = strcmp(session_data(i).folder_type,'O');
+    folders_batch = strcmp(session_data(i).folder_type,'B');
+    folders_batch1 = strcmp(session_data(i).folder_type,'B1');
+    %batch_idx_overall = [find(folders_batch==1) find(folders_batch1==1)];
+
+    imag_idx = find(folders_imag==1);
+    online_idx = find(folders_online==1);
+    batch_idx = find(folders_batch==1);
+    batch_idx1 = find(folders_batch1==1);
+    %     if sum(folders_batch1)==0
+    %         batch_idx = find(folders_batch==1);
+    %     else
+    %         batch_idx = find(folders_batch1==1);
+    %     end
+    %     %batch_idx = [online_idx batch_idx];
+
+    online_idx=[online_idx batch_idx];
+    %batch_idx = [online_idx batch_idx_overall];
+
+
+    %%%%%% get imagined data files
+    folders = session_data(i).folders(imag_idx);
+    day_date = session_data(i).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+
+    if hg_alpha_switch
+        [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
+
+    else
+        [xdata,ydata,idx,trial_idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,1);
+    end
+
+    labels = [labels; zeros(idx,1)];
+    days = [days;ones(idx,1)*i];
+    labels_batch = [labels_batch;zeros(idx,1)];
+    mvmt_labels= [mvmt_labels;trial_idx];
+
+    %%%%%% getting online files now
+    folders = session_data(i).folders(online_idx);
+    day_date = session_data(i).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+
+    if hg_alpha_switch
+        [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
+
+    else
+        [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,1);
+    end
+
+    labels = [labels; ones(idx,1)];
+    days = [days;ones(idx,1)*i];
+    labels_batch = [labels_batch;zeros(idx,1)];
+
+
+    %%%%%% getting batch udpated (CL2) files now
+    folders = session_data(i).folders(batch_idx1);
+    day_date = session_data(i).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+
+    if hg_alpha_switch
+        [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
+
+    else
+        [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,1);
+    end
+
+    labels = [labels; ones(idx,1)];
+    days = [days;ones(idx,1)*i];
+    labels_batch = [labels_batch;ones(idx,1)];
+
+end
+
+%save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
+save hg_LFO_dynamics_hG_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex xdata ydata labels labels_batch days -v7.3
 
 
 %% loading data, filtering and extracting epochs for use in a CNN AE, TRIAL FORMAT
