@@ -1057,6 +1057,103 @@ class Autoencoder3D_B1(nn.Module):
         return recon,logits  
 
 
+
+##### COMPLEX AUTOENCODER FUNCTIONS 
+
+def complex_activation(fr,fi,data):
+    act = (fr(data.real) - fi(data.imag)) + 1j*(fr(data.imag) + fi(data.real))
+    return act
+
+def apply_complex(a,b):
+    act = a+1j*b
+    return act
+
+
+class ComplexConv3D(nn.Module):
+    def __init__(self, in_channels, out_channels, ksize, strd, pad):
+        super(ComplexConv3D, self).__init__()
+        self.real_conv = nn.Conv3d(in_channels, out_channels, kernel_size=ksize, stride=strd, padding=pad)
+        self.imag_conv = nn.Conv3d(in_channels, out_channels, kernel_size=ksize, stride=strd, padding=pad)
+
+    def forward(self, real, imag):
+        real_out = self.real_conv(real) - self.imag_conv(imag)
+        imag_out = self.real_conv(imag) + self.imag_conv(real)
+        return real_out, imag_out
+
+class ComplexConvTranspose3D(nn.Module):
+    def __init__(self, in_channels, out_channels, ksize, strd, pad):
+        super(ComplexConvTranspose3D, self).__init__()
+        self.real_deconv  = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=ksize, stride=strd, padding=pad)
+        self.imag_deconv  = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=ksize, stride=strd, padding=pad)
+
+    def forward(self, real, imag):
+        real_out = self.real_deconv(real) - self.imag_deconv(imag)
+        imag_out = self.real_deconv(imag) + self.imag_deconv(real)
+        return real_out, imag_out
+
+
+
+class Encoder3D_Complex(nn.Module):
+    def __init__(self,ksize):
+        super(Encoder3D_Complex, self).__init__()
+        self.conv1 = ComplexConv3D(1, 12, ksize, (1, 1, 2),0) 
+        self.conv2 = ComplexConv3D(12, 12, kernel_size=ksize, stride=(1, 2, 2)) # downsampling h
+        self.conv3 = ComplexConv3D(12, 6, kernel_size=ksize, stride=(1, 1, 2))        
+        self.elu = nn.ELU()
+        
+
+    def forward(self, x):
+        a,b = x.real,x.imag
+        a,b = self.conv1(a,b)        
+        a,b = self.elu(a).self.elu(b)        
+        
+        x = self.conv2(x)        
+        x = self.elu(x)        
+        
+        x=self.conv3(x)        
+        x=self.elu(x)
+        
+        return x
+
+class Decoder3D_Complex(nn.Module):
+    def __init__(self,ksize):
+        super(Decoder3D_Complex, self).__init__()
+        
+        self.deconv1 = ComplexConvTranspose3D(6, 12, kernel_size=ksize, stride=(1, 1, 2))
+        self.deconv2 = ComplexConvTranspose3D(12, 12, kernel_size=ksize, stride=(1, 2, 2),
+                                          output_padding=(0,1,0))        
+        self.deconv3 = ComplexConvTranspose3D(12, 1, kernel_size=ksize, stride=(1, 1, 2))                                                   
+        self.elu = nn.ELU()        
+        
+    def forward(self, x):        
+        x = self.deconv1(x)               
+        x = self.elu(x)
+        
+        x = self.deconv2(x)             
+        x = self.elu(x)
+        
+        x = self.deconv3(x)        
+        #x = self.elu(x)        
+        #x = self.deconv4(x)
+        #x = torch.tanh(x) # squish between -1 and 1
+        return x
+    
+
+class Autoencoder3D_Complex(nn.Module):
+    def __init__(self, ksize,num_classes,input_size,lstm_size):
+        super(Autoencoder3D_B1, self).__init__()
+        self.encoder = Encoder3D_Complex(ksize)
+        self.decoder = Decoder3D_Complex(ksize)
+        #self.classifier = nn.Linear(num_nodes, num_classes)  
+        #self.classifier = rnn_lstm(num_classes,input_size,lstm_size)
+        
+    def forward(self,x):
+        latent = self.encoder(x)
+        recon = self.decoder(latent)
+        #logits = self.classifier(latent)
+        #return recon,logits  
+        return recon
+
 #### model training and validation sections 
 
 # function to validate model 

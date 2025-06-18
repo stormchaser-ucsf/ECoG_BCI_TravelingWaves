@@ -42,12 +42,12 @@ from sklearn.metrics import balanced_accuracy_score as balan_acc
 from sklearn.preprocessing import MinMaxScaler
 
 
-#%% LOAD THE DATA AND RUN THE MODEL 
+#%% LOAD THE DATA 
 
 
 
 # load the data 
-filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_STG_ArtifactCorr.mat'
+filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_Day1to3.mat'
 #filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled'
@@ -80,6 +80,10 @@ ce_loss = np.zeros((iterations,len(days)))
 print(xdata.shape)
 
 del data_dict
+
+
+
+#%% TRAIN MODEL
 
 for iter in np.arange(iterations):    
     
