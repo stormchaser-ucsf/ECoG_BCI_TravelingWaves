@@ -1191,32 +1191,41 @@ class Autoencoder3D_Complex(nn.Module):
 ##### model training and validation sections for the complex n/w
 
 # function to validate modes: pass the entire validation data through 
-def validation_loss_3DCNNAE_fullVal(model,Xval,Yval,labels_val,batch_val,val_type):
+def validation_loss_3DCNNAE_fullVal_complex(model,Xval,Yval,labels_val,batch_val,val_type):
     #crit_classif_val = nn.CrossEntropyLoss(reduction='mean') #if mean, it is over all samples
     crit_classif_val = nn.BCEWithLogitsLoss(reduction='mean')
     crit_recon_val = nn.MSELoss(reduction='mean') # if mean, it is over all elements     
     model.eval()
     with torch.no_grad():
-        x=torch.from_numpy(Xval).to(device).float()
-        y=torch.from_numpy(Yval).to(device).float()
+        
+        # split into real and imag
+        Xval_real,Xval_imag  = Xval.real,Xval.imag
+        Yval_real,Yval_imag  = Yval.real,Yval.imag
+        xreal = torch.from_numpy(Xval_real).to(device).float()
+        ximag = torch.from_numpy(Xval_imag).to(device).float()
+        yreal = torch.from_numpy(Yval_real).to(device).float()
+        yimag = torch.from_numpy(Yval_imag).to(device).float()
         z=torch.from_numpy(labels_val).to(device).float()
-        out,zpred = model(x) 
-        loss1 = crit_recon_val(out,y)
+        
+        out_r,out_i,zpred = model(xreal,ximag) 
+        loss1 = crit_recon_val(out_r,yreal)
+        loss2 = crit_recon_val(out_i,yimag)
+        loss_recon = loss1+loss2
         zpred=zpred.squeeze()
-        loss2 = crit_classif_val(zpred,z)    
+        loss_class = crit_classif_val(zpred,z)    
         #loss1  = loss1/x.shape[0]
         #loss2 = loss2/x.shape[0]
-        loss_val = 30*loss1.item() + loss2.item()    #30
+        loss_val = 2*loss_recon.item() + loss_class.item()    #30
         
     #zlabels = convert_to_ClassNumbers(z)        
     zlabels=z
     #zpred_labels = convert_to_ClassNumbers(zpred)     
     zpred_labels = convert_to_ClassNumbers_sigmoid(zpred).to(device)     
     accuracy = torch.sum(zlabels == zpred_labels).item()
-    accuracy = accuracy/x.shape[0]
+    accuracy = accuracy/Xval.shape[0]
     #recon_error = (torch.sum(torch.square(out-y))).item()  
     #recon_error = recon_error/x.shape[0]
-    recon_error = crit_recon_val(out,y).item()
+    recon_error = loss_recon.item()
     
     
     model.train()
@@ -1226,7 +1235,7 @@ def validation_loss_3DCNNAE_fullVal(model,Xval,Yval,labels_val,batch_val,val_typ
 
 
 # TRAINING LOOP
-def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
+def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_val,
                       patience,gradient_clipping,filename,
                       Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
                       input_size,num_classes,ksize,lstm_size):
@@ -1241,6 +1250,9 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
     print('Starting training')
     goat_loss=99999
     counter=0
+    recon_loss_epochs=[]
+    classif_loss_epochs=[]
+    total_loss_epochs=[]
     
     for epoch in range(num_epochs):
       model.train()
@@ -1262,22 +1274,31 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
           #labels_batch = labels_train[samples,:]
           labels_batch = labels_train[samples]
           
-          #push to gpu
-          Xtrain_batch = torch.from_numpy(Xtrain_batch).to(device).float()
-          Ytrain_batch = torch.from_numpy(Ytrain_batch).to(device).float()  
-          labels_batch = torch.from_numpy(labels_batch).to(device).float()  
           
+          # split into real and imag parts 
+          Xtrain_batch_real,Xtrain_batch_imag = Xtrain_batch.real,Xtrain_batch.imag
+          Ytrain_batch_real,Ytrain_batch_imag = Ytrain_batch.real,Ytrain_batch.imag
+          
+          #load to torch and push to GPU
+          Xtrain_batch_real = torch.from_numpy(Xtrain_batch_real).to(device).float()
+          Xtrain_batch_imag = torch.from_numpy(Xtrain_batch_imag).to(device).float()
+          Ytrain_batch_real = torch.from_numpy(Ytrain_batch_real).to(device).float()
+          Ytrain_batch_imag = torch.from_numpy(Ytrain_batch_imag).to(device).float()
+          labels_batch = torch.from_numpy(labels_batch).to(device).float()  
           
           # forward pass thru network
           opt.zero_grad() 
-          recon,decodes = model(Xtrain_batch)
+          recon_r,recon_i,decodes = model(Xtrain_batch_real,Xtrain_batch_imag)
           #latent_activity = model.encoder(Xtrain_batch)      
           
-          # get loss      
-          recon_loss = (recon_criterion(recon,Ytrain_batch))#/Ytrain_batch.shape[0]
+          # get loss  
+          loss1 = recon_criterion(recon_r,Ytrain_batch_real)
+          loss2 = recon_criterion(recon_i,Ytrain_batch_imag)
+          recon_loss = loss1+loss2
+          #recon_loss = (recon_criterion(recon,Ytrain_batch))#/Ytrain_batch.shape[0]
           decodes = decodes.squeeze() # for BCE loss
           classif_loss = (classif_criterion(decodes,labels_batch))#/labels_batch.shape[0]      
-          loss = 30*recon_loss + classif_loss#30
+          loss = 2*recon_loss + classif_loss#30
           total_loss = loss.item()
           #print(classif_loss.item())
           
@@ -1292,12 +1313,18 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
           loss.backward()
           nn.utils.clip_grad_value_(model.parameters(), clip_value=gradient_clipping)
           opt.step()
+
       
       # get validation losses with batching of validation samples
       #val_loss,val_acc,val_recon=validation_loss_3DCNNAE(model,Xval,Yval,labels_val,batch_val,1)  
       
+      # store losses from each epoch
+      recon_loss_epochs.append(2*recon_loss.item())
+      classif_loss_epochs.append(classif_loss.item())
+      total_loss_epochs.append(total_loss)
+
       # get validation loss passing entire validation data through the network
-      val_loss,val_acc,val_recon=validation_loss_3DCNNAE_fullVal(model,Xval,Yval,labels_val,batch_val,1)
+      val_loss,val_acc,val_recon=validation_loss_3DCNNAE_fullVal_complex(model,Xval,Yval,labels_val,batch_val,1)
       #val_loss,val_recon=validation_loss_regression(model,Xtest,Ytest,batch_val,1)    
       
       
@@ -1319,12 +1346,12 @@ def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
           print(goat_loss,goat_acc)
           break
     
-    model_goat = Autoencoder3D(ksize,num_classes,input_size,lstm_size)
+    model_goat = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
     #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
     model_goat.load_state_dict(torch.load(filename))
     model_goat=model_goat.to(device)
     model_goat.eval()
-    return model_goat, goat_acc
+    return model_goat, goat_acc,recon_loss_epochs,classif_loss_epochs,total_loss_epochs
 
 
         

@@ -44,31 +44,31 @@ from sklearn.preprocessing import MinMaxScaler
 
 #%% testing stuff
 
-tmp_real,tmp_imag = tmp.real,tmp.imag
-tmp_real = torch.from_numpy(tmp_real).float()
-tmp_imag = torch.from_numpy(tmp_imag).float()
+# tmp_real,tmp_imag = tmp.real,tmp.imag
+# tmp_real = torch.from_numpy(tmp_real).float()
+# tmp_imag = torch.from_numpy(tmp_imag).float()
 
-from iAE_utils_models import *
-ksize=2
-if 'model' in locals():
-     del model 
-model = Encoder3D_Complex(ksize)
-a,b = model(tmp_real,tmp_imag)
+# from iAE_utils_models import *
+# ksize=2
+# if 'model' in locals():
+#      del model 
+# model = Encoder3D_Complex(ksize)
+# a,b = model(tmp_real,tmp_imag)
 
-if 'model' in locals():
-     del model 
-mode11 = Decoder3D_Complex(ksize)
-ar,br = mode11(a,b)
+# if 'model' in locals():
+#      del model 
+# mode11 = Decoder3D_Complex(ksize)
+# ar,br = mode11(a,b)
 
-num_classes =1
-input_size = 120*2
-lstm_size = 32
+# num_classes =1
+# input_size = 120*2
+# lstm_size = 32
 
 
-if 'model' in locals():
-     del model 
-model = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
-real_recon,imag_recon,logits = model(tmp_real,tmp_imag)
+# if 'model' in locals():
+#      del model 
+# model = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
+# real_recon,imag_recon,logits = model(tmp_real,tmp_imag)
 
 #%% LOAD THE DATA 
 
@@ -151,19 +151,17 @@ for iter in np.arange(iterations):
     
     
     # get the CNN architecture model
-    num_classes=1
-    #input_size=378
-    #lstm_size=64
-    input_size=24
-    lstm_size=12
+    num_classes=1    
+    input_size=120*2
+    lstm_size=32
     ksize=2;
     if 'model' in locals():
         del model 
    
-    model = Autoencoder3D(ksize,num_classes,input_size,lstm_size).to(device)
+    model = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size).to(device)
     
     # getparams and train the model 
-    num_epochs=150
+    num_epochs=15
     batch_size=128
     learning_rate=1e-3
     batch_val=512
@@ -171,10 +169,12 @@ for iter in np.arange(iterations):
     gradient_clipping=10
     nn_filename = 'i3DAE_B3_Complex.pth' 
     
-    model,acc = training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
-                        patience,gradient_clipping,nn_filename,
-                        Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
-                        input_size,num_classes,ksize,lstm_size)
+    
+    
+    model,acc,recon_loss_epochs,classif_loss_epochs,total_loss_epochs = training_loop_iAE3D_Complex(model,num_epochs,batch_size,
+                            learning_rate,batch_val,patience,gradient_clipping,nn_filename,
+                            Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
+                            input_size,num_classes,ksize,lstm_size)
     
     # test the model on held out data 
     # recon acc
