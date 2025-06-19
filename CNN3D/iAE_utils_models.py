@@ -1057,7 +1057,7 @@ class Autoencoder3D_B1(nn.Module):
         return recon,logits  
 
 
-
+#%%
 ##### COMPLEX AUTOENCODER FUNCTIONS 
 
 def complex_activation(fr,fi,data):
@@ -1081,10 +1081,12 @@ class ComplexConv3D(nn.Module):
         return real_out, imag_out
 
 class ComplexConvTranspose3D(nn.Module):
-    def __init__(self, in_channels, out_channels, ksize, strd, pad):
+    def __init__(self, in_channels, out_channels, ksize, strd, pad,dil):
         super(ComplexConvTranspose3D, self).__init__()
-        self.real_deconv  = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=ksize, stride=strd, padding=pad)
-        self.imag_deconv  = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=ksize, stride=strd, padding=pad)
+        self.real_deconv  = nn.ConvTranspose3d(in_channels, out_channels,kernel_size=ksize,
+                                               stride=strd, padding=pad,dilation=dil)
+        self.imag_deconv  = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=ksize,
+                                               stride=strd, padding=pad,dilation=dil)
 
     def forward(self, real, imag):
         real_out = self.real_deconv(real) - self.imag_deconv(imag)
@@ -1097,63 +1099,237 @@ class Encoder3D_Complex(nn.Module):
     def __init__(self,ksize):
         super(Encoder3D_Complex, self).__init__()
         self.conv1 = ComplexConv3D(1, 12, ksize, (1, 1, 2),0) 
-        self.conv2 = ComplexConv3D(12, 12, kernel_size=ksize, stride=(1, 2, 2)) # downsampling h
-        self.conv3 = ComplexConv3D(12, 6, kernel_size=ksize, stride=(1, 1, 2))        
+        self.conv2 = ComplexConv3D(12, 12, ksize, (1, 2, 2),0) # downsampling h
+        self.conv3 = ComplexConv3D(12, 6, ksize,(2, 2, 2),0)        
         self.elu = nn.ELU()
         
 
-    def forward(self, x):
-        a,b = x.real,x.imag
+    def forward(self, a,b):        
         a,b = self.conv1(a,b)        
-        a,b = self.elu(a).self.elu(b)        
+        a,b = self.elu(a),self.elu(b)        
         
-        x = self.conv2(x)        
-        x = self.elu(x)        
+        a,b = self.conv2(a,b)        
+        a,b = self.elu(a),self.elu(b)        
         
-        x=self.conv3(x)        
-        x=self.elu(x)
+        a,b = self.conv3(a,b)        
+        a,b = self.elu(a),self.elu(b)        
         
-        return x
+        return a,b
 
 class Decoder3D_Complex(nn.Module):
     def __init__(self,ksize):
         super(Decoder3D_Complex, self).__init__()
         
-        self.deconv1 = ComplexConvTranspose3D(6, 12, kernel_size=ksize, stride=(1, 1, 2))
-        self.deconv2 = ComplexConvTranspose3D(12, 12, kernel_size=ksize, stride=(1, 2, 2),
-                                          output_padding=(0,1,0))        
-        self.deconv3 = ComplexConvTranspose3D(12, 1, kernel_size=ksize, stride=(1, 1, 2))                                                   
+        self.deconv1 = ComplexConvTranspose3D(6, 12, ksize, (2, 2, 2),(0,0,0),1)
+        self.deconv2 = ComplexConvTranspose3D(12, 12, ksize, (1, 2, 2),(0,0,0),(2,2,1))        
+        self.deconv3 = ComplexConvTranspose3D(12, 1, ksize, (1, 1, 2),(0,0,0),(1,2,1))                                                   
         self.elu = nn.ELU()        
         
-    def forward(self, x):        
-        x = self.deconv1(x)               
-        x = self.elu(x)
+    def forward(self, a,b):        
+         a,b = self.deconv1(a,b)        
+         a,b = self.elu(a),self.elu(b)        
+         
+         a,b = self.deconv2(a,b)        
+         a,b = self.elu(a),self.elu(b)        
+         
+         a,b = self.deconv3(a,b)        
+         #a,b = self.elu(a),self.elu(b)        
+         
+         #x = self.elu(x)        
+         #x = self.deconv4(x)
+         #x = torch.tanh(x) # squish between -1 and 1
+         
+         return a,b
+
+
+class rnn_lstm_complex(nn.Module):
+    def __init__(self,num_classes,input_size,lstm_size):
+        super(rnn_lstm_complex,self).__init__()
+        self.num_classes = num_classes        
+        self.input_size = round(input_size)
+        self.lstm_size = round(lstm_size)
         
-        x = self.deconv2(x)             
-        x = self.elu(x)
-        
-        x = self.deconv3(x)        
-        #x = self.elu(x)        
-        #x = self.deconv4(x)
-        #x = torch.tanh(x) # squish between -1 and 1
-        return x
+        self.rnn1=nn.LSTM(input_size=self.input_size,hidden_size=self.lstm_size,
+                          num_layers=1,batch_first=True,bidirectional=False)        
+        # self.rnn2=nn.LSTM(input_size=round(self.lstm_size*2),
+        #                   hidden_size=round(self.lstm_size/2),
+        #                   num_layers=1,batch_first=True,bidirectional=False)      
+        self.linear0 = nn.Linear(round(self.lstm_size),num_classes)
+                
     
+    def forward(self,a,b):        
+        # convert to batch, seq, feature
+        x = torch.flatten(a,start_dim=1,end_dim=3)
+        x = torch.permute(x,(0,2,1))
+        y = torch.flatten(b,start_dim=1,end_dim=3)
+        y = torch.permute(y,(0,2,1))
+        z = torch.concat((x,y),dim=-1)
+        output1, (hn1,cn1) = self.rnn1(z) 
+        #output2, (hn2,cn2) = self.rnn2(output1) 
+        hn1 = torch.squeeze(hn1)        
+        out = self.linear0(hn1)        
+        return out
 
 class Autoencoder3D_Complex(nn.Module):
     def __init__(self, ksize,num_classes,input_size,lstm_size):
-        super(Autoencoder3D_B1, self).__init__()
+    #def __init__(self, ksize):
+        super(Autoencoder3D_Complex, self).__init__()
         self.encoder = Encoder3D_Complex(ksize)
         self.decoder = Decoder3D_Complex(ksize)
+        self.classifier = rnn_lstm_complex(num_classes,input_size,lstm_size)
         #self.classifier = nn.Linear(num_nodes, num_classes)  
-        #self.classifier = rnn_lstm(num_classes,input_size,lstm_size)
         
-    def forward(self,x):
-        latent = self.encoder(x)
-        recon = self.decoder(latent)
-        #logits = self.classifier(latent)
+        
+    def forward(self,a,b):
+        latent_a,latent_b = self.encoder(a,b)
+        recon_a,recon_b = self.decoder(latent_a,latent_b)
+        logits = self.classifier(latent_a,latent_b)
         #return recon,logits  
-        return recon
+        return recon_a,recon_b,logits
 
+#%%
+##### model training and validation sections for the complex n/w
+
+# function to validate modes: pass the entire validation data through 
+def validation_loss_3DCNNAE_fullVal(model,Xval,Yval,labels_val,batch_val,val_type):
+    #crit_classif_val = nn.CrossEntropyLoss(reduction='mean') #if mean, it is over all samples
+    crit_classif_val = nn.BCEWithLogitsLoss(reduction='mean')
+    crit_recon_val = nn.MSELoss(reduction='mean') # if mean, it is over all elements     
+    model.eval()
+    with torch.no_grad():
+        x=torch.from_numpy(Xval).to(device).float()
+        y=torch.from_numpy(Yval).to(device).float()
+        z=torch.from_numpy(labels_val).to(device).float()
+        out,zpred = model(x) 
+        loss1 = crit_recon_val(out,y)
+        zpred=zpred.squeeze()
+        loss2 = crit_classif_val(zpred,z)    
+        #loss1  = loss1/x.shape[0]
+        #loss2 = loss2/x.shape[0]
+        loss_val = 30*loss1.item() + loss2.item()    #30
+        
+    #zlabels = convert_to_ClassNumbers(z)        
+    zlabels=z
+    #zpred_labels = convert_to_ClassNumbers(zpred)     
+    zpred_labels = convert_to_ClassNumbers_sigmoid(zpred).to(device)     
+    accuracy = torch.sum(zlabels == zpred_labels).item()
+    accuracy = accuracy/x.shape[0]
+    #recon_error = (torch.sum(torch.square(out-y))).item()  
+    #recon_error = recon_error/x.shape[0]
+    recon_error = crit_recon_val(out,y).item()
+    
+    
+    model.train()
+    torch.cuda.empty_cache()
+    return loss_val,accuracy,recon_error      
+
+
+
+# TRAINING LOOP
+def training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
+                      patience,gradient_clipping,filename,
+                      Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
+                      input_size,num_classes,ksize,lstm_size):
+    
+   
+    num_batches = math.ceil(Xtrain.shape[0]/batch_size)
+    recon_criterion = nn.MSELoss(reduction='mean')
+    #classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
+    classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')    
+    
+    opt = torch.optim.AdamW(model.parameters(),lr=learning_rate,weight_decay=1e-5)
+    print('Starting training')
+    goat_loss=99999
+    counter=0
+    
+    for epoch in range(num_epochs):
+      model.train()
+      #shuffle the data    
+      #shuffle the data    
+      idx = rnd.permutation(Xtrain.shape[0]) 
+      idx_split = np.array_split(idx,num_batches)
+      
+      
+      if epoch>round(num_epochs*0.6):
+          for g in opt.param_groups:
+              g['lr']=5e-4
+        
+      for batch in range(num_batches):
+          # get the batch 
+          samples = idx_split[batch]
+          Xtrain_batch = Xtrain[samples,:]
+          Ytrain_batch = Ytrain[samples,:]        
+          #labels_batch = labels_train[samples,:]
+          labels_batch = labels_train[samples]
+          
+          #push to gpu
+          Xtrain_batch = torch.from_numpy(Xtrain_batch).to(device).float()
+          Ytrain_batch = torch.from_numpy(Ytrain_batch).to(device).float()  
+          labels_batch = torch.from_numpy(labels_batch).to(device).float()  
+          
+          
+          # forward pass thru network
+          opt.zero_grad() 
+          recon,decodes = model(Xtrain_batch)
+          #latent_activity = model.encoder(Xtrain_batch)      
+          
+          # get loss      
+          recon_loss = (recon_criterion(recon,Ytrain_batch))#/Ytrain_batch.shape[0]
+          decodes = decodes.squeeze() # for BCE loss
+          classif_loss = (classif_criterion(decodes,labels_batch))#/labels_batch.shape[0]      
+          loss = 30*recon_loss + classif_loss#30
+          total_loss = loss.item()
+          #print(classif_loss.item())
+          
+          # compute accuracy
+          #ylabels = convert_to_ClassNumbers(labels_batch)        
+          ylabels =  labels_batch
+          ypred_labels = convert_to_ClassNumbers_sigmoid(decodes).to(device)    
+          #accuracy = (torch.sum(ylabels == ypred_labels).item())/ylabels.shape[0]
+          accuracy = (torch.sum(ylabels == ypred_labels.squeeze()).item())/ylabels.shape[0]
+          
+          # backpropagate thru network 
+          loss.backward()
+          nn.utils.clip_grad_value_(model.parameters(), clip_value=gradient_clipping)
+          opt.step()
+      
+      # get validation losses with batching of validation samples
+      #val_loss,val_acc,val_recon=validation_loss_3DCNNAE(model,Xval,Yval,labels_val,batch_val,1)  
+      
+      # get validation loss passing entire validation data through the network
+      val_loss,val_acc,val_recon=validation_loss_3DCNNAE_fullVal(model,Xval,Yval,labels_val,batch_val,1)
+      #val_loss,val_recon=validation_loss_regression(model,Xtest,Ytest,batch_val,1)    
+      
+      
+      print(f'Epoch [{epoch}/{num_epochs}], Val. Loss {val_loss:.2f}, Train Loss {total_loss:.2f}, Val. Acc {val_acc*100:.2f}, Train Acc {accuracy*100:.2f}')
+      #print(f'Epoch [{epoch}/{num_epochs}], Val. Loss {val_loss:.4f}, Train Loss {total_loss:.4f}')
+      
+      if val_loss<goat_loss:
+          goat_loss = val_loss
+          goat_acc = val_acc*100      
+          counter = 0
+          print('Goat loss, saving model')      
+          torch.save(model.state_dict(), filename)
+      else:
+          counter += 1
+    
+      if counter>=patience:
+          print('Early stoppping point reached')
+          print('Best val loss and val acc  are')
+          print(goat_loss,goat_acc)
+          break
+    
+    model_goat = Autoencoder3D(ksize,num_classes,input_size,lstm_size)
+    #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
+    model_goat.load_state_dict(torch.load(filename))
+    model_goat=model_goat.to(device)
+    model_goat.eval()
+    return model_goat, goat_acc
+
+
+        
+
+#%%
 #### model training and validation sections 
 
 # function to validate model 

@@ -42,6 +42,34 @@ from sklearn.metrics import balanced_accuracy_score as balan_acc
 from sklearn.preprocessing import MinMaxScaler
 
 
+#%% testing stuff
+
+tmp_real,tmp_imag = tmp.real,tmp.imag
+tmp_real = torch.from_numpy(tmp_real).float()
+tmp_imag = torch.from_numpy(tmp_imag).float()
+
+from iAE_utils_models import *
+ksize=2
+if 'model' in locals():
+     del model 
+model = Encoder3D_Complex(ksize)
+a,b = model(tmp_real,tmp_imag)
+
+if 'model' in locals():
+     del model 
+mode11 = Decoder3D_Complex(ksize)
+ar,br = mode11(a,b)
+
+num_classes =1
+input_size = 120*2
+lstm_size = 32
+
+
+if 'model' in locals():
+     del model 
+model = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
+real_recon,imag_recon,logits = model(tmp_real,tmp_imag)
+
 #%% LOAD THE DATA 
 
 
@@ -141,7 +169,7 @@ for iter in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10
-    nn_filename = 'i3DAE_B3_ROI.pth' 
+    nn_filename = 'i3DAE_B3_Complex.pth' 
     
     model,acc = training_loop_iAE3D(model,num_epochs,batch_size,learning_rate,batch_val,
                         patience,gradient_clipping,nn_filename,
