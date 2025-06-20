@@ -1670,7 +1670,7 @@ d2 = designfilt('bandpassiir','FilterOrder',4, ...
 
 hg_alpha_switch=false; %1 means get hG, 0 means get alpha dynamics
 
-for i=1:3%length(session_data)
+for i=1:length(session_data)
     folders_imag =  strcmp(session_data(i).folder_type,'I');
     folders_online = strcmp(session_data(i).folder_type,'O');
     folders_batch = strcmp(session_data(i).folder_type,'B');
@@ -1759,7 +1759,7 @@ for i=1:3%length(session_data)
 
 end
 
-save alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_Day1to3 xdata ydata labels labels_batch days -v7.3
+save alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex xdata ydata labels labels_batch days -v7.3
 %save hg_LFO_dynamics_hG_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex xdata ydata labels labels_batch days -v7.3
 
 

@@ -1215,7 +1215,7 @@ def validation_loss_3DCNNAE_fullVal_complex(model,Xval,Yval,labels_val,batch_val
         loss_class = crit_classif_val(zpred,z)    
         #loss1  = loss1/x.shape[0]
         #loss2 = loss2/x.shape[0]
-        loss_val = 2*loss_recon.item() + loss_class.item()    #30
+        loss_val = 3*loss_recon.item() + loss_class.item()    #30
         
     #zlabels = convert_to_ClassNumbers(z)        
     zlabels=z
@@ -1246,7 +1246,7 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
     #classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
     classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')    
     
-    opt = torch.optim.AdamW(model.parameters(),lr=learning_rate,weight_decay=1e-5)
+    opt = torch.optim.AdamW(model.parameters(),lr=learning_rate,weight_decay=1e-4)
     print('Starting training')
     goat_loss=99999
     counter=0
@@ -1298,7 +1298,7 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
           #recon_loss = (recon_criterion(recon,Ytrain_batch))#/Ytrain_batch.shape[0]
           decodes = decodes.squeeze() # for BCE loss
           classif_loss = (classif_criterion(decodes,labels_batch))#/labels_batch.shape[0]      
-          loss = 2*recon_loss + classif_loss#30
+          loss = 3*recon_loss + classif_loss#30
           total_loss = loss.item()
           #print(classif_loss.item())
           
@@ -1319,7 +1319,7 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
       #val_loss,val_acc,val_recon=validation_loss_3DCNNAE(model,Xval,Yval,labels_val,batch_val,1)  
       
       # store losses from each epoch
-      recon_loss_epochs.append(2*recon_loss.item())
+      recon_loss_epochs.append(3*recon_loss.item())
       classif_loss_epochs.append(classif_loss.item())
       total_loss_epochs.append(total_loss)
 

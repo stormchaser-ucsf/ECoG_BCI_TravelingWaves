@@ -16,8 +16,8 @@ Created on Tue Mar 11 19:13:24 2025
 
 import os
 
-#os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
-os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
+os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
+#os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
 
 
 from iAE_utils_models import *
@@ -75,11 +75,10 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 # load the data 
-filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_Day1to3.mat'
+#filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_Day1to3.mat'
 #filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
-#filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled'
-
+filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex.mat'
 
 
 data_dict = mat73.loadmat(filename)
@@ -161,7 +160,7 @@ for iter in np.arange(iterations):
     model = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size).to(device)
     
     # getparams and train the model 
-    num_epochs=15
+    num_epochs=150
     batch_size=128
     learning_rate=1e-3
     batch_val=512
