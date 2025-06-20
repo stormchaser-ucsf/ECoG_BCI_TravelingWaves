@@ -154,6 +154,9 @@ for iter in np.arange(iterations):
     input_size=120*2
     lstm_size=32
     ksize=2;
+    
+    from iAE_utils_models import *
+    
     if 'model' in locals():
         del model 
    
@@ -177,19 +180,17 @@ for iter in np.arange(iterations):
     
     # test the model on held out data 
     # recon acc
-    Xtest1 = torch.from_numpy(Xtest).to(device).float()
-    model.eval()
-    with torch.no_grad():
-        recon, decodes = model(Xtest1)
+    recon_r,recon_i,decodes = test_model_complex(model,Xtest)
         
     for i in np.arange(len(days)): # loop over the 10 days 
         idx_days = np.where(labels_test_days == days[i])[0]
         tmp_labels = labels_test[idx_days]
-        tmp_ydata = Ytest[idx_days,:]
-        tmp_recon = recon[idx_days,:]
+        tmp_ydata_r,tmp_ydata_i = Ytest[idx_days,:].real, Ytest[idx_days,:].imag
+        tmp_recon_r = recon_r[idx_days,:]
+        tmp_recon_i = recon_i[idx_days,:]
         tmp_decodes = decodes[idx_days,:]
         #decodes1 = convert_to_ClassNumbers(tmp_decodes).cpu().detach().numpy()           
-        decodes1 = convert_to_ClassNumbers_sigmoid(tmp_decodes).cpu().detach().numpy().squeeze()           
+        decodes1 = convert_to_ClassNumbers_sigmoid_list(tmp_decodes)
         
         #idx = convert_to_ClassNumbers(torch.from_numpy(tmp_labels)).detach().numpy()
         idx = (tmp_labels)

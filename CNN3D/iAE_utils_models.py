@@ -601,6 +601,14 @@ def convert_to_ClassNumbers_sigmoid(indata):
     
     return outdata
 
+def convert_to_ClassNumbers_sigmoid_list(indata):
+    #outdata = torch.sigmoid(indata.float()).cpu()
+    outdata=indata
+    outdata[np.where(outdata>0.5)]=1
+    outdata[np.where(outdata<=0.5)]=0
+    
+    return outdata
+
 
 # create a autoencoder with a classifier layer for separation in latent space
 class encoder(nn.Module):
@@ -1187,8 +1195,7 @@ class Autoencoder3D_Complex(nn.Module):
         #return recon,logits  
         return recon_a,recon_b,logits
 
-#%%
-##### model training and validation sections for the complex n/w
+#%% model training and validation sections for the complex n/w
 
 # function to validate modes: pass the entire validation data through 
 def validation_loss_3DCNNAE_fullVal_complex(model,Xval,Yval,labels_val,batch_val,val_type):
@@ -1354,6 +1361,38 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
     return model_goat, goat_acc,recon_loss_epochs,classif_loss_epochs,total_loss_epochs
 
 
+def test_model_complex(model,Xtest):
+    
+    Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
+    recon_r=[]
+    recon_i=[]
+    decodes=[]    
+    num_batches = math.ceil(Xtest_real.shape[0]/4096)
+    idx = (np.arange(Xtest_real.shape[0]))
+    idx_split = np.array_split(idx,num_batches)
+    model.eval()
+    
+    for batch in range(num_batches):
+       # get the batch 
+       samples = idx_split[batch]
+       Xtest_real_batch = torch.from_numpy(Xtest_real[samples,:]).to(device).float()
+       Xtest_imag_batch = torch.from_numpy(Xtest_imag[samples,:]).to(device).float()
+       with torch.no_grad():
+           out_r,out_i,dec = model(Xtest_real_batch,Xtest_imag_batch)
+       
+       out_r = out_r.cpu().detach().numpy()
+       out_i = out_i.cpu().detach().numpy()
+       dec = dec.cpu().detach().numpy()
+        
+       recon_r.append(out_r)
+       recon_i.append(out_i)
+       decodes.append(dec)
+       
+    recon_r = np.concatenate(recon_r,axis=0) 
+    recon_i = np.concatenate(recon_i,axis=0) 
+    decodes = np.concatenate(decodes,axis=0) 
+    
+    return recon_r,recon_i,decodes 
         
 
 #%%
