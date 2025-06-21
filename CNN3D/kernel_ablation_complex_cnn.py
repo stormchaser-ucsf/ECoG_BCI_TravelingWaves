@@ -2,6 +2,7 @@
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+from iAE_utils_models import *
 
 # ==== USER DEFINED IMPORTS ====
 # from your_model import ComplexAutoencoder3D, classifier
@@ -44,21 +45,32 @@ def find_conv_layers_encoder_imag(model):
 
 
 
-def find_conv_layers_decoder(model):
+def find_conv_layers_decoder_real(model):
     conv_layers = {}
     for name, module in model.named_modules():
-        if isinstance(module, torch.nn.ConvTranspose3d) and ('real' in name or 'imag' in name):
+        if isinstance(module, torch.nn.ConvTranspose3d) and ('real' in name ):
+            conv_layers[name] = module
+    return conv_layers
+
+
+def find_conv_layers_decoder_imag(model):
+    conv_layers = {}
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.ConvTranspose3d) and ( 'imag' in name):
             conv_layers[name] = module
     return conv_layers
 
 
 # ==== ABLATION LOOP ====
-def ablate_kernels(model, dataloader):
+def ablate_kernels_encoder(model, Xtest,Ytest):
     conv_layers_real = find_conv_layers_encoder_real(model)
     conv_layers_imag = find_conv_layers_encoder_imag(model)
     a=iter(conv_layers_real.items())
     b=iter(conv_layers_imag.items())
     results = {}
+    tmp_ydata_r,tmp_ydata_i = Ytest.real, Ytest.imag
+    tmp_ydata_r = torch.from_numpy(tmp_ydata_r)
+    tmp_ydata_i = torch.from_numpy(tmp_ydata_i)
     
     for i in np.arange(len(conv_layers_real)):
         real_layer_name,real_layer = next(a)
@@ -72,34 +84,54 @@ def ablate_kernels(model, dataloader):
             hook_real = real_layer.register_forward_hook(make_channel_ablation_hook([k]))
             hook_imag = imag_layer.register_forward_hook(make_channel_ablation_hook([k]))
             
+            recon_r,recon_i,decodes = test_model_complex(model,Xtest)
             
+            recon_r = torch.from_numpy(recon_r)            
+            recon_i = torch.from_numpy(recon_i)            
+            
+            loss =  F.mse_loss(recon_r, tmp_ydata_r) + F.mse_loss(recon_i, tmp_ydata_i)
+            results[lay_name][k] = loss
+            hook_real.remove()           
+            hook_imag.remove()   
 
-    for layer_name, layer in conv_layers_real.items():
-        #print(layer_name, layer.out_channels)
-        
-        num_kernels = layer.out_channels
-        results[layer_name] = {}
-
-        for k in range(num_kernels):
-            print(f"Ablating {layer_name}[{k}]...")
-            hook = layer.register_forward_hook(make_channel_ablation_hook([k]))
-
-            total_loss = 0
-            model.eval()
-            with torch.no_grad():
-                for real, imag, _ in dataloader:
-                    real, imag = real.to(device), imag.to(device)
-                    out_r, out_i, *_ = model(real, imag)
-                    loss = F.mse_loss(out_r, real) + F.mse_loss(out_i, imag)
-                    total_loss += loss.item()
-
-            avg_loss = total_loss / len(dataloader)
-            results[layer_name][k] = avg_loss
-            print(f"{layer_name}[{k}] -> Recon Loss: {avg_loss:.4f}")
-
-            hook.remove()
     
     return results
+
+def ablate_kernels_decoder(model, Xtest,Ytest):
+    conv_layers_real = find_conv_layers_decoder_real(model)
+    conv_layers_imag = find_conv_layers_decoder_imag(model)
+    a=iter(conv_layers_real.items())
+    b=iter(conv_layers_imag.items())
+    results = {}
+    tmp_ydata_r,tmp_ydata_i = Ytest.real, Ytest.imag
+    tmp_ydata_r = torch.from_numpy(tmp_ydata_r)
+    tmp_ydata_i = torch.from_numpy(tmp_ydata_i)
+    
+    for i in np.arange(len(conv_layers_real)):
+        real_layer_name,real_layer = next(a)
+        imag_layer_name,imag_layer = next(b)        
+        lay_name = 'deconv' + str(i+1)
+        results[lay_name] = {}
+        num_kernels = imag_layer.out_channels
+        
+        for k in range(num_kernels):
+            print(f"Ablating complex {lay_name}[{k}]...")
+            hook_real = real_layer.register_forward_hook(make_channel_ablation_hook([k]))
+            hook_imag = imag_layer.register_forward_hook(make_channel_ablation_hook([k]))
+            
+            recon_r,recon_i,decodes = test_model_complex(model,Xtest)
+            
+            recon_r = torch.from_numpy(recon_r)            
+            recon_i = torch.from_numpy(recon_i)            
+            
+            loss =  F.mse_loss(recon_r, tmp_ydata_r) + F.mse_loss(recon_i, tmp_ydata_i)
+            results[lay_name][k] = loss
+            hook_real.remove()           
+            hook_imag.remove()   
+
+    
+    return results
+
 
 # ==== RUN ABLATION ====
 # results = ablate_kernels(model, dataloader)

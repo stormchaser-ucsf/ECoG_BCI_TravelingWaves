@@ -124,7 +124,7 @@ del data_dict
 
 #%% TRAIN MODEL
 
-for iter in np.arange(iterations):    
+for iterr in np.arange(iterations):    
     
     
    
@@ -226,12 +226,12 @@ for iter in np.arange(iterations):
         Ytest_i_ol = tmp_ydata_i[idx_ol,:]        
         r_ol_error = (np.sum((recon_r_ol - Ytest_r_ol)**2)) / Ytest_r_ol.shape[0]
         i_ol_error = (np.sum((recon_i_ol - Ytest_i_ol)**2)) / Ytest_i_ol.shape[0]
-        ol_mse_days[iter,i] = r_ol_error + i_ol_error
+        ol_mse_days[iterr,i] = r_ol_error + i_ol_error
         
                 
         # balanced accuracy
         balanced_acc = balan_acc(idx,decodes1)
-        balanced_acc_days[iter,i]=balanced_acc
+        balanced_acc_days[iterr,i]=balanced_acc
         #print(balanced_acc*100)
         #balanced_decoding_acc.append(balanced_acc*100)
         
@@ -243,7 +243,7 @@ for iter in np.arange(iterations):
         classif_loss = (classif_criterion(torch.from_numpy(tmp_decodes.squeeze()).float(),
                                           torch.from_numpy(tmp_labels).float())).item()
         
-        ce_loss[iter,i]= classif_loss
+        ce_loss[iterr,i]= classif_loss
     
     del Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
 
