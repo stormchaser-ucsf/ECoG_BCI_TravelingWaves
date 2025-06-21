@@ -16,8 +16,13 @@ Created on Tue Mar 11 19:13:24 2025
 
 import os
 
-os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
-#os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
+if os.name=='nt':
+    os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
+else:       
+    os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
+
+    
+
 
 
 from iAE_utils_models import *
@@ -73,13 +78,19 @@ real_recon,imag_recon,logits = model(tmp_real,tmp_imag)
 
 #%% LOAD THE DATA 
 
-
-
 # load the data 
-#filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_Day1to3.mat'
+if os.name=='nt':
+    filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_Day1to3.mat'    
+else:
+    filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex.mat'
+    
+        
+
+
+
 #filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled.mat'
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled'
-filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex.mat'
+
 
 
 data_dict = mat73.loadmat(filename)
@@ -303,6 +314,8 @@ np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2',
           balanced_acc_days = balanced_acc_days,
           ol_mse_days = ol_mse_days,
           cl_mse_days=cl_mse_days)
+
+#%% ABLATION EXPERIMENTS 
 
 
 

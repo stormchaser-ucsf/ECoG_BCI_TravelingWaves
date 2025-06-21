@@ -28,19 +28,55 @@ def make_channel_ablation_hook(indices):
     return hook
 
 # ==== FIND CONV LAYERS ====
-def find_conv_layers(model):
+def find_conv_layers_encoder_real(model):
+    conv_layers_real = {}
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv3d) and ('real' in name):
+            conv_layers_real[name] = module
+    return conv_layers_real
+
+def find_conv_layers_encoder_imag(model):
+    conv_layers_imag = {}
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv3d) and ( 'imag' in name):
+            conv_layers_imag[name] = module
+    return conv_layers_imag
+
+
+
+def find_conv_layers_decoder(model):
     conv_layers = {}
     for name, module in model.named_modules():
-        if isinstance(module, torch.nn.Conv3d) and ('real' in name or 'imag' in name):
+        if isinstance(module, torch.nn.ConvTranspose3d) and ('real' in name or 'imag' in name):
             conv_layers[name] = module
     return conv_layers
 
+
 # ==== ABLATION LOOP ====
 def ablate_kernels(model, dataloader):
-    conv_layers = find_conv_layers(model)
+    conv_layers_real = find_conv_layers_encoder_real(model)
+    conv_layers_imag = find_conv_layers_encoder_imag(model)
+    a=iter(conv_layers_real.items())
+    b=iter(conv_layers_imag.items())
     results = {}
+    
+    for i in np.arange(len(conv_layers_real)):
+        real_layer_name,real_layer = next(a)
+        imag_layer_name,imag_layer = next(b)        
+        lay_name = 'conv' + str(i+1)
+        results[lay_name] = {}
+        num_kernels = imag_layer.out_channels
+        
+        for k in range(num_kernels):
+            print(f"Ablating complex {lay_name}[{k}]...")
+            hook_real = real_layer.register_forward_hook(make_channel_ablation_hook([k]))
+            hook_imag = imag_layer.register_forward_hook(make_channel_ablation_hook([k]))
+            
+            
 
-    for layer_name, layer in conv_layers.items():
+    for layer_name, layer in conv_layers_real.items():
+        #print(layer_name, layer.out_channels)
+        
         num_kernels = layer.out_channels
         results[layer_name] = {}
 
