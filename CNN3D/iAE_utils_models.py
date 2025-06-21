@@ -1106,9 +1106,9 @@ class ComplexConvTranspose3D(nn.Module):
 class Encoder3D_Complex(nn.Module):
     def __init__(self,ksize):
         super(Encoder3D_Complex, self).__init__()
-        self.conv1 = ComplexConv3D(1, 12, ksize, (1, 1, 2),0) 
-        self.conv2 = ComplexConv3D(12, 12, ksize, (1, 2, 2),0) # downsampling h
-        self.conv3 = ComplexConv3D(12, 6, ksize,(2, 2, 2),0)        
+        self.conv1 = ComplexConv3D(1, 6, ksize, (1, 1, 2),0) 
+        self.conv2 = ComplexConv3D(6, 6, ksize, (1, 2, 2),0) # downsampling h
+        self.conv3 = ComplexConv3D(6, 4, ksize,(2, 2, 2),0)        
         self.elu = nn.ELU()
         
 
@@ -1128,9 +1128,9 @@ class Decoder3D_Complex(nn.Module):
     def __init__(self,ksize):
         super(Decoder3D_Complex, self).__init__()
         
-        self.deconv1 = ComplexConvTranspose3D(6, 12, ksize, (2, 2, 2),(0,0,0),1)
-        self.deconv2 = ComplexConvTranspose3D(12, 12, ksize, (1, 2, 2),(0,0,0),(2,2,1))        
-        self.deconv3 = ComplexConvTranspose3D(12, 1, ksize, (1, 1, 2),(0,0,0),(1,2,1))                                                   
+        self.deconv1 = ComplexConvTranspose3D(4, 6, ksize, (2, 2, 2),(0,0,0),1)
+        self.deconv2 = ComplexConvTranspose3D(6, 6, ksize, (1, 2, 2),(0,0,0),(2,2,1))        
+        self.deconv3 = ComplexConvTranspose3D(6, 1, ksize, (1, 1, 2),(0,0,0),(1,2,1))                                                   
         self.elu = nn.ELU()        
         
     def forward(self, a,b):        

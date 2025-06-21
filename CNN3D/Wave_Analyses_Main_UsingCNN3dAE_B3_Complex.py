@@ -44,31 +44,32 @@ from sklearn.preprocessing import MinMaxScaler
 
 #%% testing stuff
 
-# tmp_real,tmp_imag = tmp.real,tmp.imag
-# tmp_real = torch.from_numpy(tmp_real).float()
-# tmp_imag = torch.from_numpy(tmp_imag).float()
+tmp=Xtrain[:32,:]
+tmp_real,tmp_imag = tmp.real,tmp.imag
+tmp_real = torch.from_numpy(tmp_real).float()
+tmp_imag = torch.from_numpy(tmp_imag).float()
 
-# from iAE_utils_models import *
-# ksize=2
-# if 'model' in locals():
-#      del model 
-# model = Encoder3D_Complex(ksize)
-# a,b = model(tmp_real,tmp_imag)
+from iAE_utils_models import *
+ksize=2
+if 'model' in locals():
+      del model 
+model = Encoder3D_Complex(ksize)
+a,b = model(tmp_real,tmp_imag)
 
-# if 'model' in locals():
-#      del model 
-# mode11 = Decoder3D_Complex(ksize)
-# ar,br = mode11(a,b)
+if 'model' in locals():
+      del model 
+mode11 = Decoder3D_Complex(ksize)
+ar,br = mode11(a,b)
 
-# num_classes =1
-# input_size = 120*2
-# lstm_size = 32
+num_classes =1
+input_size = 80*2
+lstm_size = 24
 
 
-# if 'model' in locals():
-#      del model 
-# model = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
-# real_recon,imag_recon,logits = model(tmp_real,tmp_imag)
+if 'model' in locals():
+      del model 
+model = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
+real_recon,imag_recon,logits = model(tmp_real,tmp_imag)
 
 #%% LOAD THE DATA 
 
@@ -117,6 +118,7 @@ for iter in np.arange(iterations):
     
    
     # parse into training, validation and testing datasets
+    
     Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.7,labels_days)                        
     #del xdata, ydata
     
@@ -151,8 +153,8 @@ for iter in np.arange(iterations):
     
     # get the CNN architecture model
     num_classes=1    
-    input_size=120*2
-    lstm_size=32
+    input_size=80*2
+    lstm_size=24
     ksize=2;
     
     from iAE_utils_models import *
@@ -191,33 +193,31 @@ for iter in np.arange(iterations):
         tmp_decodes = decodes[idx_days,:]
         #decodes1 = convert_to_ClassNumbers(tmp_decodes).cpu().detach().numpy()           
         decodes1 = convert_to_ClassNumbers_sigmoid_list(tmp_decodes)
-        
-        #idx = convert_to_ClassNumbers(torch.from_numpy(tmp_labels)).detach().numpy()
+                
         idx = (tmp_labels)
         idx_cl = np.where(idx==1)[0]
         idx_ol = np.where(idx==0)[0]
     
-        recon_cl = tmp_recon[idx_cl,:].cpu().detach().numpy()
-        Ytest_cl = tmp_ydata[idx_cl,:]
-        cl_error = (np.sum((recon_cl - Ytest_cl)**2)) / Ytest_cl.shape[0]
-        cl_mse_days[iter,i] = cl_error
+        recon_r_cl = tmp_recon_r[idx_cl,:]
+        recon_i_cl = tmp_recon_i[idx_cl,:]        
+        Ytest_r_cl = tmp_ydata_r[idx_cl,:]
+        Ytest_i_cl = tmp_ydata_i[idx_cl,:]        
+        r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / Ytest_r_cl.shape[0]
+        i_cl_error = (np.sum((recon_i_cl - Ytest_i_cl)**2)) / Ytest_i_cl.shape[0]
+        cl_mse_days[iter,i] = r_cl_error + i_cl_error
         #print(cl_error)
         #cl_mse.append(cl_error)
         
             
-        recon_ol = tmp_recon[idx_ol,:].cpu().detach().numpy()
-        Ytest_ol = tmp_ydata[idx_ol,:]
-        ol_error = (np.sum((recon_ol - Ytest_ol)**2)) / Ytest_ol.shape[0]
-        ol_mse_days[iter,i] = ol_error
-        #print(ol_error)
-        #ol_mse.append(ol_error)
-    
-        # # decoding accuracy
-        # decodes1 = convert_to_ClassNumbers(decodes).cpu().detach().numpy()           
-        # accuracy = np.sum(idx == decodes1) / len(decodes1)
-        # print(accuracy*100)
-        # decoding_acc.append(accuracy*100)
+        recon_r_ol = tmp_recon_r[idx_ol,:]
+        recon_i_ol = tmp_recon_i[idx_ol,:]        
+        Ytest_r_ol = tmp_ydata_r[idx_ol,:]
+        Ytest_i_ol = tmp_ydata_i[idx_ol,:]        
+        r_ol_error = (np.sum((recon_r_ol - Ytest_r_ol)**2)) / Ytest_r_ol.shape[0]
+        i_ol_error = (np.sum((recon_i_ol - Ytest_i_ol)**2)) / Ytest_i_ol.shape[0]
+        ol_mse_days[iter,i] = r_ol_error + i_ol_error
         
+                
         # balanced accuracy
         balanced_acc = balan_acc(idx,decodes1)
         balanced_acc_days[iter,i]=balanced_acc
@@ -229,12 +229,12 @@ for iter in np.arange(iterations):
         classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')# input. target
         # classif_loss = (classif_criterion(tmp_decodes,
         #                                   torch.from_numpy(tmp_labels).to(device))).item()
-        classif_loss = (classif_criterion(tmp_decodes.squeeze(),
-                                          torch.from_numpy(tmp_labels).to(device).float())).item()
+        classif_loss = (classif_criterion(torch.from_numpy(tmp_decodes.squeeze()).float(),
+                                          torch.from_numpy(tmp_labels).float())).item()
         
         ce_loss[iter,i]= classif_loss
     
-
+    del Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
 
 # classif_loss = (classif_criterion(torch.from_numpy(tmp_labels[:1,:]).to(device),
 #                                    tmp_decodes[:1,:])).item()
@@ -296,9 +296,9 @@ plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 # cd_loss_null = ce_loss
 
 
+#%% SAVING 
 
-
-np.savez('Alpha_STG_ROI_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData', 
+np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2', 
           ce_loss = ce_loss,
           balanced_acc_days = balanced_acc_days,
           ol_mse_days = ol_mse_days,
