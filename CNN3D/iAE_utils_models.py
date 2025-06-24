@@ -1102,13 +1102,12 @@ class ComplexConvTranspose3D(nn.Module):
         return real_out, imag_out
 
 
-
 class Encoder3D_Complex(nn.Module):
     def __init__(self,ksize):
         super(Encoder3D_Complex, self).__init__()
-        self.conv1 = ComplexConv3D(1, 6, ksize, (1, 1, 2),0) 
-        self.conv2 = ComplexConv3D(6, 6, ksize, (1, 2, 2),0) # downsampling h
-        self.conv3 = ComplexConv3D(6, 4, ksize,(2, 2, 2),0)        
+        self.conv1 = ComplexConv3D(1, 6, ksize, (1, 1, 1),0) 
+        self.conv2 = ComplexConv3D(6, 6, ksize, (1, 1, 1),0) # downsampling h
+        self.conv3 = ComplexConv3D(6, 4, ksize,(1, 1, 1),0)        
         self.elu = nn.ELU()
         
 
@@ -1123,6 +1122,27 @@ class Encoder3D_Complex(nn.Module):
         a,b = self.elu(a),self.elu(b)        
         
         return a,b
+
+# class Encoder3D_Complex(nn.Module):
+#     def __init__(self,ksize):
+#         super(Encoder3D_Complex, self).__init__()
+#         self.conv1 = ComplexConv3D(1, 6, ksize, (1, 1, 2),0) 
+#         self.conv2 = ComplexConv3D(6, 6, ksize, (1, 2, 2),0) # downsampling h
+#         self.conv3 = ComplexConv3D(6, 4, ksize,(2, 2, 2),0)        
+#         self.elu = nn.ELU()
+        
+
+#     def forward(self, a,b):        
+#         a,b = self.conv1(a,b)        
+#         a,b = self.elu(a),self.elu(b)        
+        
+#         a,b = self.conv2(a,b)        
+#         a,b = self.elu(a),self.elu(b)        
+        
+#         a,b = self.conv3(a,b)        
+#         a,b = self.elu(a),self.elu(b)        
+        
+#         return a,b
 
 class Decoder3D_Complex(nn.Module):
     def __init__(self,ksize):
@@ -3140,9 +3160,122 @@ def bootstrap_difference_test(a,b,test_type):
 
     
     
+#%% ABLATION EXPERIMENTS AND STUFF
+
+
+# ==== ABLATION HOOK ====
+def make_channel_ablation_hook(indices):
+    def hook(module, input, output):
+        output[:, indices] = 0
+        return output
+    return hook
+
+# ==== FIND CONV LAYERS ====
+def find_conv_layers_encoder_real(model):
+    conv_layers_real = {}
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv3d) and ('real' in name):
+            conv_layers_real[name] = module
+    return conv_layers_real
+
+def find_conv_layers_encoder_imag(model):
+    conv_layers_imag = {}
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv3d) and ( 'imag' in name):
+            conv_layers_imag[name] = module
+    return conv_layers_imag
+
+
+
+def find_conv_layers_decoder_real(model):
+    conv_layers = {}
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.ConvTranspose3d) and ('real' in name ):
+            conv_layers[name] = module
+    return conv_layers
+
+
+def find_conv_layers_decoder_imag(model):
+    conv_layers = {}
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.ConvTranspose3d) and ( 'imag' in name):
+            conv_layers[name] = module
+    return conv_layers
+
+
+
+
+# ==== ABLATION LOOP ====
+def ablate_kernels_encoder(model, Xtest,Ytest):
+    conv_layers_real = find_conv_layers_encoder_real(model)
+    conv_layers_imag = find_conv_layers_encoder_imag(model)
+    a=iter(conv_layers_real.items())
+    b=iter(conv_layers_imag.items())
+    results = {}
+    tmp_ydata_r,tmp_ydata_i = Ytest.real, Ytest.imag
+    tmp_ydata_r = torch.from_numpy(tmp_ydata_r)
+    tmp_ydata_i = torch.from_numpy(tmp_ydata_i)
     
+    for i in np.arange(len(conv_layers_real)):
+        real_layer_name,real_layer = next(a)
+        imag_layer_name,imag_layer = next(b)        
+        lay_name = 'conv' + str(i+1)
+        results[lay_name] = {}
+        num_kernels = imag_layer.out_channels
+        
+        for k in range(num_kernels):
+            print(f"Ablating complex {lay_name}[{k}]...")
+            hook_real = real_layer.register_forward_hook(make_channel_ablation_hook([k]))
+            hook_imag = imag_layer.register_forward_hook(make_channel_ablation_hook([k]))
+            
+            recon_r,recon_i,decodes = test_model_complex(model,Xtest)
+            
+            recon_r = torch.from_numpy(recon_r)            
+            recon_i = torch.from_numpy(recon_i)            
+            
+            loss =  F.mse_loss(recon_r, tmp_ydata_r) + F.mse_loss(recon_i, tmp_ydata_i)
+            results[lay_name][k] = loss
+            hook_real.remove()           
+            hook_imag.remove()   
 
     
+    return results
+
+def ablate_kernels_decoder(model, Xtest,Ytest):
+    conv_layers_real = find_conv_layers_decoder_real(model)
+    conv_layers_imag = find_conv_layers_decoder_imag(model)
+    a=iter(conv_layers_real.items())
+    b=iter(conv_layers_imag.items())
+    results = {}
+    tmp_ydata_r,tmp_ydata_i = Ytest.real, Ytest.imag
+    tmp_ydata_r = torch.from_numpy(tmp_ydata_r)
+    tmp_ydata_i = torch.from_numpy(tmp_ydata_i)
+    
+    for i in np.arange(len(conv_layers_real)):
+        real_layer_name,real_layer = next(a)
+        imag_layer_name,imag_layer = next(b)        
+        lay_name = 'deconv' + str(i+1)
+        results[lay_name] = {}
+        num_kernels = imag_layer.out_channels
+        
+        for k in range(num_kernels):
+            print(f"Ablating complex {lay_name}[{k}]...")
+            hook_real = real_layer.register_forward_hook(make_channel_ablation_hook([k]))
+            hook_imag = imag_layer.register_forward_hook(make_channel_ablation_hook([k]))
+            
+            recon_r,recon_i,decodes = test_model_complex(model,Xtest)
+            
+            recon_r = torch.from_numpy(recon_r)            
+            recon_i = torch.from_numpy(recon_i)            
+            
+            loss =  F.mse_loss(recon_r, tmp_ydata_r) + F.mse_loss(recon_i, tmp_ydata_i)
+            results[lay_name][k] = loss
+            hook_real.remove()           
+            hook_imag.remove()   
+
+    
+    return results
+
 
 
 # dist_recon_error_mean=[]

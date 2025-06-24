@@ -55,7 +55,7 @@ tmp_real = torch.from_numpy(tmp_real).float()
 tmp_imag = torch.from_numpy(tmp_imag).float()
 
 from iAE_utils_models import *
-ksize=2
+ksize=(3,5,7)
 if 'model' in locals():
       del model 
 model = Encoder3D_Complex(ksize)
@@ -75,6 +75,33 @@ if 'model' in locals():
       del model 
 model = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
 real_recon,imag_recon,logits = model(tmp_real,tmp_imag)
+
+
+# more testing stuff 
+tmp=Xtrain[:32,:]
+tmp_real,tmp_imag = tmp.real,tmp.imag
+tmp_real = torch.from_numpy(tmp_real).float()
+tmp_imag = torch.from_numpy(tmp_imag).float()
+
+model = nn.Conv3d(1, 6, kernel_size=(3,3,3))
+out=model(tmp_real)
+print(out.shape)
+
+model = nn.Conv3d(6, 6, kernel_size=(3,5,7))
+out=model(out)
+print(out.shape)
+
+model = nn.Conv3d(6, 6, kernel_size=(3,5,7))
+out=model(out)
+print(out.shape)
+
+model = nn.Conv3d(6, 6, kernel_size=(3,5,9),dilation=(1,1,2))
+out=model(out)
+print(out.shape)
+
+
+
+
 
 #%% LOAD THE DATA 
 
