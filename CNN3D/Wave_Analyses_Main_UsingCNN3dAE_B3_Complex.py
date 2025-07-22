@@ -211,6 +211,12 @@ for iterr in np.arange(iterations):
     gradient_clipping=10
     nn_filename = 'i3DAE_B3_Complex.pth' 
     
+    # model_goat = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
+    # #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
+    # model.load_state_dict(torch.load(nn_filename))
+    # model_goat=model_goat.to(device)
+    # model_goat.eval()
+    
     
     
     model,acc,recon_loss_epochs,classif_loss_epochs,total_loss_epochs = training_loop_iAE3D_Complex(model,num_epochs,batch_size,
@@ -345,6 +351,9 @@ np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2',
 #%% ABLATION EXPERIMENTS 
 
 
+#%% LOADING DATA BACK
+
+data=np.load('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2.npz')
 
 
 #%% plotting amplitude differences
@@ -734,10 +743,87 @@ class Autoencoder3D(nn.Module):
 
 #%%
 
+import numpy as np
+import matplotlib.pyplot as plt
+import networkx as nx
+import random
+from collections import deque
 
-for xx in  np.arange(10):
-    print('hello')
-    
-    
+# 1. Create 10x10 grid of electrodes
+rows, cols = 10, 10
+electrodes = [[f"E{r}{c}" for c in range(cols)] for r in range(rows)]
+
+# 2. Assign random power values (structured to show clusters)
+power_map = {}
+for r in range(rows):
+    for c in range(cols):
+        # Simulate structured power (stronger in center)
+        dist = np.sqrt((r - 5)**2 + (c - 5)**2)
+        base_power = np.exp(-dist / 2) * 10  # peak near center
+        noise = np.random.normal(0, 0.5)
+        power_map[electrodes[r][c]] = base_power + noise
+
+# 3. Apply threshold (e.g., top 10%)
+all_powers = np.array(list(power_map.values()))
+threshold = np.percentile(all_powers, 90)
+active_nodes = {k for k, v in power_map.items() if v >= threshold}
+
+# 4. Build neighbor graph (4-connectivity)
+neighbor_graph = {}
+for r in range(rows):
+    for c in range(cols):
+        e = electrodes[r][c]
+        neighbors = []
+        for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < rows and 0 <= nc < cols:
+                n = electrodes[nr][nc]
+                if n in active_nodes:
+                    neighbors.append(n)
+        if e in active_nodes:
+            neighbor_graph[e] = neighbors
+
+# 5. Connected components using DFS
+def find_clusters(graph):
+    visited = set()
+    clusters = []
+
+    def dfs(node, cluster):
+        visited.add(node)
+        cluster.append(node)
+        for neighbor in graph.get(node, []):
+            if neighbor not in visited:
+                dfs(neighbor, cluster)
+
+    for node in graph:
+        if node not in visited:
+            cluster = []
+            dfs(node, cluster)
+            clusters.append(cluster)
+    return clusters
+
+clusters = find_clusters(neighbor_graph)
+
+# 6. Plot
+plt.figure(figsize=(8, 8))
+for r in range(rows):
+    for c in range(cols):
+        e = electrodes[r][c]
+        x, y = c, -r
+        power = power_map[e]
+        if e in active_nodes:
+            # Color by cluster
+            for i, cluster in enumerate(clusters):
+                if e in cluster:
+                    plt.scatter(x, y, c=plt.cm.tab10(i % 10), s=100, label=f"Cluster {i}" if i == 0 else "")
+                    break
+        else:
+            plt.scatter(x, y, color='lightgray', s=30)
+
+plt.title(f"Spatial Clusters of Electrodes (Top 10% Power ≥ {threshold:.2f})")
+plt.axis('off')
+plt.grid(False)
+plt.show()
+
     
 
