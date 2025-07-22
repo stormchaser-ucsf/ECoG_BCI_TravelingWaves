@@ -1671,6 +1671,7 @@ d2 = designfilt('bandpassiir','FilterOrder',4, ...
 hg_alpha_switch=false; %1 means get hG, 0 means get alpha dynamics
 
 for i=1:length(session_data)
+    
     folders_imag =  strcmp(session_data(i).folder_type,'I');
     folders_online = strcmp(session_data(i).folder_type,'O');
     folders_batch = strcmp(session_data(i).folder_type,'B');
