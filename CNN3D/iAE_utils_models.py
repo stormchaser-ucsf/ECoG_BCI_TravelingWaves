@@ -1107,9 +1107,9 @@ class Encoder3D_Complex(nn.Module):
         super(Encoder3D_Complex, self).__init__()
         self.conv1 = ComplexConv3D(1, 8, (3,3,3), (1, 1, 1),0,(1,1,2)) 
         self.conv2 = ComplexConv3D(8, 8, (3,3,3), (1, 1, 1),0,(1,1,2)) 
-        self.conv3 = ComplexConv3D(8, 16, (3,3,3), (1, 1, 1),0,(1,1,2))  
-        self.conv4 = ComplexConv3D(16, 16, (3,5,7), (1, 1, 1),0,(1,2,2))  
-        self.conv5 = ComplexConv3D(16, 32, (3,5,7), (1, 1, 1),0,(1,2,2))  
+        self.conv3 = ComplexConv3D(8, 8, (3,3,3), (1, 1, 1),0,(1,1,2))  
+        self.conv4 = ComplexConv3D(8, 16, (3,5,7), (1, 1, 1),0,(1,2,2))  
+        self.conv5 = ComplexConv3D(16, 16, (3,5,7), (1, 1, 1),0,(1,2,2))  
         self.elu = nn.ELU()
         
 
@@ -1136,9 +1136,9 @@ class Decoder3D_Complex(nn.Module):
     def __init__(self,ksize):
         super(Decoder3D_Complex, self).__init__()
         
-        self.deconv1 = ComplexConvTranspose3D(32, 16, (3,5,7), (1, 1, 1),(0,0,0),(1,2,2))
-        self.deconv2 = ComplexConvTranspose3D(16, 16, (3,5,7), (1, 1, 1),(0,0,0),(1,2,2))
-        self.deconv3 = ComplexConvTranspose3D(16, 8, (3,3,3), (1, 1, 1),(0,0,0),(1,1,2))
+        self.deconv1 = ComplexConvTranspose3D(16, 16, (3,5,7), (1, 1, 1),(0,0,0),(1,2,2))
+        self.deconv2 = ComplexConvTranspose3D(16, 8, (3,5,7), (1, 1, 1),(0,0,0),(1,2,2))
+        self.deconv3 = ComplexConvTranspose3D(8, 8, (3,3,3), (1, 1, 1),(0,0,0),(1,1,2))
         self.deconv4 = ComplexConvTranspose3D(8, 8, (3,3,3), (1, 1, 1),(0,0,0),(1,1,2))
         self.deconv5 = ComplexConvTranspose3D(8, 1, (3,3,3), (1, 1, 1),(0,0,0),(1,1,2))
         self.elu = nn.ELU()        

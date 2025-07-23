@@ -228,6 +228,9 @@ for iterr in np.arange(iterations):
     # for i in np.arange(len(random_shifts)):
     #     Xtrain[i,:] = np.roll(Xtrain[i,:],shift=random_shifts[i],axis=-1) 
     
+    # data augmentation of the training dataset
+    
+    
 
     
     # expand dimensions for cnn 
@@ -254,8 +257,8 @@ for iterr in np.arange(iterations):
     
     # get the CNN architecture model
     num_classes=1    
-    input_size=80*2
-    lstm_size=24
+    input_size=16*2
+    lstm_size=8
     ksize=2;
     
     from iAE_utils_models import *
@@ -265,6 +268,10 @@ for iterr in np.arange(iterations):
    
     model = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size).to(device)
     
+    #get number of parameters
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Number of trainable parameters: {trainable_params}")
+    
     # getparams and train the model 
     num_epochs=150
     batch_size=128
@@ -272,7 +279,7 @@ for iterr in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10
-    nn_filename = 'i3DAE_B3_Complex.pth' 
+    nn_filename = 'i3DAE_B3_Complex_New.pth' 
     
     # model_goat = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
     # #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
