@@ -61,14 +61,21 @@ if 'model' in locals():
 model = Encoder3D_Complex(ksize)
 a,b = model(tmp_real,tmp_imag)
 
+
+num_classes =1
+input_size = 32*2
+lstm_size = 16
+
+if 'model' in locals():
+      del model 
+model = rnn_lstm_complex(num_classes,input_size,lstm_size)
+out=model(a,b)
+
 if 'model' in locals():
       del model 
 mode11 = Decoder3D_Complex(ksize)
 ar,br = mode11(a,b)
 
-num_classes =1
-input_size = 80*2
-lstm_size = 24
 
 
 if 'model' in locals():
@@ -83,22 +90,78 @@ tmp_real,tmp_imag = tmp.real,tmp.imag
 tmp_real = torch.from_numpy(tmp_real).float()
 tmp_imag = torch.from_numpy(tmp_imag).float()
 
-model = nn.Conv3d(1, 6, kernel_size=(3,3,3))
+print(tmp_real.shape)
+
+model = nn.Conv3d(1, 8, kernel_size=(3,3,3),dilation=(1,1,2))
 out=model(tmp_real)
 print(out.shape)
 
-model = nn.Conv3d(6, 6, kernel_size=(3,5,7))
+model = nn.Conv3d(8, 8, kernel_size=(3,3,3),dilation=(1,1,2))
 out=model(out)
 print(out.shape)
 
-model = nn.Conv3d(6, 6, kernel_size=(3,5,7))
+model = nn.Conv3d(8, 8, kernel_size=(3,3,3),dilation=(1,1,2))
 out=model(out)
 print(out.shape)
 
-model = nn.Conv3d(6, 6, kernel_size=(3,5,9),dilation=(1,1,2))
+model = nn.Conv3d(8, 16, kernel_size=(3,5,7),dilation=(1,2,2))
 out=model(out)
 print(out.shape)
 
+model = nn.Conv3d(16, 32, kernel_size=(3,5,7),dilation=(1,2,2))
+out=model(out)
+print(out.shape)
+out1=out;
+
+
+# #pass to lstm for classification
+# tmp = torch.flatten(out,start_dim=1,end_dim=3)
+# x=tmp
+# x = torch.permute(x,(0,2,1))
+# rnn1 = nn.LSTM(input_size=32,hidden_size=8,batch_first=True,bidirectional=False)
+# output,(hn,cn) = rnn1(x)
+# #output1,(hn1,cn1) = rnn2(output)
+# hn=torch.squeeze(hn)
+# linear0 = nn.Linear(8,2)
+# out=linear0(hn)
+
+
+# build the decoder layers to get back the original data 
+# bottleneck enc side
+# out = out.view(out.size(0), -1) 
+# m = nn.Linear(out.shape[1], 128)    
+# out = m(out)
+
+# # bottleneck dec side
+# m = nn.Linear(128,6*7*19*25)    
+# out = m(out)
+
+# layer 5
+#out = out.view(out.size(0), 6,7, 19,25)
+out=out1;
+m = nn.ConvTranspose3d(32,16,kernel_size=(3,5,7),dilation=(1,2,2),output_padding=(0,0,0))
+out = m(out)
+print(out.shape)
+
+# layer 4
+m = nn.ConvTranspose3d(16,16,kernel_size=(3,5,7),dilation=(1,2,2),output_padding=(0,0,0))
+out = m(out)
+print(out.shape)
+
+# layer 3
+m = nn.ConvTranspose3d(16,8,kernel_size=(3,3,3),dilation=(1,1,2),output_padding=(0,0,0))
+out = m(out)
+print(out.shape)
+
+# layer 2
+m = nn.ConvTranspose3d(8,8,kernel_size=(3,3,3),dilation=(1,1,2),output_padding=(0,0,0))
+out = m(out)
+print(out.shape)
+
+# layer 1
+m = nn.ConvTranspose3d(8,1,kernel_size=(3,3,3),dilation=(1,1,2),output_padding=(0,0,0))
+out = m(out)
+print(out.shape)
 
 
 
