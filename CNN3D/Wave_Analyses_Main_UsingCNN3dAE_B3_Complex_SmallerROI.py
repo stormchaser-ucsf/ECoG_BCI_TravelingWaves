@@ -171,7 +171,7 @@ for iterr in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10
-    nn_filename = 'i3DAE_B3_Complex_New.pth' 
+    nn_filename = 'i3DAE_B3_Complex_New_ROI.pth' 
     
     # model_goat = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
     # #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    

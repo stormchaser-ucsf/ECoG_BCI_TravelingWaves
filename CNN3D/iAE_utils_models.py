@@ -1530,7 +1530,8 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
           print(goat_loss,goat_acc)
           break
     
-    model_goat = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
+    #model_goat = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
+    model_goat = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size)
     #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
     model_goat.load_state_dict(torch.load(filename))
     model_goat=model_goat.to(device)
