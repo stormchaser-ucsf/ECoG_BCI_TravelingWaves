@@ -1214,6 +1214,122 @@ class Autoencoder3D_Complex(nn.Module):
 
 
 
+########### SMALLER ROI COMPLEX CNN AE #####
+
+#in_channels, out_channels, ksize, strd, pad,dil
+class Encoder3D_Complex_ROI(nn.Module):
+    def __init__(self):
+        super(Encoder3D_Complex_ROI, self).__init__()
+        self.conv1 = ComplexConv3D(1, 8, (2,2,3), (1, 1, 1),0,(1,1,2)) 
+        self.conv2 = ComplexConv3D(8, 8, (2,2,3), (1, 1, 1),0,(1,1,2)) 
+        self.conv3 = ComplexConv3D(8, 12, (2,2,3), (1, 1, 1),0,(1,1,2))  
+        self.conv4 = ComplexConv3D(12, 12, (2,2,3), (1, 1, 1),0,(1,1,2))  
+        self.conv5 = ComplexConv3D(12, 16, (2,2,4), (1, 1, 1),0,(1,1,3))  
+        self.conv6 = ComplexConv3D(16, 32, (2,2,4), (1, 1, 1),0,(1,1,3))  
+        self.elu = nn.ELU()
+        
+
+    def forward(self, a,b):        
+        a,b = self.conv1(a,b)        
+        a,b = self.elu(a),self.elu(b)        
+        
+        a,b = self.conv2(a,b)        
+        a,b = self.elu(a),self.elu(b)        
+        
+        a,b = self.conv3(a,b)        
+        a,b = self.elu(a),self.elu(b)        
+        
+        a,b = self.conv4(a,b)        
+        a,b = self.elu(a),self.elu(b)        
+        
+        a,b = self.conv5(a,b)        
+        a,b = self.elu(a),self.elu(b)        
+        
+        a,b = self.conv6(a,b)        
+        a,b = self.elu(a),self.elu(b)       
+        
+        return a,b
+
+
+#in_channels, out_channels, ksize, strd, pad,dil
+class Decoder3D_Complex_ROI(nn.Module):
+    def __init__(self):
+        super(Decoder3D_Complex_ROI, self).__init__()
+        
+        self.deconv1 = ComplexConvTranspose3D(32, 16, (2,2,4), (1, 1, 1),(0,0,0),(1,1,3))
+        self.deconv2 = ComplexConvTranspose3D(16, 12, (2,2,4), (1, 1, 1),(0,0,0),(1,1,3))
+        self.deconv3 = ComplexConvTranspose3D(12, 12, (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
+        self.deconv4 = ComplexConvTranspose3D(12, 8, (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
+        self.deconv5 = ComplexConvTranspose3D(8, 8, (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
+        self.deconv6 = ComplexConvTranspose3D(8, 1, (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
+        self.elu = nn.ELU()        
+        
+    def forward(self, a,b):        
+         a,b = self.deconv1(a,b)        
+         a,b = self.elu(a),self.elu(b)        
+         
+         a,b = self.deconv2(a,b)        
+         a,b = self.elu(a),self.elu(b)        
+         
+         a,b = self.deconv3(a,b)        
+         a,b = self.elu(a),self.elu(b)        
+         
+         a,b = self.deconv4(a,b)        
+         a,b = self.elu(a),self.elu(b)        
+         
+         a,b = self.deconv5(a,b)                 
+         a,b = self.elu(a),self.elu(b)      
+         
+         a,b = self.deconv6(a,b)            
+                
+         
+         #x = self.elu(x)        
+         #x = self.deconv4(x)
+         #x = torch.tanh(x) # squish between -1 and 1
+         
+         return a,b
+
+
+class Autoencoder3D_Complex_ROI(nn.Module):
+    def __init__(self, num_classes,input_size,lstm_size):
+    #def __init__(self, ksize):
+        super(Autoencoder3D_Complex_ROI, self).__init__()
+        self.encoder = Encoder3D_Complex_ROI()
+        self.decoder = Decoder3D_Complex_ROI()
+        self.classifier = rnn_lstm_complex(num_classes,input_size,lstm_size)
+        #self.classifier = nn.Linear(num_nodes, num_classes)  
+        
+        
+    def forward(self,a,b):
+        latent_a,latent_b = self.encoder(a,b)
+        recon_a,recon_b = self.decoder(latent_a,latent_b)
+        logits = self.classifier(latent_a,latent_b)
+        #return recon,logits  
+        return recon_a,recon_b,logits
+
+
+
+
+############## END ###########
+
+
+def compute_RF(dilation, stride,kernel_size):
+    rf=[]
+    rf.append(1)
+    kernel_size = [x -1 for x in kernel_size]
+    #kernel_size = np.array(kernel_size)-np.ones((1,5))
+    #kernel_size = kernel_size[0]
+    for i in np.arange(len(dilation)):
+        eff_k = np.dot(dilation[i] , kernel_size[i] )
+        if i==0:
+            eff_s=1
+        else:
+            eff_s = np.prod(stride[:i])
+        tmp_r = eff_k*eff_s 
+        rf.append(tmp_r)
+    
+    return rf
+
 # class Encoder3D_Complex(nn.Module):
 #     def __init__(self,ksize):
 #         super(Encoder3D_Complex, self).__init__()
@@ -1455,6 +1571,160 @@ def test_model_complex(model,Xtest):
     
     return recon_r,recon_i,decodes 
         
+#%% PLOTTING FOR COMPLEX KERNELS
+
+
+def plot_phasor_kernels_side_by_side(weight_real, weight_imag, out_ch=0, in_ch=0):
+    """
+    Plots phasor arrows for each time slice side by side from a complex-valued 3D convolution kernel.
+    """
+
+    # Extract complex weights for selected channel pair
+    # Shape: (T, H, W)
+    kernel_real = weight_real[out_ch, in_ch]
+    kernel_imag = weight_imag[out_ch, in_ch]
+    kernel_complex = kernel_real + 1j * kernel_imag
+
+    H, W,T = kernel_complex.shape
+
+    # Create figure with T subplots (1 row, T columns)
+    fig, axes = plt.subplots(1, T, figsize=(4*T, 4))
+
+    if T == 1:
+        axes = [axes]  # ensure iterable
+
+    for t in range(T):
+        ax = axes[t]
+        slice_complex = kernel_complex[:,:,t].to('cpu').detach().numpy()
+
+        # Compute magnitude and phase
+        magnitude = np.abs(slice_complex)
+        phase = np.angle(slice_complex)
+
+        # Grid for quiver
+        Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+        U = magnitude * np.cos(phase)
+        V = magnitude * np.sin(phase)
+
+        ax.quiver(X, Y, U, V, magnitude, color='black',
+                  angles='xy', scale_units='xy', scale=1)
+        ax.set_title(f"Time slice {t}")
+        #ax.set_xlim(-0.5, W - 0.5)
+        #ax.set_ylim(H - 0.5, -0.5)
+        ax.set_aspect('equal')
+        #ax.axis('off')
+
+    plt.tight_layout()
+    plt.show()
+
+
+
+def plot_phasor_kernels_side_by_side_v2(weight_real, weight_imag, out_ch=0, in_ch=0):
+    """
+    Plots phasor arrows for each time slice side by side from a complex-valued 3D convolution kernel.
+    """
+
+    # Extract complex weights for selected channel pair
+    # Shape: (T, H, W)
+    kernel_real = weight_real[out_ch, in_ch]
+    kernel_imag = weight_imag[out_ch, in_ch]
+    kernel_complex = kernel_real + 1j * kernel_imag
+
+    H, W,T = kernel_complex.shape
+
+    # Create figure with T subplots (1 row, T columns)
+    fig, axes = plt.subplots(1, T)
+
+    if T == 1:
+        axes = [axes]  # ensure iterable
+
+    for t in range(T):
+        ax = axes[t]
+        slice_complex = kernel_complex[:,:,t].to('cpu').detach().numpy()
+
+        # Compute magnitude and phase
+        magnitude = np.abs(slice_complex)
+        phase = np.angle(slice_complex)
+
+        # Grid for quiver
+        Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+        U = magnitude * np.cos(phase)
+        V = magnitude * np.sin(phase)
+        
+        ax.quiver(X, Y, U, V, angles='xy')
+
+        # ax.quiver(X, Y, U, V, magnitude, color='black',
+        #           angles='xy', scale_units='xy', scale=1)
+        ax.set_title(f"Time slice {t}",fontsize=4)
+        ax.set_xlim(-0.5, W - 0.5)
+        ax.set_ylim(H - 0.5, -0.5)
+        ax.set_aspect('equal')
+        #ax.axis('off')
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        
+        for spine in ax.spines.values():
+            spine.set_linewidth(0.25)  # Increase thickness
+
+    plt.tight_layout()
+    plt.show()
+
+
+
+
+def plot_phasor_kernels_side_by_side_PCA(weights):
+    """
+    Plots phasor arrows for each time slice side by side from a complex-valued 3D convolution kernel.
+    """
+
+    # Extract complex weights for selected channel pair
+        
+    kernel_complex = weights
+
+    H, W,T = kernel_complex.shape
+
+    # Create figure with T subplots (1 row, T columns)
+    fig, axes = plt.subplots(1, T)
+
+    if T == 1:
+        axes = [axes]  # ensure iterable
+
+    for t in range(T):
+        ax = axes[t]
+        slice_complex = kernel_complex[:,:,t]
+
+        # Compute magnitude and phase
+        magnitude = np.abs(slice_complex)
+        phase = np.angle(slice_complex)
+
+        # Grid for quiver
+        Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+        U = magnitude * np.cos(phase)
+        V = magnitude * np.sin(phase)
+        
+        ax.quiver(X, Y, U, V, angles='xy')
+
+        # ax.quiver(X, Y, U, V, magnitude, color='black',
+        #           angles='xy', scale_units='xy', scale=1)
+        ax.set_title(f"Time slice {t}",fontsize=4)
+        ax.set_xlim(-0.5, W - 0.5)
+        ax.set_ylim(H - 0.5, -0.5)
+        ax.set_aspect('equal')
+        #ax.axis('off')
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        
+        for spine in ax.spines.values():
+            spine.set_linewidth(0.25)  # Increase thickness
+
+    plt.tight_layout()
+    plt.show()
+
+
 
 #%%
 #### model training and validation sections 

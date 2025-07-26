@@ -1,5 +1,15 @@
 function [xdata,ydata,idx,trial_idx] = ...
-    get_spatiotemp_windows_roi(files,d2,ecog_grid,xdata,ydata,rows,cols)
+    get_spatiotemp_windows_roi(files,d2,ecog_grid,xdata,ydata,rows,cols,hilbert_flag)
+
+
+if nargin<8
+    hilbert_flag=false;
+    disp('Extracting only real data')
+else
+    hilbert_flag=true;
+    disp('Extracting complex data')
+end
+
 
 %load the data and extract the features in 8 to 10Hz range, 200ms
 %snippets, 201 ms prediction, in 50ms increments
@@ -40,7 +50,15 @@ for ii=1:length(files)
         % resample and filter
         data = resample(data,200,1000);
         df = filtfilt(d2,data);
+
+        % get the hilbert transform of the signal
+        if hilbert_flag
+            df= hilbert(df);
+        end
+        
         df = df(l11+1:end,:);
+
+        
 
         % keep track of trial segments
         trial_seg=0;
@@ -63,7 +81,11 @@ for ii=1:length(files)
 
                     % Artifact correction
                     idx1=find(abs(aa)>5);
-                    aa(idx1) = randn(size(idx1))*1e-5;
+                    if hilbert_flag
+                         aa(idx1) = (randn(size(idx1)) + 1i*randn(size(idx1)))*1e-5;
+                    else
+                        aa(idx1) = randn(size(idx1))*1e-5;
+                    end
 
                     aa = aa(ecog_grid(rows,cols));
                     a(j,:,:) = aa;
@@ -72,17 +94,21 @@ for ii=1:length(files)
                 for j=1:size(tmpy,1)
                     bb = tmpy(j,:);
                     
-                    % Artifact correction
+                      % Artifact correction
                     idx1=find(abs(bb)>5);
-                    bb(idx1) = randn(size(idx1))*1e-5;
+                    if hilbert_flag
+                        bb(idx1) = (randn(size(idx1)) + 1i*randn(size(idx1)))*1e-5;
+                    else
+                        bb(idx1) = randn(size(idx1))*1e-5;
+                    end
 
                     bb = bb(ecog_grid(rows,cols));
                     b(j,:,:) = bb;
                 end
 
                 
-                xdata = cat(1,(xdata),(a));
-                ydata = cat(1,(ydata),(b));
+                xdata = cat(1,(xdata),single(a));
+                ydata = cat(1,(ydata),single(b));
                 idx=idx+1;
                 trial_seg = trial_seg+1;
                 if max(abs(a(:)))>5

@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Sat Jul 26 17:33:53 2025
+
+@author: nikic
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Mon Jun 16 11:53:15 2025
 
 @author: nikic
@@ -55,7 +62,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 # load the data 
 if os.name=='nt':
-    filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_Day1to3.mat'    
+    filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_M1_Complex_ArtifactCorr_SinglePrec.mat'    
 else:
     filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex.mat'
     
@@ -142,8 +149,8 @@ for iterr in np.arange(iterations):
     
     # get the CNN architecture model
     num_classes=1    
-    input_size=16*2
-    lstm_size=8
+    input_size=32*2
+    lstm_size=16
     ksize=2;
     
     from iAE_utils_models import *
@@ -151,7 +158,7 @@ for iterr in np.arange(iterations):
     if 'model' in locals():
         del model 
    
-    model = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size).to(device)
+    model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
     
     #get number of parameters
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
