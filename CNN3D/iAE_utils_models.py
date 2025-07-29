@@ -1726,6 +1726,27 @@ def plot_phasor_kernels_side_by_side_PCA(weights):
     plt.show()
 
 
+def plot_phasor_frame(x_real, x_imag, t, ax):
+    H, W = x_real.shape[:2]
+    
+    # Grid positions
+    X, Y = np.meshgrid(np.arange(W), np.arange(H))
+    
+    # Get vectors
+    U = x_real[:, :, t]
+    V = x_imag[:, :, t]
+    
+    # Plot arrows
+    ax.clear()
+    ax.quiver(X, Y, U, V, angles='xy')
+    ax.set_title(f'Phasor Field at Time {t}')
+    ax.set_aspect('equal')
+    ax.set_xlim(-0.5, W - 0.5)
+    ax.set_ylim(-0.5, H - 0.5)
+    #ax.invert_yaxis()
+
+
+
 
 #%%
 #### model training and validation sections 

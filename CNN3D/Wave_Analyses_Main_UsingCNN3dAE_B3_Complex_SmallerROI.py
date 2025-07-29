@@ -210,7 +210,7 @@ for iterr in np.arange(iterations):
         Ytest_i_cl = tmp_ydata_i[idx_cl,:]        
         r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / Ytest_r_cl.shape[0]
         i_cl_error = (np.sum((recon_i_cl - Ytest_i_cl)**2)) / Ytest_i_cl.shape[0]
-        cl_mse_days[iter,i] = r_cl_error + i_cl_error
+        cl_mse_days[iterr,i] = r_cl_error + i_cl_error
         #print(cl_error)
         #cl_mse.append(cl_error)
         
@@ -463,15 +463,17 @@ plot_phasor_kernels_side_by_side_PCA(Z)
 #%% what input maximally activates a given layer
 
 
-model=model.to(device)
+#model=model.to(device)
+
+
 model=model.eval()
 conv = model.encoder.conv1.to(device)
 conv=conv.eval()
 # Choose the target filter index
-target_filter = 7
+target_filter = 0
 
 # Initialize complex input with gradients
-input_shape = (1, 1, 11, 23, 40)  # (batch, channels, H, W, T)
+input_shape = (1, 1, 7, 7, 40)  # (batch, channels, H, W, T)
 x_real = torch.randn(input_shape, requires_grad=True, device=device)
 x_imag = torch.randn(input_shape, requires_grad=True,device=device)
 
@@ -548,12 +550,36 @@ model = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size).to(device)
 
 nn_filename = 'i3DAE_B3_Complex_New.pth' 
 model.load_state_dict(torch.load(nn_filename))
+model_bkup=model
 
+#%% (MAIN) HOOK FUNCTIONS TO OPTIMIZE INPUT FOR CHANNEL/LAYER ACTIVATION
+
+# get the CNN architecture model
+num_classes=1    
+input_size=32*2
+lstm_size=16
+
+from iAE_utils_models import *
+
+if 'model' in locals():
+    del model 
+
+model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
+
+
+nn_filename = 'i3DAE_B3_Complex_New_ROI.pth' 
+model.load_state_dict(torch.load(nn_filename))
+
+model_bkup = model
+
+#%% CONTINUATION FROM ABOVE
+
+model=model_bkup
 model=model.eval()
 # print(model.encoder.conv1._forward_hooks)
 
 # Choose the target filter index
-target_filter = 14
+target_filter = 2
 
 # Container to hold the activation
 activation = {}
@@ -564,10 +590,10 @@ def hook_fn(module, input, output):
     activation["imag"] = out_i
 
 # Register hook to conv4 layer
-hook_handle = model.encoder.conv5.register_forward_hook(hook_fn)
+hook_handle = model.encoder.conv3.register_forward_hook(hook_fn)
 
 # Initialize complex input with gradients
-input_shape = (1, 1, 11, 23, 40)  # (batch, channels, H, W, T)
+input_shape = (1, 1, 7, 7, 40)  # (batch, channels, H, W, T)
 x_real = torch.randn(input_shape, requires_grad=True, device=device)
 x_imag = torch.randn(input_shape, requires_grad=True,device=device)
 
@@ -575,7 +601,7 @@ optimizer = optim.AdamW([x_real, x_imag], lr=1e-3)
 
 # Optimization loop
 losses=[];
-for step in range(3000):
+for step in range(3500):
     
     optimizer.zero_grad()
     #out_r, out_i = conv(x_real, x_imag)
@@ -616,7 +642,9 @@ magnitude = np.abs(opt_complex)
 phase = np.angle(opt_complex)
 
 # plot movie
-x = np.real(opt_complex)
+x = np.imag(opt_complex)
+l = np.arange(1,40,2)
+x = x[:,:,l]
 x = np.moveaxis(x, -1, 0)  # Shape: (40, 11, 23)
 
 # Normalize for visualization
@@ -631,15 +659,237 @@ ax.axis('off')
 
 def update(frame):
     im.set_array(x[frame])
-    title.set_text(f"Time: {frame}/40")
+    title.set_text(f"Time: {frame}/20")
     return [im]
 
-ani = animation.FuncAnimation(fig, update, frames=x.shape[0], interval=100, blit=True)
+ani = animation.FuncAnimation(fig, update, frames=x.shape[0], interval=100, blit=False)
 
 # Show the animation
 plt.show()
 # save the animation
-ani.save("optimized_input_ch14__Layer5_hook.gif", writer="pillow", fps=6)
+ani.save("RealInput_Act_Layer4.gif", writer="pillow", fps=6)
+
+#%% PLOT AS PHASORS
+
+xreal = opt_real;
+ximag = opt_imag;
+fig, ax = plt.subplots(figsize=(6, 6))
+l = np.arange(1,40,2)
+xreal=xreal[:,:,l]
+ximag=ximag[:,:,l]
+
+def update(t):
+    plot_phasor_frame(xreal, ximag, t, ax)
+    return []
+
+ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
+
+plt.show()
+
+# save the animation
+ani.save("RealInput_Act_Layer4_Phasor.gif", writer="pillow", fps=4)
+
+
+#%% EXAMPLE PLOTTING
+
+# Set first timepoint phase as reference
+#reference_phase = phase[:, :, 0:1]
+#opt_complex = magnitude * np.exp(1j * (phase - reference_phase))
+
+
+angles=np.angle(opt_complex)
+#x=np.real(opt_complex)
+#y=np.imag(opt_complex)
+x=np.cos(angles)
+y=np.sin(angles)
+
+angles = np.angle(opt_complex)
+x = angles[:,:,29] -  angles[:,:,27]
+xr = np.cos(x)
+xi = np.sin(x)
+plt.figure()
+plt.imshow(xr)
+plt.figure()
+plt.imshow(xi)
+plt.figure()
+quiver(X,Y,xr,xi)
+plt.show()
+
+
+
+
+
+x=x[:,:,4]
+y=y[:,:,4]
+
+H,W = x.shape
+
+X, Y = np.meshgrid(np.arange(W), np.arange(H))
+plt.figure()
+quiver(Y,X,x,y,angles='xy')
+plt.show()
+plt.figure()
+plt.imshow(x)
+plt.figure()
+plt.imshow(y)
+
+xr = np.cos(phase[:,:,12])
+xi = np.sin(phase[:,:,13])
+plt.figure()
+quiver(X,Y,xr,xi)
+plt.show()
+
+plt.figure()
+plt.imshow(xr)
+plt.figure()
+plt.imshow(xi)
+angles=np.arctan(xi/xr) * 180/pi
+plt.figure()
+plt.imshow(angles)
+
+
+#%% EXAMINIGN WHICH LAYER GETS ACTIVATED MOST WITH THE INPUT 
+
+
+# get the CNN architecture model
+num_classes=1    
+input_size=32*2
+lstm_size=16
+
+from iAE_utils_models import *
+
+if 'model' in locals():
+    del model 
+
+model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
+
+
+nn_filename = 'i3DAE_B3_Complex_New_ROI.pth' 
+model.load_state_dict(torch.load(nn_filename))
+
+
+#model=model_bkup
+#model=model.eval()
+# print(model.encoder.conv1._forward_hooks)
+
+
+# Container to hold the activation
+activation = {}
+# ---- Hook function ----
+def hook_fn(module, input, output):
+    out_r, out_i = output
+    activation["real"] = out_r
+    activation["imag"] = out_i
+
+# Register hook to conv4 layer
+hook_handle = model.encoder.conv4.register_forward_hook(hook_fn) # change to different conv layers
+
+
+# get the data
+days1 = np.where(labels_test_days==1)[0]
+X_day = Xtest[days1,:]
+Y_day = Ytest[days1,:]
+labels_day = labels_test[days1]
+
+ol_idx = np.where(labels_day == 0)[0]
+cl_idx = np.where(labels_day == 1)[0]
+
+ol_xtest = X_day[ol_idx,:]
+ol_ytest = Y_day[ol_idx,:]
+ol_xtest_real = np.real(ol_xtest)
+ol_xtest_imag = np.imag(ol_xtest)
+ol_ytest_real = np.real(ol_ytest)
+ol_ytest_imag = np.imag(ol_ytest)
+
+cl_xtest = X_day[cl_idx,:]
+cl_ytest = Y_day[cl_idx,:]
+cl_xtest_real = np.real(cl_xtest)
+cl_xtest_imag = np.imag(cl_xtest)
+cl_ytest_real = np.real(cl_ytest)
+cl_ytest_imag = np.imag(cl_ytest)
+
+l=np.arange(0,512)
+tmpx_r = torch.from_numpy(ol_xtest_real[l,:]).to(device).float()
+tmpx_i = torch.from_numpy(ol_xtest_imag[l,:]).to(device).float()
+tmpy_r = torch.from_numpy(ol_ytest_real[l,:]).to(device).float()
+tmpy_i = torch.from_numpy(ol_ytest_imag[l,:]).to(device).float()
+
+# tmpx_r = torch.from_numpy(cl_xtest_real[l,:]).to(device).float()
+# tmpx_i = torch.from_numpy(cl_xtest_imag[l,:]).to(device).float()
+# tmpy_r = torch.from_numpy(cl_ytest_real[l,:]).to(device).float()
+# tmpy_i = torch.from_numpy(cl_ytest_imag[l,:]).to(device).float()
+
+
+out_real,out_imag,logits = model(tmpx_r, tmpx_i)
+
+# # tmp plotting
+# tmpx = torch.squeeze(out_real[10,:]).to('cpu').detach().numpy()
+# tmpy = torch.squeeze(tmpy_r[10,:]).to('cpu').detach().numpy()
+# fig,ax = plt.subplots(1,2)
+# ax[0].imshow(tmpx[:,:,0])
+# ax[1].imshow(tmpy[:,:,0])
+# plt.tight_layout()
+# plt.show()
+
+# Access activation for the target filter
+out_r = activation["real"]      # shape: [N, C, D, H, W]
+out_i = activation["imag"]
+magnitude = torch.sqrt(out_r**2 + out_i**2)       # shape: [N, C, D, H, W]
+act_strength = magnitude[:,target_filter,:].mean()
+disp(act_strength)
+hook_handle.remove()
+
+#x=torch.flatten(magnitude,1,4)
+#x=torch.mean(x,axis=1)
+
+# plot a movie of the activation 
+target_ch=3
+trial=0
+x = out_r.to('cpu').detach().numpy()
+y = out_i.to('cpu').detach().numpy()
+x = (x[trial,target_ch,:])
+y = (y[trial,target_ch,:])
+
+x1 = np.moveaxis(y, -1, 0)  # Shape: (40, 11, 23)
+
+# Normalize for visualization
+x1 = (x1 - x1.min()) / (x1.max() - x1.min())
+
+# Plotting
+fig, ax = plt.subplots()
+im = ax.imshow(x1[0], cmap='viridis', animated=True)
+title = ax.set_title("Time: 0", fontsize=12)
+#ax.set_title("Optimized Input Over Time")
+ax.axis('off')
+
+def update(frame):
+    im.set_array(x1[frame])
+    title.set_text(f"Time: {frame}/{x1.shape[0]}")
+    return [im]
+
+ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, blit=False)
+
+# Show the animation
+plt.show()
+# save the animation
+ani.save("RealInput_Act_Layer4_Ch3.gif", writer="pillow", fps=6)
+
+# phasor animation
+xreal = x;
+ximag = y;
+fig, ax = plt.subplots(figsize=(6, 6))
+
+def update(t):
+    plot_phasor_frame(xreal, ximag, t, ax)
+    return []
+
+ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
+
+plt.show()
+
+# save the animation
+ani.save("RealInput_Act_Layer4_Ch3_Phasor.gif", writer="pillow", fps=4)
+
 
 
 
