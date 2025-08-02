@@ -75,25 +75,25 @@ tmp_imag = torch.from_numpy(tmp_imag).float()
 
 print(tmp_real.shape)
 
-model = nn.Conv3d(1, 8, kernel_size=(3,3,3),dilation=(1,1,2))
+model = nn.Conv3d(1, 8, kernel_size=(3,3,3),dilation=(2,1,1))
 model=model.to(device)
 tmp_real=tmp_real.to(device)
 out=model(tmp_real)
 print(out.shape)
 
-model = nn.Conv3d(8, 8, kernel_size=(3,3,3),dilation=(1,1,2))
+model = nn.Conv3d(8, 8, kernel_size=(3,3,3),dilation=(2,1,1))
 out=model(out)
 print(out.shape)
 
-model = nn.Conv3d(8, 8, kernel_size=(3,3,3),dilation=(1,1,2))
+model = nn.Conv3d(8, 8, kernel_size=(3,3,3),dilation=(2,1,1))
 out=model(out)
 print(out.shape)
 
-model = nn.Conv3d(8, 16, kernel_size=(3,5,7),dilation=(1,2,2))
+model = nn.Conv3d(8, 16, kernel_size=(3,5,7),dilation=(2,1,1))
 out=model(out)
 print(out.shape)
 
-model = nn.Conv3d(16, 32, kernel_size=(3,5,7),dilation=(1,2,2))
+model = nn.Conv3d(16, 32, kernel_size=(3,5,7),dilation=(2,2,2))
 out=model(out)
 print(out.shape)
 out1=out;
@@ -208,50 +208,53 @@ np.cumsum(r)
 
 
 # more testing stuff 
-tmp=Xtrain[:32,:]
+tmp=Xtrain[:64,:]
 total_params=0
 tmp_real,tmp_imag = tmp.real,tmp.imag
+
+#tmp_real = rnd.randn(64,1,40,11,23)
+#tmp_real = rnd.randn(64,1,40,11,23)
 tmp_real = torch.from_numpy(tmp_real).float()
 tmp_imag = torch.from_numpy(tmp_imag).float()
 
 
 print(tmp_real.shape)
 
-model = nn.Conv3d(1, 8, kernel_size=(2,2,3),dilation=(1,1,2))
+model = nn.Conv3d(1, 8, kernel_size=(3,2,2),dilation=(2,1,1))
 out=model(tmp_real)
 print(out.shape)
-trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-total_params = total_params+trainable_params
+# trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+# total_params = total_params+trainable_params
 
-model = nn.Conv3d(8, 8, kernel_size=(2,2,3),dilation=(1,1,2))
+model = nn.Conv3d(8, 8, kernel_size=(3,2,2),dilation=(2,1,1))
 out=model(out)
 print(out.shape)
-trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-total_params = total_params+trainable_params
+# trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+# total_params = total_params+trainable_params
 
-model = nn.Conv3d(8, 12, kernel_size=(2,2,3),dilation=(1,1,2))
+model = nn.Conv3d(8, 12, kernel_size=(3,2,2),dilation=(2,1,1))
 out=model(out)
 print(out.shape)
-trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-total_params = total_params+trainable_params
+# trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+# total_params = total_params+trainable_params
 
-model = nn.Conv3d(12, 12, kernel_size=(2,2,3),dilation=(1,1,2),stride=(1,1,1 ))
+model = nn.Conv3d(12, 12, kernel_size=(3,2,2),dilation=(2,1,1),stride=(1,1,1 ))
 out=model(out)
 print(out.shape)
-trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-total_params = total_params+trainable_params
+# trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+# total_params = total_params+trainable_params
 
-model = nn.Conv3d(12, 16, kernel_size=(2,2,4),dilation=(1,1,3),stride=(1,1,1))
+model = nn.Conv3d(12, 16, kernel_size=(4,2,2),dilation=(3,1,1),stride=(1,1,1))
 out=model(out)
 print(out.shape)
-trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-total_params = total_params+trainable_params
+# trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+# total_params = total_params+trainable_params
 
-model = nn.Conv3d(16, 32, kernel_size=(2,2,4),dilation=(1,1,3),stride=(1,1,1))
+model = nn.Conv3d(16, 32, kernel_size=(4,2,2),dilation=(3,1,1),stride=(1,1,1))
 out=model(out)
 print(out.shape)
-trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-total_params = total_params+trainable_params
+# trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+# total_params = total_params+trainable_params
 
 print(total_params)
 
@@ -266,16 +269,17 @@ print(total_params)
 out1=out;
 
 
-# #pass to lstm for classification
-# tmp = torch.flatten(out,start_dim=1,end_dim=3)
-# x=tmp
-# x = torch.permute(x,(0,2,1))
-# rnn1 = nn.LSTM(input_size=32,hidden_size=8,batch_first=True,bidirectional=False)
-# output,(hn,cn) = rnn1(x)
-# #output1,(hn1,cn1) = rnn2(output)
-# hn=torch.squeeze(hn)
-# linear0 = nn.Linear(8,2)
-# out=linear0(hn)
+#pass to lstm for classification
+tmp = torch.squeeze(out)
+#tmp = torch.flatten(out,start_dim=1,end_dim=3)
+x=tmp
+x = torch.permute(x,(0,2,1))
+rnn1 = nn.LSTM(input_size=32,hidden_size=8,batch_first=True,bidirectional=False)
+output,(hn,cn) = rnn1(x)
+#output1,(hn1,cn1) = rnn2(output)
+hn=torch.squeeze(hn)
+linear0 = nn.Linear(8,2)
+out=linear0(hn)
 
 
 # build the decoder layers to get back the original data 
@@ -291,7 +295,7 @@ out1=out;
 # layer 6
 #out = out.view(out.size(0), 6,7, 19,25)
 out=out1;
-m = nn.ConvTranspose3d(32,16,kernel_size=(2,2,4),dilation=(1,1,3),stride=(1,1,1))
+m = nn.ConvTranspose3d(32,16,kernel_size=(4,2,2),dilation=(3,1,1),stride=(1,1,1))
 out = m(out)
 print(out.shape)
 trainable_params = sum(p.numel() for p in m.parameters() if p.requires_grad)
@@ -299,7 +303,7 @@ total_params = total_params+trainable_params
 
 
 # layer 5
-m = nn.ConvTranspose3d(16,12,kernel_size=(2,2,4),dilation=(1,1,3),stride=(1,1,1),
+m = nn.ConvTranspose3d(16,12,kernel_size=(4,2,2),dilation=(3,1,1),stride=(1,1,1),
                        output_padding=(0,0,0))
 out = m(out)
 print(out.shape)
@@ -308,7 +312,7 @@ total_params = total_params+trainable_params
 
 
 # layer 4
-m = nn.ConvTranspose3d(12,12,kernel_size=(2,2,3),dilation=(1,1,2))
+m = nn.ConvTranspose3d(12,12,kernel_size=(3,2,2),dilation=(2,1,1))
 out = m(out)
 print(out.shape)
 trainable_params = sum(p.numel() for p in m.parameters() if p.requires_grad)
@@ -316,7 +320,7 @@ total_params = total_params+trainable_params
 
 
 # layer 3
-m = nn.ConvTranspose3d(12,8,kernel_size=(2,2,3),dilation=(1,1,2))
+m = nn.ConvTranspose3d(12,8,kernel_size=(3,2,2),dilation=(2,1,1))
 out = m(out)
 print(out.shape)
 trainable_params = sum(p.numel() for p in m.parameters() if p.requires_grad)
@@ -324,14 +328,14 @@ total_params = total_params+trainable_params
 
 
 # layer 2
-m = nn.ConvTranspose3d(8,8,kernel_size=(2,2,3),dilation=(1,1,2))
+m = nn.ConvTranspose3d(8,8,kernel_size=(3,2,2),dilation=(2,1,1))
 out = m(out)
 print(out.shape)
 trainable_params = sum(p.numel() for p in m.parameters() if p.requires_grad)
 total_params = total_params+trainable_params
 
 # layer 1
-m = nn.ConvTranspose3d(8,1,kernel_size=(2,2,3),dilation=(1,1,2))
+m = nn.ConvTranspose3d(8,1,kernel_size=(3,2,2),dilation=(2,1,1))
 out = m(out)
 print(out.shape)
 trainable_params = sum(p.numel() for p in m.parameters() if p.requires_grad)
@@ -355,6 +359,169 @@ input_size = 32*2
 lstm_size=16
 model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size)
 recon_a,recon_b,logits = model(tmpr,tmpi)
+
+# with time first
+from iAE_utils_models import *
+tmp=Xtrain[:32]
+tmpr = torch.from_numpy(np.real(tmp)).float()
+tmpi = torch.from_numpy(np.imag(tmp)).float()
+num_classes=1
+input_size = 32*2
+lstm_size=16
+model = Autoencoder3D_Complex_ROI_time(num_classes,input_size,lstm_size)
+recon_a,recon_b,logits = model(tmpr,tmpi)
+
+#%% DESIGNING A CNN MODEL WITH HIGHER CONVOLUTIONS LAYERS TO TREAT THE ENTIRE DATA
+#temp
+# h,w,t
+tmp=Xtrain # get this from the original xdata, just the first 128 samples
+total_params=0
+tmp_real,tmp_imag = np.real(tmp),np.imag(tmp)
+
+#tmp_real = rnd.randn(64,1,40,11,23)
+#tmp_real = rnd.randn(64,1,40,11,23)
+tmp_real = torch.from_numpy(tmp_real).float()
+tmp_imag = torch.from_numpy(tmp_imag).float()
+
+
+print(tmp_real.shape)
+
+model = nn.Conv3d(1, 8, kernel_size=(2,2,3),dilation=(1,1,2))
+out=model(tmp_real)
+print(out.shape)
+trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+
+model = nn.Conv3d(8,8, kernel_size=(2,2,3),dilation=(1,1,2))
+out=model(out)
+print(out.shape)
+trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+
+model = nn.Conv3d(8, 12, kernel_size=(2,2,3),dilation=(1,1,2))
+out=model(out)
+print(out.shape)
+trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+
+model = nn.Conv3d(12, 12, kernel_size=(2,3,3),dilation=(1,2,2),stride=(1,1,1 ))
+out=model(out)
+print(out.shape)
+trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+
+model = nn.Conv3d(12, 12, kernel_size=(2,3,3),dilation=(1,2,2),stride=(1,1,1))
+out=model(out)
+print(out.shape)
+trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+
+model = nn.Conv3d(12, 16, kernel_size=(2,3,3),dilation=(1,2,2),stride=(1,1,1))
+out=model(out)
+print(out.shape)
+trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+
+model = nn.Conv3d(16, 16, kernel_size=(2,3,4),dilation=(1,2,3),stride=(1,1,1))
+out=model(out)
+print(out.shape)
+trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+
+print(total_params*4)
+
+# model = nn.Conv3d(32, 32, kernel_size=(2,2,3),dilation=(1,1,2),stride=(1,1,2))
+# out=model(out)
+# print(out.shape)
+# trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+# total_params = total_params+trainable_params
+
+
+
+out1=out;
+
+
+#pass to lstm for classification
+rnn1 = nn.GRU(input_size=256*2,hidden_size=32,batch_first=True,bidirectional=False)
+# tmp = torch.flatten(out,start_dim=1,end_dim=3)
+# x=tmp
+# x = torch.permute(x,(0,2,1))
+# rnn1 = nn.GRU(input_size=256,hidden_size=32,batch_first=True,bidirectional=False)
+# output,(hn,cn) = rnn1(x)
+# #output1,(hn1,cn1) = rnn2(output)
+# hn=torch.squeeze(hn)
+trainable_params = sum(p.numel() for p in rnn1.parameters() if p.requires_grad)
+total_params = 4*total_params+trainable_params
+
+linear0 = nn.Linear(32,1)
+# out=linear0(hn)
+trainable_params = sum(p.numel() for p in linear0.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+print(total_params)
+
+# build the decoder layers to get back the original data 
+# bottleneck enc side
+# out = out.view(out.size(0), -1) 
+# m = nn.Linear(out.shape[1], 128)    
+# out = m(out)
+
+# # bottleneck dec side
+# m = nn.Linear(128,6*7*19*25)    
+# out = m(out)
+
+# layer 6
+#out = out.view(out.size(0), 6,7, 19,25)
+out=out1;
+m = nn.ConvTranspose3d(32,16,kernel_size=(4,2,2),dilation=(3,1,1),stride=(1,1,1))
+out = m(out)
+print(out.shape)
+trainable_params = sum(p.numel() for p in m.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+
+
+# layer 5
+m = nn.ConvTranspose3d(16,12,kernel_size=(4,2,2),dilation=(3,1,1),stride=(1,1,1),
+                       output_padding=(0,0,0))
+out = m(out)
+print(out.shape)
+trainable_params = sum(p.numel() for p in m.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+
+
+# layer 4
+m = nn.ConvTranspose3d(12,12,kernel_size=(3,2,2),dilation=(2,1,1))
+out = m(out)
+print(out.shape)
+trainable_params = sum(p.numel() for p in m.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+
+
+# layer 3
+m = nn.ConvTranspose3d(12,8,kernel_size=(3,2,2),dilation=(2,1,1))
+out = m(out)
+print(out.shape)
+trainable_params = sum(p.numel() for p in m.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+
+
+# layer 2
+m = nn.ConvTranspose3d(8,8,kernel_size=(3,2,2),dilation=(2,1,1))
+out = m(out)
+print(out.shape)
+trainable_params = sum(p.numel() for p in m.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+
+# layer 1
+m = nn.ConvTranspose3d(8,1,kernel_size=(3,2,2),dilation=(2,1,1))
+out = m(out)
+print(out.shape)
+trainable_params = sum(p.numel() for p in m.parameters() if p.requires_grad)
+total_params = total_params+trainable_params
+
+
+print(total_params)
+
+
 
 #%% tarjan alogrithm to find clusters
 

@@ -1831,6 +1831,8 @@ cols = 1:7;
 % 227	231	235	240	245	250	125	121	116	111];
 % rows = 6:11;
 % cols = 15:23;
+rows=1:7;
+cols=17:23;
 
 for i=1:length(session_data)
     folders_imag =  strcmp(session_data(i).folder_type,'I');
@@ -1923,7 +1925,7 @@ for i=1:length(session_data)
 
 end
 
-save alpha_dynamics_200Hz_AllDays_M1_Complex_ArtifactCorr_SinglePrec xdata ydata labels labels_batch days -v7.3
+save alpha_dynamics_200Hz_AllDays_STG_Complex_ArtifactCorr_SinglePrec xdata ydata labels labels_batch days -v7.3
 %save hg_LFO_dynamics_hG_200Hz_AllDays_DaysLabeled_ArtifactCorr xdata ydata labels labels_batch days -v7.3
 
 

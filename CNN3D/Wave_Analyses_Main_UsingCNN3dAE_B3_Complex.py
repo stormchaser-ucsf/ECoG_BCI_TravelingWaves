@@ -56,7 +56,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 # load the data 
 if os.name=='nt':
-    filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_Day1to3.mat'    
+    filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'    
 else:
     filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
     filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
@@ -83,7 +83,7 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 5
+iterations = 1
 days = np.unique(labels_days)
 
 decoding_acc=[]

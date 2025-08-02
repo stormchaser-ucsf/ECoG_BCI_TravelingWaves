@@ -122,3 +122,18 @@ for ii=1:length(files)
 end
 
 
+
+for i=1:length(xdata)
+    disp(i/length(xdata)*100)
+    tmp=xdata{i};
+    tmp = single(tmp);
+    xdata{i}=tmp;
+
+    tmp=ydata{i};
+    tmp = single(tmp);
+    ydata{i}=tmp;
+end
+
+clear i tmp
+save alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec -v7.3
+
