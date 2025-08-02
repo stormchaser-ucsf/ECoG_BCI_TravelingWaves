@@ -372,7 +372,7 @@ model = Autoencoder3D_Complex_ROI_time(num_classes,input_size,lstm_size)
 recon_a,recon_b,logits = model(tmpr,tmpi)
 
 #%% DESIGNING A CNN MODEL WITH HIGHER CONVOLUTIONS LAYERS TO TREAT THE ENTIRE DATA
-
+#temp
 # h,w,t
 tmp=Xtrain # get this from the original xdata, just the first 128 samples
 total_params=0
