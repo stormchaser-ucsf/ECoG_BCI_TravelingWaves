@@ -374,7 +374,7 @@ recon_a,recon_b,logits = model(tmpr,tmpi)
 #%% DESIGNING A CNN MODEL WITH HIGHER CONVOLUTIONS LAYERS TO TREAT THE ENTIRE DATA
 #temp
 # h,w,t
-tmp=Xtrain # get this from the original xdata, just the first 128 samples
+tmp=Xtrain[:128,:] # get this from the original xdata, just the first 128 samples
 total_params=0
 tmp_real,tmp_imag = np.real(tmp),np.imag(tmp)
 

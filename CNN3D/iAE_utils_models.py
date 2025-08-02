@@ -1212,7 +1212,122 @@ class Autoencoder3D_Complex(nn.Module):
         #return recon,logits  
         return recon_a,recon_b,logits
 
+############ DEEPER LAYERS ####
 
+
+class Encoder3D_Complex(nn.Module):
+    def __init__(self,ksize):
+        super(Encoder3D_Complex, self).__init__()
+        self.conv1 = ComplexConv3D(1, 8, (3,3,3), (1, 1, 1),0,(1,1,2)) 
+        self.conv2 = ComplexConv3D(8, 8, (3,3,3), (1, 1, 1),0,(1,1,2)) 
+        self.conv3 = ComplexConv3D(8, 8, (3,3,3), (1, 1, 1),0,(1,1,2))  
+        self.conv4 = ComplexConv3D(8, 16, (3,5,7), (1, 1, 1),0,(1,2,2))  
+        self.conv5 = ComplexConv3D(16, 16, (3,5,7), (1, 1, 1),0,(1,2,2))  
+        self.elu = nn.ELU()
+        
+
+    def forward(self, a,b):        
+        a,b = self.conv1(a,b)        
+        a,b = self.elu(a),self.elu(b)        
+        
+        a,b = self.conv2(a,b)        
+        a,b = self.elu(a),self.elu(b)        
+        
+        a,b = self.conv3(a,b)        
+        a,b = self.elu(a),self.elu(b)        
+        
+        a,b = self.conv4(a,b)        
+        a,b = self.elu(a),self.elu(b)        
+        
+        a,b = self.conv5(a,b)        
+        a,b = self.elu(a),self.elu(b)        
+        
+        return a,b
+
+
+class Decoder3D_Complex(nn.Module):
+    def __init__(self,ksize):
+        super(Decoder3D_Complex, self).__init__()
+        
+        self.deconv1 = ComplexConvTranspose3D(16, 16, (3,5,7), (1, 1, 1),(0,0,0),(1,2,2))
+        self.deconv2 = ComplexConvTranspose3D(16, 8, (3,5,7), (1, 1, 1),(0,0,0),(1,2,2))
+        self.deconv3 = ComplexConvTranspose3D(8, 8, (3,3,3), (1, 1, 1),(0,0,0),(1,1,2))
+        self.deconv4 = ComplexConvTranspose3D(8, 8, (3,3,3), (1, 1, 1),(0,0,0),(1,1,2))
+        self.deconv5 = ComplexConvTranspose3D(8, 1, (3,3,3), (1, 1, 1),(0,0,0),(1,1,2))
+        self.elu = nn.ELU()        
+        
+    def forward(self, a,b):        
+         a,b = self.deconv1(a,b)        
+         a,b = self.elu(a),self.elu(b)        
+         
+         a,b = self.deconv2(a,b)        
+         a,b = self.elu(a),self.elu(b)        
+         
+         a,b = self.deconv3(a,b)        
+         a,b = self.elu(a),self.elu(b)        
+         
+         a,b = self.deconv4(a,b)        
+         a,b = self.elu(a),self.elu(b)        
+         
+         a,b = self.deconv5(a,b)                 
+         
+                
+         
+         #x = self.elu(x)        
+         #x = self.deconv4(x)
+         #x = torch.tanh(x) # squish between -1 and 1
+         
+         return a,b
+
+
+class rnn_lstm_complex(nn.Module):
+    def __init__(self,num_classes,input_size,lstm_size):
+        super(rnn_lstm_complex,self).__init__()
+        self.num_classes = num_classes        
+        self.input_size = round(input_size)
+        self.lstm_size = round(lstm_size)
+        
+        self.rnn1=nn.LSTM(input_size=self.input_size,hidden_size=self.lstm_size,
+                          num_layers=1,batch_first=True,bidirectional=False)        
+        # self.rnn2=nn.LSTM(input_size=round(self.lstm_size*2),
+        #                   hidden_size=round(self.lstm_size/2),
+        #                   num_layers=1,batch_first=True,bidirectional=False)      
+        self.linear0 = nn.Linear(round(self.lstm_size),num_classes)
+                
+    
+    def forward(self,a,b):        
+        # convert to batch, seq, feature
+        x = torch.flatten(a,start_dim=1,end_dim=3)
+        x = torch.permute(x,(0,2,1))
+        y = torch.flatten(b,start_dim=1,end_dim=3)
+        y = torch.permute(y,(0,2,1))
+        z = torch.concat((x,y),dim=-1)
+        output1, (hn1,cn1) = self.rnn1(z) 
+        #output2, (hn2,cn2) = self.rnn2(output1) 
+        hn1 = torch.squeeze(hn1)        
+        out = self.linear0(hn1)        
+        return out
+
+class Autoencoder3D_Complex(nn.Module):
+    def __init__(self, ksize,num_classes,input_size,lstm_size):
+    #def __init__(self, ksize):
+        super(Autoencoder3D_Complex, self).__init__()
+        self.encoder = Encoder3D_Complex(ksize)
+        self.decoder = Decoder3D_Complex(ksize)
+        self.classifier = rnn_lstm_complex(num_classes,input_size,lstm_size)
+        #self.classifier = nn.Linear(num_nodes, num_classes)  
+        
+        
+    def forward(self,a,b):
+        latent_a,latent_b = self.encoder(a,b)
+        recon_a,recon_b = self.decoder(latent_a,latent_b)
+        logits = self.classifier(latent_a,latent_b)
+        #return recon,logits  
+        return recon_a,recon_b,logits
+
+
+
+####### end #######
 
 ########### SMALLER ROI COMPLEX CNN AE #####
 
