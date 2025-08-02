@@ -19,7 +19,8 @@ import os
 if os.name=='nt':
     os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
 else:       
-    os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
+    #os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
+    os.chdir('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/')
 
     
 
@@ -57,7 +58,10 @@ from sklearn.preprocessing import MinMaxScaler
 if os.name=='nt':
     filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_Day1to3.mat'    
 else:
-    filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex.mat'
+    filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
+    filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
+    filename = filepath + filename
+    #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex.mat'
     
         
 
