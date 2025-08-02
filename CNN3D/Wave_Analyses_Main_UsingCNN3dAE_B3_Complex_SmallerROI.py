@@ -62,7 +62,13 @@ from sklearn.preprocessing import MinMaxScaler
 
 # load the data 
 if os.name=='nt':
-    filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_M1_Complex_ArtifactCorr_SinglePrec.mat'    
+    filename='alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
+    filepath = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/'
+    filename = filepath + filename
+    
+    #filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_M1_Complex_ArtifactCorr_SinglePrec.mat'    
+    #filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_STG_Complex_ArtifactCorr_SinglePrec.mat'
+    #filename= 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_Day1to3.mat'
 else:
     filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex.mat'
     
@@ -86,7 +92,7 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 5
+iterations = 1
 days = np.unique(labels_days)
 
 decoding_acc=[]
@@ -131,7 +137,8 @@ for iterr in np.arange(iterations):
     Xval= np.expand_dims(Xval,axis=1)
     Ytrain= np.expand_dims(Ytrain,axis=1)
     Ytest= np.expand_dims(Ytest,axis=1)
-    Yval= np.expand_dims(Yval,axis=1)
+    Yval= np.expand_dims(Yval,axis=1)    
+    # if want the 3D cnn to move through time first
     Xtrain = np.transpose(Xtrain,(0,1,3,4,2)) 
     Xtest = np.transpose(Xtest,(0,1,3,4,2)) 
     Xval = np.transpose(Xval,(0,1,3,4,2)) 
@@ -158,20 +165,22 @@ for iterr in np.arange(iterations):
     if 'model' in locals():
         del model 
    
-    model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
+    #model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
+    model = Autoencoder3D_Complex_ROI_time(num_classes,input_size,lstm_size).to(device)
+    #encoder=model.encoder
     
     #get number of parameters
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Number of trainable parameters: {trainable_params}")
     
     # getparams and train the model 
-    num_epochs=150
+    num_epochs=50
     batch_size=128
     learning_rate=1e-3
     batch_val=512
     patience=6
     gradient_clipping=10
-    nn_filename = 'i3DAE_B3_Complex_New_ROI.pth' 
+    nn_filename = 'i3DAE_B3_Complex_New_All.pth' 
     
     # model_goat = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
     # #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
@@ -240,7 +249,7 @@ for iterr in np.arange(iterations):
         
         ce_loss[iterr,i]= classif_loss
     
-    del Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
+    #del Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
 
 # classif_loss = (classif_criterion(torch.from_numpy(tmp_labels[:1,:]).to(device),
 #                                    tmp_decodes[:1,:])).item()
@@ -272,6 +281,7 @@ plt.show()
 
 # now same but with regression line
 from sklearn.linear_model import LinearRegression
+days=np.arange(1,11)
 x = days
 x = x.reshape(-1,1)
 y = tmp1
@@ -285,13 +295,14 @@ plt.plot(x,yhat,color='red')
 plt.show()
 
 
-tmp = np.mean(balanced_acc_days,axis=0)
+tmp = balanced_acc_days[0,:]
 plt.figure();
 plt.plot(tmp)
 
 plt.figure();
 plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
-
+plt.xticks((1,2),labels=('OL','CL'))
+plt.ylabel('Sq. Prediction Error')
 
 plt.figure();
 plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
@@ -302,6 +313,7 @@ plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 # cd_loss_null = ce_loss
 
 
+
 #%% SAVING 
 
 np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2', 
@@ -310,6 +322,237 @@ np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2',
           ol_mse_days = ol_mse_days,
           cl_mse_days=cl_mse_days)
 
+#%% (MAIN MAIN) EXAMINING WHICH LAYER GETS ACTIVATED MOST WITH THE INPUT 
+
+
+# get the CNN architecture model
+num_classes=1    
+input_size=32*2
+lstm_size=16
+
+from iAE_utils_models import *
+
+if 'model' in locals():
+    del model 
+
+#model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
+model = Autoencoder3D_Complex_ROI_time(num_classes,input_size,lstm_size).to(device)
+
+
+nn_filename = 'i3DAE_B3_Complex_New_ROI_STG.pth' 
+model.load_state_dict(torch.load(nn_filename))
+
+
+#model=model_bkup
+#model=model.eval()
+# print(model.encoder.conv1._forward_hooks)
+
+
+# Container to hold the activation
+activation = {}
+# ---- Hook function ----
+def hook_fn(module, input, output):
+    out_r, out_i = output
+    activation["real"] = out_r
+    activation["imag"] = out_i
+
+# Register hook to conv4 layer
+hook_handle = model.encoder.conv4.register_forward_hook(hook_fn) # change to different conv layers
+
+
+# get the data
+days1 = np.where(labels_test_days==1)[0]
+X_day = Xtest[days1,:]
+Y_day = Ytest[days1,:]
+labels_day = labels_test[days1]
+
+ol_idx = np.where(labels_day == 0)[0]
+cl_idx = np.where(labels_day == 1)[0]
+
+ol_xtest = X_day[ol_idx,:]
+ol_ytest = Y_day[ol_idx,:]
+ol_xtest_real = np.real(ol_xtest)
+ol_xtest_imag = np.imag(ol_xtest)
+ol_ytest_real = np.real(ol_ytest)
+ol_ytest_imag = np.imag(ol_ytest)
+
+cl_xtest = X_day[cl_idx,:]
+cl_ytest = Y_day[cl_idx,:]
+cl_xtest_real = np.real(cl_xtest)
+cl_xtest_imag = np.imag(cl_xtest)
+cl_ytest_real = np.real(cl_ytest)
+cl_ytest_imag = np.imag(cl_ytest)
+
+l=np.arange(0,512)
+tmpx_r = torch.from_numpy(ol_xtest_real[l,:]).to(device).float()
+tmpx_i = torch.from_numpy(ol_xtest_imag[l,:]).to(device).float()
+tmpy_r = torch.from_numpy(ol_ytest_real[l,:]).to(device).float()
+tmpy_i = torch.from_numpy(ol_ytest_imag[l,:]).to(device).float()
+
+# tmpx_r = torch.from_numpy(cl_xtest_real[l,:]).to(device).float()
+# tmpx_i = torch.from_numpy(cl_xtest_imag[l,:]).to(device).float()
+# tmpy_r = torch.from_numpy(cl_ytest_real[l,:]).to(device).float()
+# tmpy_i = torch.from_numpy(cl_ytest_imag[l,:]).to(device).float()
+
+
+out_real,out_imag,logits = model(tmpx_r, tmpx_i)
+
+# # tmp plotting
+# tmpx = torch.squeeze(out_real[10,:]).to('cpu').detach().numpy()
+# tmpy = torch.squeeze(tmpy_r[10,:]).to('cpu').detach().numpy()
+# fig,ax = plt.subplots(1,2)
+# ax[0].imshow(tmpx[:,:,0])
+# ax[1].imshow(tmpy[:,:,0])
+# plt.tight_layout()
+# plt.show()
+
+# Access activation for the target filter
+target_filter=2;
+out_r = activation["real"]      # shape: [N, C, D, H, W]
+out_i = activation["imag"]
+magnitude = torch.sqrt(out_r**2 + out_i**2)       # shape: [N, C, D, H, W]
+act_strength = magnitude[:,target_filter,:].mean()
+disp(act_strength)
+hook_handle.remove()
+
+#x=torch.flatten(magnitude,1,4)
+#x=torch.mean(x,axis=1)
+
+# plot a movie of the activation 
+target_ch=target_filter
+trial=15
+x = out_r.to('cpu').detach().numpy()
+y = out_i.to('cpu').detach().numpy()
+x = (x[trial,target_ch,:])
+y = (y[trial,target_ch,:])
+
+#x1 = np.moveaxis(y, -1, 0)  # Shape: (40, 11, 23)
+x1 = y # if already in time shape first
+
+# Normalize for visualization
+x1 = (x1 - x1.min()) / (x1.max() - x1.min())
+
+# Plotting
+fig, ax = plt.subplots()
+im = ax.imshow(x1[0], cmap='viridis', animated=True)
+title = ax.set_title("Time: 0", fontsize=12)
+#ax.set_title("Optimized Input Over Time")
+ax.axis('off')
+
+def update(frame):
+    im.set_array(x1[frame])
+    title.set_text(f"Time: {frame}/{x1.shape[0]}")
+    return [im]
+
+ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, blit=False)
+
+# Show the animation
+plt.show()
+# save the animation
+ani.save("RealInput_Act_Layer4_Ch6_M1_TimeFirstCNN.gif", writer="pillow", fps=6)
+
+# phasor animation
+xreal = x;
+ximag = y;
+fig, ax = plt.subplots(figsize=(6, 6))
+
+def update(t):
+    plot_phasor_frame_time(xreal, ximag, t, ax)
+    return []
+
+ani = animation.FuncAnimation(fig, update, frames=xreal.shape[0], blit=False)
+
+plt.show()
+
+# save the animation
+ani.save("RealInput_Act_Layer4_Ch6_Phasor_M1_TimeFirstCNN.gif", writer="pillow", fps=4)
+
+
+#%% STATISTICS: WHICH DAY HAS THE MOST ACTIVATION AT A PARTICULAR LAYER AND WHETHER OL/CL
+
+top_quartile_prop=[]
+daily_prop_CL_samples=[]
+for days in np.arange(10)+1:
+    
+    # get the CNN architecture model
+    torch.cuda.empty_cache()
+    num_classes=1    
+    input_size=32*2
+    lstm_size=16
+    
+    from iAE_utils_models import *
+    
+    if 'model' in locals():
+        del model 
+    
+    model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
+    
+    
+    nn_filename = 'i3DAE_B3_Complex_New_ROI_STG.pth' 
+    model.load_state_dict(torch.load(nn_filename))
+    
+    
+    # Container to hold the activation
+    activation = {}
+    # ---- Hook function ----
+    def hook_fn(module, input, output):
+        out_r, out_i = output
+        activation["real"] = out_r
+        activation["imag"] = out_i
+    
+    # Register hook to conv4 layer
+    hook_handle = model.encoder.conv5.register_forward_hook(hook_fn) # change to different conv layers
+    
+    
+    # run the entire test data through the model, for a specific day
+    Xtest_real,Xtest_imag = np.real(Xtest),np.imag(Xtest)
+    Xtest_real = torch.from_numpy(Xtest_real).to(device).float()
+    Xtest_imag = torch.from_numpy(Xtest_imag).to(device).float()
+    
+    day_label_idx = np.where(labels_test_days==days)[0]
+    Xtest_real = Xtest_real[day_label_idx,:]
+    Xtest_imag = Xtest_imag[day_label_idx,:]
+    
+    _ = model(Xtest_real, Xtest_imag)
+    
+    
+    # get the activations
+    target_filter = 6;
+    out_r = activation["real"]      # shape: [N, C, D, H, W]
+    out_i = activation["imag"]
+    magnitude = torch.sqrt(out_r**2 + out_i**2)       # shape: [N, C, D, H, W]
+    act_strength = magnitude[:,target_filter,:]
+    act_strength = torch.flatten(act_strength,1,-1)
+    act_strength = torch.mean(act_strength,axis=1).to('cpu').detach().numpy()
+    hook_handle.remove()
+    
+    # sort the activations, descending order 
+    idx = np.argsort(act_strength)[::-1]
+    
+    # see what proportion of top 10% of activations are from CL or OL
+    exp_day_label = labels_test[day_label_idx]
+    daily_prop_CL_samples.append(np.sum(exp_day_label)/exp_day_label.shape[0])
+    
+    # top 25% 
+    top_10_idx = round(0.25*exp_day_label.shape[0])
+    top10_sorted = exp_day_label[idx[:top_10_idx]]
+    prop  = (np.sum(top10_sorted))/top_10_idx
+    #print((np.sum(top10_sorted))/top_10_idx)
+    top_quartile_prop.append(prop/daily_prop_CL_samples[days-1])
+    
+    del Xtest_real, Xtest_imag 
+    
+plt.plot(top_quartile_prop)
+plt.xlabel('Days')
+plt.ylabel('Proportion of CL test samples')
+plt.xticks(np.arange(1,11))
+plt.title('Top Quartile of Activation Strength, Layer' + str(5) + ' Ch' +  str(target_filter))
+
+# plt.plot(daily_prop_CL_samples)
+# plt.xlabel('Days')
+# plt.ylabel('Proportion ')
+# plt.xticks(np.arange(1,11))
+# plt.title('of CL samples Overall in test set')
 
 
 #%% LOADING DATA BACK
@@ -387,6 +630,8 @@ plt.boxplot([np.log(ol_mse),np.log(cl_mse),np.log(null_mse)])
 hfont = {'fontname':'Arial'}
 plt.xticks(ticks=[1,2,3],labels=('OL','CL','null'),**hfont)
 plt.ylabel('Mean Sq. prediction error (log)')
+
+
 
 
 
@@ -746,151 +991,5 @@ plt.imshow(xi)
 angles=np.arctan(xi/xr) * 180/pi
 plt.figure()
 plt.imshow(angles)
-
-
-#%% EXAMINIGN WHICH LAYER GETS ACTIVATED MOST WITH THE INPUT 
-
-
-# get the CNN architecture model
-num_classes=1    
-input_size=32*2
-lstm_size=16
-
-from iAE_utils_models import *
-
-if 'model' in locals():
-    del model 
-
-model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
-
-
-nn_filename = 'i3DAE_B3_Complex_New_ROI.pth' 
-model.load_state_dict(torch.load(nn_filename))
-
-
-#model=model_bkup
-#model=model.eval()
-# print(model.encoder.conv1._forward_hooks)
-
-
-# Container to hold the activation
-activation = {}
-# ---- Hook function ----
-def hook_fn(module, input, output):
-    out_r, out_i = output
-    activation["real"] = out_r
-    activation["imag"] = out_i
-
-# Register hook to conv4 layer
-hook_handle = model.encoder.conv4.register_forward_hook(hook_fn) # change to different conv layers
-
-
-# get the data
-days1 = np.where(labels_test_days==1)[0]
-X_day = Xtest[days1,:]
-Y_day = Ytest[days1,:]
-labels_day = labels_test[days1]
-
-ol_idx = np.where(labels_day == 0)[0]
-cl_idx = np.where(labels_day == 1)[0]
-
-ol_xtest = X_day[ol_idx,:]
-ol_ytest = Y_day[ol_idx,:]
-ol_xtest_real = np.real(ol_xtest)
-ol_xtest_imag = np.imag(ol_xtest)
-ol_ytest_real = np.real(ol_ytest)
-ol_ytest_imag = np.imag(ol_ytest)
-
-cl_xtest = X_day[cl_idx,:]
-cl_ytest = Y_day[cl_idx,:]
-cl_xtest_real = np.real(cl_xtest)
-cl_xtest_imag = np.imag(cl_xtest)
-cl_ytest_real = np.real(cl_ytest)
-cl_ytest_imag = np.imag(cl_ytest)
-
-l=np.arange(0,512)
-tmpx_r = torch.from_numpy(ol_xtest_real[l,:]).to(device).float()
-tmpx_i = torch.from_numpy(ol_xtest_imag[l,:]).to(device).float()
-tmpy_r = torch.from_numpy(ol_ytest_real[l,:]).to(device).float()
-tmpy_i = torch.from_numpy(ol_ytest_imag[l,:]).to(device).float()
-
-# tmpx_r = torch.from_numpy(cl_xtest_real[l,:]).to(device).float()
-# tmpx_i = torch.from_numpy(cl_xtest_imag[l,:]).to(device).float()
-# tmpy_r = torch.from_numpy(cl_ytest_real[l,:]).to(device).float()
-# tmpy_i = torch.from_numpy(cl_ytest_imag[l,:]).to(device).float()
-
-
-out_real,out_imag,logits = model(tmpx_r, tmpx_i)
-
-# # tmp plotting
-# tmpx = torch.squeeze(out_real[10,:]).to('cpu').detach().numpy()
-# tmpy = torch.squeeze(tmpy_r[10,:]).to('cpu').detach().numpy()
-# fig,ax = plt.subplots(1,2)
-# ax[0].imshow(tmpx[:,:,0])
-# ax[1].imshow(tmpy[:,:,0])
-# plt.tight_layout()
-# plt.show()
-
-# Access activation for the target filter
-out_r = activation["real"]      # shape: [N, C, D, H, W]
-out_i = activation["imag"]
-magnitude = torch.sqrt(out_r**2 + out_i**2)       # shape: [N, C, D, H, W]
-act_strength = magnitude[:,target_filter,:].mean()
-disp(act_strength)
-hook_handle.remove()
-
-#x=torch.flatten(magnitude,1,4)
-#x=torch.mean(x,axis=1)
-
-# plot a movie of the activation 
-target_ch=3
-trial=0
-x = out_r.to('cpu').detach().numpy()
-y = out_i.to('cpu').detach().numpy()
-x = (x[trial,target_ch,:])
-y = (y[trial,target_ch,:])
-
-x1 = np.moveaxis(y, -1, 0)  # Shape: (40, 11, 23)
-
-# Normalize for visualization
-x1 = (x1 - x1.min()) / (x1.max() - x1.min())
-
-# Plotting
-fig, ax = plt.subplots()
-im = ax.imshow(x1[0], cmap='viridis', animated=True)
-title = ax.set_title("Time: 0", fontsize=12)
-#ax.set_title("Optimized Input Over Time")
-ax.axis('off')
-
-def update(frame):
-    im.set_array(x1[frame])
-    title.set_text(f"Time: {frame}/{x1.shape[0]}")
-    return [im]
-
-ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, blit=False)
-
-# Show the animation
-plt.show()
-# save the animation
-ani.save("RealInput_Act_Layer4_Ch3.gif", writer="pillow", fps=6)
-
-# phasor animation
-xreal = x;
-ximag = y;
-fig, ax = plt.subplots(figsize=(6, 6))
-
-def update(t):
-    plot_phasor_frame(xreal, ximag, t, ax)
-    return []
-
-ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
-
-plt.show()
-
-# save the animation
-ani.save("RealInput_Act_Layer4_Ch3_Phasor.gif", writer="pillow", fps=4)
-
-
-
 
 
