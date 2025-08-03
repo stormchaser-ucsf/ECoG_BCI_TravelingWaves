@@ -207,7 +207,7 @@ for iterr in np.arange(iterations):
         Ytest_i_cl = tmp_ydata_i[idx_cl,:]        
         r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / Ytest_r_cl.shape[0]
         i_cl_error = (np.sum((recon_i_cl - Ytest_i_cl)**2)) / Ytest_i_cl.shape[0]
-        cl_mse_days[iter,i] = r_cl_error + i_cl_error
+        cl_mse_days[iterr,i] = r_cl_error + i_cl_error
         #print(cl_error)
         #cl_mse.append(cl_error)
         
