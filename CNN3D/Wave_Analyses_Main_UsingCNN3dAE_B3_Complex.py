@@ -165,7 +165,7 @@ for iterr in np.arange(iterations):
     num_epochs=150
     batch_size=128
     learning_rate=1e-3
-    batch_val=1024
+    batch_val=2048
     patience=6
     gradient_clipping=10
     nn_filename = 'i3DAE_B3_Complex_New.pth' 
@@ -312,6 +312,156 @@ np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2',
 #%% LOADING DATA BACK
 
 data=np.load('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2.npz')
+
+#%% (MAIN MAIN) EXAMINING WHICH LAYER GETS ACTIVATED MOST WITH THE INPUT 
+
+
+# get the CNN architecture model
+num_classes=1    
+input_size=384*2
+lstm_size=32
+ksize=2;
+
+
+from iAE_utils_models import *
+
+if 'model' in locals():
+    del model 
+
+#model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
+model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size).to(device)
+
+
+nn_filename = 'i3DAE_B3_Complex_New.pth' 
+model.load_state_dict(torch.load(nn_filename))
+
+
+#model=model_bkup
+#model=model.eval()
+# print(model.encoder.conv1._forward_hooks)
+
+
+# Container to hold the activation
+activation = {}
+# ---- Hook function ----
+def hook_fn(module, input, output):
+    out_r, out_i = output
+    activation["real"] = out_r
+    activation["imag"] = out_i
+
+# Register hook to conv4 layer
+hook_handle = model.encoder.conv7.register_forward_hook(hook_fn) # change to different conv layers
+
+
+# get the data
+days1 = np.where(labels_test_days==10)[0]
+X_day = Xtest[days1,:]
+Y_day = Ytest[days1,:]
+labels_day = labels_test[days1]
+
+ol_idx = np.where(labels_day == 0)[0]
+cl_idx = np.where(labels_day == 1)[0]
+
+ol_xtest = X_day[ol_idx,:]
+ol_ytest = Y_day[ol_idx,:]
+ol_xtest_real = np.real(ol_xtest)
+ol_xtest_imag = np.imag(ol_xtest)
+ol_ytest_real = np.real(ol_ytest)
+ol_ytest_imag = np.imag(ol_ytest)
+
+cl_xtest = X_day[cl_idx,:]
+cl_ytest = Y_day[cl_idx,:]
+cl_xtest_real = np.real(cl_xtest)
+cl_xtest_imag = np.imag(cl_xtest)
+cl_ytest_real = np.real(cl_ytest)
+cl_ytest_imag = np.imag(cl_ytest)
+
+l=np.arange(0,512)
+tmpx_r = torch.from_numpy(ol_xtest_real[l,:]).to(device).float()
+tmpx_i = torch.from_numpy(ol_xtest_imag[l,:]).to(device).float()
+tmpy_r = torch.from_numpy(ol_ytest_real[l,:]).to(device).float()
+tmpy_i = torch.from_numpy(ol_ytest_imag[l,:]).to(device).float()
+
+# tmpx_r = torch.from_numpy(cl_xtest_real[l,:]).to(device).float()
+# tmpx_i = torch.from_numpy(cl_xtest_imag[l,:]).to(device).float()
+# tmpy_r = torch.from_numpy(cl_ytest_real[l,:]).to(device).float()
+# tmpy_i = torch.from_numpy(cl_ytest_imag[l,:]).to(device).float()
+
+
+out_real,out_imag,logits = model(tmpx_r, tmpx_i)
+
+# # tmp plotting
+# tmpx = torch.squeeze(out_real[10,:]).to('cpu').detach().numpy()
+# tmpy = torch.squeeze(tmpy_r[10,:]).to('cpu').detach().numpy()
+# fig,ax = plt.subplots(1,2)
+# ax[0].imshow(tmpx[:,:,0])
+# ax[1].imshow(tmpy[:,:,0])
+# plt.tight_layout()
+# plt.show()
+
+# Access activation for the target filter
+target_filter=16;
+out_r = activation["real"]      # shape: [N, C, D, H, W]
+out_i = activation["imag"]
+magnitude = torch.sqrt(out_r**2 + out_i**2)       # shape: [N, C, D, H, W]
+act_strength = magnitude[:,target_filter,:].mean()
+print(act_strength)
+hook_handle.remove()
+
+#x=torch.flatten(magnitude,1,4)
+#x=torch.mean(x,axis=1)
+
+# plot a movie of the activation 
+target_ch=target_filter
+trial=89
+x = out_r.to('cpu').detach().numpy()
+y = out_i.to('cpu').detach().numpy()
+x = (x[trial,target_ch,:])
+y = (y[trial,target_ch,:])
+
+x1 = np.moveaxis(y, -1, 0)  # Shape: (40, 11, 23)
+#x1 = y # if already in time shape first
+
+# Normalize for visualization
+x1 = (x1 - x1.min()) / (x1.max() - x1.min())
+
+# Plotting
+fig, ax = plt.subplots()
+im = ax.imshow(x1[0], cmap='viridis', animated=True)
+title = ax.set_title("Time: 0", fontsize=12)
+#ax.set_title("Optimized Input Over Time")
+ax.axis('off')
+
+def update(frame):
+    im.set_array(x1[frame])
+    title.set_text(f"Time: {frame}/{x1.shape[0]}")
+    return [im]
+
+ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, blit=False)
+
+# Show the animation
+plt.show()
+# save the animation
+ani.save("RealInput_Act_Layer7_Ch16_FullModel_Tr42.gif", writer="pillow", fps=6)
+
+# phasor animation
+xreal = x;
+ximag = y;
+fig, ax = plt.subplots(figsize=(6, 6))
+
+def update(t):
+    #plot_phasor_frame_time(xreal, ximag, t, ax)
+    plot_phasor_frame(xreal, ximag, t, ax)
+    return []
+
+#ani = animation.FuncAnimation(fig, update, frames=xreal.shape[0], blit=False)
+ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
+
+plt.show()
+
+# save the animation
+ani.save("RealInput_Act_Layer7_Ch16_FullModel_Phasor_Tr42.gif", writer="pillow", fps=4)
+
 
 
 #%% plotting amplitude differences
