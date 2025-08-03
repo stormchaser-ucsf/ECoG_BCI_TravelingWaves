@@ -146,8 +146,8 @@ for iterr in np.arange(iterations):
     
     # get the CNN architecture model
     num_classes=1    
-    input_size=16*2
-    lstm_size=8
+    input_size=384*2
+    lstm_size=32
     ksize=2;
     
     from iAE_utils_models import *
@@ -155,7 +155,7 @@ for iterr in np.arange(iterations):
     if 'model' in locals():
         del model 
    
-    model = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size).to(device)
+    model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size).to(device)
     
     #get number of parameters
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -163,7 +163,7 @@ for iterr in np.arange(iterations):
     
     # getparams and train the model 
     num_epochs=150
-    batch_size=128
+    batch_size=64
     learning_rate=1e-3
     batch_val=512
     patience=6
@@ -237,7 +237,7 @@ for iterr in np.arange(iterations):
         
         ce_loss[iterr,i]= classif_loss
     
-    del Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
+    #del Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
 
 # classif_loss = (classif_criterion(torch.from_numpy(tmp_labels[:1,:]).to(device),
 #                                    tmp_decodes[:1,:])).item()

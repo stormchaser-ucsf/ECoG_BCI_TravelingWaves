@@ -380,8 +380,10 @@ tmp_real,tmp_imag = np.real(tmp),np.imag(tmp)
 
 #tmp_real = rnd.randn(64,1,40,11,23)
 #tmp_real = rnd.randn(64,1,40,11,23)
-tmp_real = torch.from_numpy(tmp_real).float()
-tmp_imag = torch.from_numpy(tmp_imag).float()
+tmp_real = torch.from_numpy(tmp_real).float().to(device)
+tmp_imag = torch.from_numpy(tmp_imag).float().to(device)
+
+r,i = model(tmp_real,tmp_imag)
 
 
 print(tmp_real.shape)
@@ -442,14 +444,14 @@ out1=out;
 
 
 #pass to lstm for classification
-rnn1 = nn.GRU(input_size=256*2,hidden_size=32,batch_first=True,bidirectional=False)
-# tmp = torch.flatten(out,start_dim=1,end_dim=3)
-# x=tmp
-# x = torch.permute(x,(0,2,1))
-# rnn1 = nn.GRU(input_size=256,hidden_size=32,batch_first=True,bidirectional=False)
-# output,(hn,cn) = rnn1(x)
-# #output1,(hn1,cn1) = rnn2(output)
-# hn=torch.squeeze(hn)
+rnn1 = nn.LSTM(input_size=384,hidden_size=32,batch_first=True,bidirectional=False).to(device)
+tmp = torch.flatten(out,start_dim=1,end_dim=3)
+x=tmp
+x = torch.permute(x,(0,2,1))
+#rnn1 = nn.GRU(input_size=256,hidden_size=32,batch_first=True,bidirectional=False)
+output,(hn,cn) = rnn1(x)
+#output1,(hn1,cn1) = rnn2(output)
+hn=torch.squeeze(hn)
 trainable_params = sum(p.numel() for p in rnn1.parameters() if p.requires_grad)
 total_params = 4*total_params+trainable_params
 
@@ -522,6 +524,33 @@ total_params = total_params+trainable_params
 print(total_params)
 
 
+
+model =   Encoder3D_Complex_deep(2)
+tmp=Xtrain[:128,:] # get this from the original xdata, just the first 128 samples
+tmp_real,tmp_imag = np.real(tmp),np.imag(tmp)
+#tmp_real = rnd.randn(64,1,40,11,23)
+#tmp_real = rnd.randn(64,1,40,11,23)
+tmp_real = torch.from_numpy(tmp_real).float()
+tmp_imag = torch.from_numpy(tmp_imag).float()
+
+r,i = model(tmp_real,tmp_imag)
+
+
+num_classes,input_size,lstm_size=1,384*2,32
+
+classifier = rnn_lstm_complex_deep(num_classes,input_size,lstm_size)
+logits = classifier(r,i)
+
+
+# putting it all together 
+from iAE_utils_models import *
+ksize=2
+model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size).to(device)
+trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print(trainable_params)
+tmp_real=tmp_real.to(device)
+tmp_imag = tmp_imag.to(device)
+r,i,logits=model(tmp_real,tmp_imag)
 
 #%% tarjan alogrithm to find clusters
 
