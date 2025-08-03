@@ -1825,7 +1825,7 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
           loss.backward()
           nn.utils.clip_grad_value_(model.parameters(), clip_value=gradient_clipping)
           opt.step()
-          print(torch.cuda.memory_summary())
+          
 
       
       # get validation losses with batching of validation samples
@@ -1840,7 +1840,7 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
       #val_loss,val_acc,val_recon=validation_loss_3DCNNAE_fullVal_complex(model,Xval,Yval,labels_val,batch_val,1)
       val_loss,val_acc,val_recon=validation_loss_3DCNNAE_complex(model,Xval,Yval,labels_val,batch_val)    
       
-      
+      #print(torch.cuda.memory_summary())
       print(f'Epoch [{epoch}/{num_epochs}], Val. Loss {val_loss:.2f}, Train Loss {total_loss:.2f}, Val. Acc {val_acc*100:.2f}, Train Acc {accuracy*100:.2f}')
       #print(f'Epoch [{epoch}/{num_epochs}], Val. Loss {val_loss:.4f}, Train Loss {total_loss:.4f}')
       
