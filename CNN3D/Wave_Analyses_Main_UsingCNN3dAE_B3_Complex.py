@@ -404,7 +404,7 @@ with torch.no_grad():
 # plt.show()
 
 # Access activation for the target filter
-target_filter=0;
+target_filter=1;
 out_r = activation["real"]      # shape: [N, C, D, H, W]
 out_i = activation["imag"]
 magnitude = torch.sqrt(out_r**2 + out_i**2)       # shape: [N, C, D, H, W]
@@ -421,7 +421,7 @@ torch.cuda.ipc_collect()  # helps reduce fragmentation
 
 # plot a movie of the activation 
 target_ch=target_filter
-trial=189
+trial=18
 x = out_r.to('cpu').detach().numpy()
 y = out_i.to('cpu').detach().numpy()
 x = (x[trial,target_ch,:])

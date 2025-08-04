@@ -2080,7 +2080,7 @@ def plot_phasor_frame(x_real, x_imag, t, ax):
     ax.set_aspect('equal')
     ax.set_xlim(-0.5, W - 0.5)
     ax.set_ylim(-0.5, H - 0.5)
-    #ax.invert_yaxis()
+    ax.invert_yaxis()
 
 def plot_phasor_frame_time(x_real, x_imag, t, ax):
     H, W = x_real.shape[1:]
