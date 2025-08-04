@@ -351,7 +351,7 @@ def hook_fn(module, input, output):
     activation["imag"] = out_i
 
 # Register hook to conv4 layer
-hook_handle = model.encoder.conv7.register_forward_hook(hook_fn) # change to different conv layers
+hook_handle = model.encoder.conv1.register_forward_hook(hook_fn) # change to different conv layers
 
 
 # get the data
@@ -401,7 +401,7 @@ out_real,out_imag,logits = model(tmpx_r, tmpx_i)
 # plt.show()
 
 # Access activation for the target filter
-target_filter=16;
+target_filter=0;
 out_r = activation["real"]      # shape: [N, C, D, H, W]
 out_i = activation["imag"]
 magnitude = torch.sqrt(out_r**2 + out_i**2)       # shape: [N, C, D, H, W]
@@ -414,13 +414,13 @@ hook_handle.remove()
 
 # plot a movie of the activation 
 target_ch=target_filter
-trial=89
+trial=189
 x = out_r.to('cpu').detach().numpy()
 y = out_i.to('cpu').detach().numpy()
 x = (x[trial,target_ch,:])
 y = (y[trial,target_ch,:])
 
-x1 = np.moveaxis(y, -1, 0)  # Shape: (40, 11, 23)
+x1 = np.moveaxis(x, -1, 0)  # Shape: (40, 11, 23)
 #x1 = y # if already in time shape first
 
 # Normalize for visualization
@@ -443,7 +443,7 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-ani.save("RealInput_Act_Layer7_Ch16_FullModel_Tr42.gif", writer="pillow", fps=6)
+ani.save("RealInput_Act_Layer1_Ch3_FullModel_Tr42.gif", writer="pillow", fps=6)
 
 # phasor animation
 xreal = x;
@@ -461,8 +461,7 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-ani.save("RealInput_Act_Layer7_Ch16_FullModel_Phasor_Tr42.gif", writer="pillow", fps=4)
-
+ani.save("RealInput_Act_Layer1_Ch3_FullModel_Phasor_Tr42.gif", writer="pillow", fps=4)
 
 
 #%% plotting amplitude differences
