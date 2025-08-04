@@ -1673,14 +1673,14 @@ def validation_loss_3DCNNAE_fullVal_complex(model,Xval,Yval,labels_val,batch_val
 
 
 # function to validate model 
-def validation_loss_3DCNNAE_complex(model,X_test,Y_test,labels_val,batch_val):    
+def validation_loss_3DCNNAE_complex(model,X_test,Y_test,labels_val,batch_val,alp_factor):    
     
-    crit_classif_val = nn.BCEWithLogitsLoss(reduction='sum')
-    crit_recon_val = nn.MSELoss(reduction='sum') # if mean, it is over all elements         
+    crit_classif_val = nn.BCEWithLogitsLoss(reduction='mean')
+    crit_recon_val = nn.MSELoss(reduction='mean') # if mean, it is over all elements         
     
     total_val_loss=0    
     accuracy=0
-    recon_error=0
+    
     if batch_val > X_test.shape[0]:
         batch_val = X_test.shape[0]
     
@@ -1692,6 +1692,9 @@ def validation_loss_3DCNNAE_complex(model,X_test,Y_test,labels_val,batch_val):
     
     iters=(idx.shape[0]-1)
     model.eval()
+    
+    loss_recon_batch=[]
+    loss_class_batch=[]
     
     for i in np.arange(iters):
         x=X_test[idx[i]:idx[i+1],:]
@@ -1713,10 +1716,15 @@ def validation_loss_3DCNNAE_complex(model,X_test,Y_test,labels_val,batch_val):
             loss2 = crit_recon_val(out_i,yimag)
             loss_recon = loss1+loss2
             zpred=zpred.squeeze()
-            loss_class = crit_classif_val(zpred,z)    
-            #loss1  = loss1/x.shape[0]
-            #loss2 = loss2/x.shape[0]
-            loss_val = 2.5*loss_recon.item() + loss_class.item()    #30
+            loss_class = crit_classif_val(zpred,z)   
+            
+            # normalize loss in  batch size in prop to overall val size (weighted mean)
+            alp = x.shape[0]/X_test.shape[0]
+            loss_recon = loss_recon.item() * alp
+            loss_class = loss_class.item() * alp
+            #loss_val = 2.5*loss_recon.item() + loss_class.item()    #30
+            loss_recon_batch.append(loss_recon)
+            loss_class_batch.append(loss_class)
             
             #zlabels = convert_to_ClassNumbers(z)        
             zlabels=z
@@ -1725,12 +1733,11 @@ def validation_loss_3DCNNAE_complex(model,X_test,Y_test,labels_val,batch_val):
             
               
             accuracy += torch.sum(zlabels == zpred_labels).item()
-            recon_error += loss_recon.item()
-            total_val_loss += loss_val
+           
                 
     
-    total_val_loss=total_val_loss/X_test.size
-    recon_error = recon_error/X_test.size
+    total_val_loss= alp_factor * sum(loss_recon_batch) + sum(loss_class_batch)
+    recon_error = alp_factor * sum(loss_recon_batch)    
     accuracy = accuracy/X_test.shape[0]
    
     model.train()
@@ -1744,7 +1751,7 @@ def validation_loss_3DCNNAE_complex(model,X_test,Y_test,labels_val,batch_val):
 def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_val,
                       patience,gradient_clipping,filename,
                       Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
-                      input_size,num_classes,ksize,lstm_size):
+                      input_size,num_classes,ksize,lstm_size,alp_factor):
     
    
     num_batches = math.ceil(Xtrain.shape[0]/batch_size)
@@ -1809,7 +1816,7 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
           #recon_loss = (recon_criterion(recon,Ytrain_batch))#/Ytrain_batch.shape[0]
           decodes = decodes.squeeze() # for BCE loss
           classif_loss = (classif_criterion(decodes,labels_batch))#/labels_batch.shape[0]      
-          loss = 2.5*recon_loss + classif_loss
+          loss = alp_factor*recon_loss + classif_loss
           total_loss = loss.item()
           #print(classif_loss.item())
           
@@ -1818,8 +1825,8 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
           ylabels =  labels_batch
           with torch.no_grad():
               ypred_labels = convert_to_ClassNumbers_sigmoid(decodes).to(device)    
-          #accuracy = (torch.sum(ylabels == ypred_labels).item())/ylabels.shape[0]
-          accuracy = (torch.sum(ylabels == ypred_labels.squeeze()).item())/ylabels.shape[0]
+              #accuracy = (torch.sum(ylabels == ypred_labels).item())/ylabels.shape[0]
+              accuracy = (torch.sum(ylabels == ypred_labels.squeeze()).item())/ylabels.shape[0]
           
           # backpropagate thru network 
           loss.backward()
@@ -1832,13 +1839,14 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
       #val_loss,val_acc,val_recon=validation_loss_3DCNNAE(model,Xval,Yval,labels_val,batch_val,1)  
       
       # store losses from each epoch
-      recon_loss_epochs.append(2.5*recon_loss.item())
+      recon_loss_epochs.append(alp_factor*recon_loss.item())
       classif_loss_epochs.append(classif_loss.item())
       total_loss_epochs.append(total_loss)
 
       # get validation loss passing entire validation data through the network
       #val_loss,val_acc,val_recon=validation_loss_3DCNNAE_fullVal_complex(model,Xval,Yval,labels_val,batch_val,1)
-      val_loss,val_acc,val_recon=validation_loss_3DCNNAE_complex(model,Xval,Yval,labels_val,batch_val)    
+      val_loss,val_acc,val_recon=validation_loss_3DCNNAE_complex(model,Xval,Yval,
+                                                              labels_val,batch_val,alp_factor)    
       
       #print(torch.cuda.memory_summary())
       print(f'Epoch [{epoch}/{num_epochs}], Val. Loss {val_loss:.2f}, Train Loss {total_loss:.2f}, Val. Acc {val_acc*100:.2f}, Train Acc {accuracy*100:.2f}')

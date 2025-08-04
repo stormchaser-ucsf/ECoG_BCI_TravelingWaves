@@ -169,6 +169,7 @@ for iterr in np.arange(iterations):
     patience=6
     gradient_clipping=10
     nn_filename = 'i3DAE_B3_Complex_New.pth' 
+    alp_factor=25
     
     # model_goat = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
     # #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
@@ -181,7 +182,7 @@ for iterr in np.arange(iterations):
     model,acc,recon_loss_epochs,classif_loss_epochs,total_loss_epochs = training_loop_iAE3D_Complex(model,num_epochs,batch_size,
                             learning_rate,batch_val,patience,gradient_clipping,nn_filename,
                             Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
-                            input_size,num_classes,ksize,lstm_size)
+                            input_size,num_classes,ksize,lstm_size,alp_factor)
     
     # test the model on held out data 
     # recon acc
