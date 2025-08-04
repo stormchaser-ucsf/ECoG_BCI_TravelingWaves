@@ -355,7 +355,7 @@ hook_handle = model.encoder.conv1.register_forward_hook(hook_fn) # change to dif
 
 
 # get the data
-days1 = np.where(labels_test_days==10)[0]
+days1 = np.where(labels_test_days==1)[0]
 X_day = Xtest[days1,:]
 Y_day = Ytest[days1,:]
 labels_day = labels_test[days1]
@@ -388,8 +388,11 @@ tmpy_i = torch.from_numpy(ol_ytest_imag[l,:]).to(device).float()
 # tmpy_r = torch.from_numpy(cl_ytest_real[l,:]).to(device).float()
 # tmpy_i = torch.from_numpy(cl_ytest_imag[l,:]).to(device).float()
 
+model.eval()
+with torch.no_grad():
+    out_real,out_imag,logits = model(tmpx_r, tmpx_i)
+    
 
-out_real,out_imag,logits = model(tmpx_r, tmpx_i)
 
 # # tmp plotting
 # tmpx = torch.squeeze(out_real[10,:]).to('cpu').detach().numpy()
@@ -408,6 +411,10 @@ magnitude = torch.sqrt(out_r**2 + out_i**2)       # shape: [N, C, D, H, W]
 act_strength = magnitude[:,target_filter,:].mean()
 print(act_strength)
 hook_handle.remove()
+
+del tmpx_r ,tmpx_i ,tmpy_r ,tmpy_i
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect()  # helps reduce fragmentation 
 
 #x=torch.flatten(magnitude,1,4)
 #x=torch.mean(x,axis=1)
@@ -443,7 +450,7 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-ani.save("RealInput_Act_Layer1_Ch3_FullModel_Tr42.gif", writer="pillow", fps=6)
+ani.save("RealInput_Act_Layer1_Ch3_FullModel_Tr42_day1.gif", writer="pillow", fps=6)
 
 # phasor animation
 xreal = x;
@@ -461,8 +468,19 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-ani.save("RealInput_Act_Layer1_Ch3_FullModel_Phasor_Tr42.gif", writer="pillow", fps=4)
+ani.save("RealInput_Act_Layer1_Ch3_FullModel_Phasor_Tr42_day1.gif", writer="pillow", fps=4)
 
+
+# 
+x1=x[4,4,:]
+y1=y[4,4,:]
+plt.plot(x1)
+plt.plot(y1)
+plt.show();
+
+plt.figure();
+plt.plot(x1,y1);
+plt.show();
 
 #%% plotting amplitude differences
 from scipy.stats import gaussian_kde
