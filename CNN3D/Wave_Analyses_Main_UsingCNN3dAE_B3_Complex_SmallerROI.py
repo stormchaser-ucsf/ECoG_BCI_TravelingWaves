@@ -148,6 +148,13 @@ for iterr in np.arange(iterations):
     Yval = np.transpose(Yval,(0,1,3,4,2)) 
     
     
+    # data augmentation
+    augmentation_factor=5
+    noise_var=0.025
+    Xtrain,Ytrain,labels_train = complex_data_augmentation(Xtrain,Ytrain,labels_train,noise_var,augmentation_factor)
+    
+    
+    
     # # convert labels to indicators
     # labels_train = one_hot_convert(labels_train)
     # labels_test = one_hot_convert(labels_test)
@@ -166,8 +173,8 @@ for iterr in np.arange(iterations):
     if 'model' in locals():
         del model 
    
-    #model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
-    model = Autoencoder3D_Complex_ROI_time(num_classes,input_size,lstm_size).to(device)
+    model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
+    #model = Autoencoder3D_Complex_ROI_time(num_classes,input_size,lstm_size).to(device)
     #encoder=model.encoder
     
     #get number of parameters
@@ -181,7 +188,8 @@ for iterr in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10
-    nn_filename = 'i3DAE_B3_Complex_New_All.pth' 
+    nn_filename = 'i3DAE_B3_Complex_New_ROI.pth' 
+    alp_factor=2.5
     
     # model_goat = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
     # #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
@@ -194,7 +202,7 @@ for iterr in np.arange(iterations):
     model,acc,recon_loss_epochs,classif_loss_epochs,total_loss_epochs = training_loop_iAE3D_Complex(model,num_epochs,batch_size,
                             learning_rate,batch_val,patience,gradient_clipping,nn_filename,
                             Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
-                            input_size,num_classes,ksize,lstm_size)
+                            input_size,num_classes,ksize,lstm_size,alp_factor)
     
     # test the model on held out data 
     # recon acc

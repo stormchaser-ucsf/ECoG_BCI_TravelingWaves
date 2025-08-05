@@ -142,7 +142,7 @@ for iterr in np.arange(iterations):
     # data augmentation
     augmentation_factor=5
     noise_var=0.025
-    Xtrain,labels_train = complex_data_augmentation(Xtrain,labels_train,noise_var,augmentation_factor)
+    Xtrain,Ytrain,labels_train = complex_data_augmentation(Xtrain,Ytrain,labels_train,noise_var,augmentation_factor)
     
     
     # # convert labels to indicators

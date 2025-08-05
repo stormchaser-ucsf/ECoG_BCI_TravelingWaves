@@ -1867,8 +1867,8 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
           print(goat_loss,goat_acc)
           break
     
-    model_goat = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size)
-    #model_goat = Autoencoder3D_Complex_ROI_time(num_classes,input_size,lstm_size)
+    #model_goat = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size)
+    model_goat = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size)
     #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
     model_goat.load_state_dict(torch.load(filename))
     model_goat=model_goat.to(device)
@@ -2104,10 +2104,11 @@ def plot_phasor_frame_time(x_real, x_imag, t, ax):
 
 # data augmentation: constant phase shifts, temporal roll, add gaussian noise
 #iterations: number of extra samples to create per training sample (augmentation factor)
-def complex_data_augmentation(Xtrain,labels_train,sigma,iterations): 
+def complex_data_augmentation(Xtrain,Ytrain,labels_train,sigma,iterations): 
     
     shpe = np.r_[0, Xtrain.shape[1:]]
     Xtrain_aug = np.empty(shpe,dtype=Xtrain.dtype)
+    Ytrain_aug = np.empty(shpe,dtype=Ytrain.dtype)
     labels_train_aug = np.empty(0,dtype=labels_train.dtype)
     n,c, h, w,t = Xtrain.shape
     
@@ -2118,6 +2119,7 @@ def complex_data_augmentation(Xtrain,labels_train,sigma,iterations):
         phase_shifts = np.exp(1j*thetas)
         phase_shifts = phase_shifts[:, np.newaxis, np.newaxis, np.newaxis, np.newaxis]
         tmp = Xtrain * phase_shifts
+        tmp1 = Ytrain * phase_shifts
         
         # temporal roll of each trial
         shifts = np.random.randint(0, t, size=n)
@@ -2125,19 +2127,22 @@ def complex_data_augmentation(Xtrain,labels_train,sigma,iterations):
         idx = idx[:, None, None, None, :]  # shape: (N, 1, 1, 1, T)                
         idx = np.tile(idx, (1, c, h, w, 1))  # shape: (N, 1, H, W, T)                
         tmp = np.take_along_axis(tmp, idx, axis=-1)
+        tmp1 = np.take_along_axis(tmp1, idx, axis=-1)
         
-        # add small gaussian noise 
+        # add small gaussian noise only to the input
         noise = rnd.randn(n,c,h,w,t) * sigma + 1j*rnd.randn(n,c,h,w,t) * sigma
         tmp = tmp + noise
         
         Xtrain_aug = np.concatenate((Xtrain_aug,tmp),axis=0)
+        Ytrain_aug = np.concatenate((Ytrain_aug,tmp1),axis=0)
         labels_train_aug = np.concatenate((labels_train_aug, labels_train),axis=0)
     
     
     Xtrain_aug = np.concatenate((Xtrain, Xtrain_aug),axis=0)
+    Ytrain_aug = np.concatenate((Ytrain, Ytrain_aug),axis=0)
     labels_train_aug = np.concatenate((labels_train,labels_train_aug),axis=0)
     
-    return Xtrain_aug,labels_train_aug
+    return Xtrain_aug,Ytrain_aug,labels_train_aug
         
         
     
