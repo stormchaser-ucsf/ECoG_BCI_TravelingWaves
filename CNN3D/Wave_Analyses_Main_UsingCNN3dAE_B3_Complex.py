@@ -56,7 +56,10 @@ from sklearn.preprocessing import MinMaxScaler
 
 # load the data 
 if os.name=='nt':
-    filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'    
+    #filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'    
+    filename='alpha_dynamics_200Hz_AllDays_M1_Complex_ArtifactCorr_SinglePrec.mat'
+    filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3/'
+    filename = filepath + filename
 else:
     filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
     filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
@@ -135,6 +138,11 @@ for iterr in np.arange(iterations):
     Ytrain = np.transpose(Ytrain,(0,1,3,4,2)) 
     Ytest = np.transpose(Ytest,(0,1,3,4,2)) 
     Yval = np.transpose(Yval,(0,1,3,4,2)) 
+    
+    # data augmentation
+    augmentation_factor=5
+    noise_var=0.025
+    Xtrain,labels_train = complex_data_augmentation(Xtrain,labels_train,noise_var,augmentation_factor)
     
     
     # # convert labels to indicators
