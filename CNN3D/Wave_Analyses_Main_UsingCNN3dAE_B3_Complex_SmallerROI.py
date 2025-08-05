@@ -62,7 +62,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 # load the data 
 if os.name=='nt':
-    filename='alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
+    #filename='alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
+    filename='alpha_dynamics_200Hz_AllDays_M1_Complex_ArtifactCorr_SinglePrec.mat'
     filepath = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/'
     filename = filepath + filename
     
