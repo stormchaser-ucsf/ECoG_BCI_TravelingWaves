@@ -421,7 +421,7 @@ torch.cuda.ipc_collect()  # helps reduce fragmentation
 
 # plot a movie of the activation 
 target_ch=target_filter
-trial=18
+trial=14
 x = out_r.to('cpu').detach().numpy()
 y = out_i.to('cpu').detach().numpy()
 x = (x[trial,target_ch,:])
@@ -435,7 +435,7 @@ x1 = (x1 - x1.min()) / (x1.max() - x1.min())
 
 # Plotting
 fig, ax = plt.subplots()
-im = ax.imshow(x1[0], cmap='viridis', animated=True)
+im = ax.imshow(x1[0], cmap='magma', animated=True)
 title = ax.set_title("Time: 0", fontsize=12)
 #ax.set_title("Optimized Input Over Time")
 ax.axis('off')
@@ -450,7 +450,7 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-ani.save("RealInput_Act_Layer1_Ch3_FullModel_Tr42_day1.gif", writer="pillow", fps=6)
+ani.save("RealInput.gif", writer="pillow", fps=6)
 
 # phasor animation
 xreal = x;
@@ -468,12 +468,12 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-ani.save("RealInput_Act_Layer1_Ch3_FullModel_Phasor_Tr42_day1.gif", writer="pillow", fps=4)
+ani.save("RealInput_Phasor.gif", writer="pillow", fps=4)
 
 
 # 
 x1=x[4,4,:]
-y1=y[4,4,:]
+y1=x[5,5,:]
 plt.plot(x1)
 plt.plot(y1)
 plt.show();
