@@ -1785,7 +1785,7 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
         
       for batch in range(num_batches):
                     
-          
+          #print(batch)
           # get the batch 
           samples = idx_split[batch]
           Xtrain_batch = Xtrain[samples,:]

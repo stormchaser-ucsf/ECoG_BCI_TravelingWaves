@@ -182,7 +182,7 @@ for iterr in np.arange(iterations):
     alp_factor=25
     aug_flag=True
     if aug_flag==True:
-        batch_size=32
+        batch_size=64
         sigma=0.025
         aug_factor=4
     else:
