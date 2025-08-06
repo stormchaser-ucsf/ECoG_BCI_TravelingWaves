@@ -1844,7 +1844,8 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
           
           # backpropagate thru network 
           loss.backward()
-          nn.utils.clip_grad_value_(model.parameters(), clip_value=gradient_clipping)
+          #nn.utils.clip_grad_value_(model.parameters(), max_norm=gradient_clipping)
+          torch.nn.utils.clip_grad_norm_(model.parameters(),max_norm = gradient_clipping)
           opt.step()
           
 
