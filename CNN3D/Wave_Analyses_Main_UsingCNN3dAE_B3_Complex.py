@@ -282,6 +282,9 @@ for iterr in np.arange(iterations):
 # plt.figure();
 # plt.stem(val)
 
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect() 
+
 tmp = np.mean(ol_mse_days,axis=0)
 tmp1 = np.mean(cl_mse_days,axis=0)
 plt.figure();
@@ -323,11 +326,12 @@ plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 
 #%% SAVING 
 
-np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2', 
+np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_DataAug', 
           ce_loss = ce_loss,
           balanced_acc_days = balanced_acc_days,
           ol_mse_days = ol_mse_days,
-          cl_mse_days=cl_mse_days)
+          cl_mse_days=cl_mse_days,
+          )
 
 
 
