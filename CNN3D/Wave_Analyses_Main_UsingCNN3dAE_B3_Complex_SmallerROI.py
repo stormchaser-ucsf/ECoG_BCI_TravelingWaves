@@ -345,11 +345,11 @@ from iAE_utils_models import *
 if 'model' in locals():
     del model 
 
-#model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
-model = Autoencoder3D_Complex_ROI_time(num_classes,input_size,lstm_size).to(device)
+model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
+#model = Autoencoder3D_Complex_ROI_time(num_classes,input_size,lstm_size).to(device)
 
 
-nn_filename = 'i3DAE_B3_Complex_New_ROI_STG.pth' 
+nn_filename = 'i3DAE_B3_Complex_New_ROI.pth' 
 model.load_state_dict(torch.load(nn_filename))
 
 
@@ -417,7 +417,7 @@ out_real,out_imag,logits = model(tmpx_r, tmpx_i)
 # plt.show()
 
 # Access activation for the target filter
-target_filter=2;
+target_filter=5;
 out_r = activation["real"]      # shape: [N, C, D, H, W]
 out_i = activation["imag"]
 magnitude = torch.sqrt(out_r**2 + out_i**2)       # shape: [N, C, D, H, W]
@@ -436,8 +436,8 @@ y = out_i.to('cpu').detach().numpy()
 x = (x[trial,target_ch,:])
 y = (y[trial,target_ch,:])
 
-#x1 = np.moveaxis(y, -1, 0)  # Shape: (40, 11, 23)
-x1 = y # if already in time shape first
+x1 = np.moveaxis(y, -1, 0)  # Shape: (40, 11, 23)
+#x1 = y # if already in time shape first
 
 # Normalize for visualization
 x1 = (x1 - x1.min()) / (x1.max() - x1.min())
@@ -459,7 +459,7 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-ani.save("RealInput_Act_Layer4_Ch6_M1_TimeFirstCNN.gif", writer="pillow", fps=6)
+ani.save("RealInput_Act_Layer4_Ch5_M1.gif", writer="pillow", fps=6)
 
 # phasor animation
 xreal = x;
@@ -467,15 +467,16 @@ ximag = y;
 fig, ax = plt.subplots(figsize=(6, 6))
 
 def update(t):
-    plot_phasor_frame_time(xreal, ximag, t, ax)
+    #plot_phasor_frame_time(xreal, ximag, t, ax)
+    plot_phasor_frame(xreal, ximag, t, ax)
     return []
 
-ani = animation.FuncAnimation(fig, update, frames=xreal.shape[0], blit=False)
+ani = animation.FuncAnimation(fig, update, frames=xreal.shape[-1], blit=False)
 
 plt.show()
 
 # save the animation
-ani.save("RealInput_Act_Layer4_Ch6_Phasor_M1_TimeFirstCNN.gif", writer="pillow", fps=4)
+ani.save("RealInput_Act_Layer4_Ch5_Phasor_M1.gif", writer="pillow", fps=4)
 
 
 #%% STATISTICS: WHICH DAY HAS THE MOST ACTIVATION AT A PARTICULAR LAYER AND WHETHER OL/CL
