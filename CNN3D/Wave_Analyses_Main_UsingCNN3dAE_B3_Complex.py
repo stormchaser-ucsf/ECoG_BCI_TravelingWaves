@@ -19,8 +19,8 @@ import os
 if os.name=='nt':
     os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
 else:       
-    #os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
-    os.chdir('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/')
+    os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
+    #os.chdir('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/')
 
     
 
@@ -61,10 +61,12 @@ if os.name=='nt':
     filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3/'
     filename = filepath + filename
 else:
-    filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
+    #filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
+    #filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
+    #filename = filepath + filename
     filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
+    filepath = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/'
     filename = filepath + filename
-    #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex.mat'
     
         
 
@@ -140,10 +142,10 @@ for iterr in np.arange(iterations):
     Yval = np.transpose(Yval,(0,1,3,4,2)) 
     
     # data augmentation
-    augmentation_factor=5
-    noise_var=0.025
-    Xtrain,Ytrain,labels_train = complex_data_augmentation(Xtrain,Ytrain,labels_train,noise_var,augmentation_factor)
-    
+    # augmentation_factor=2
+    # noise_var=0.025
+    # Xtrain,Ytrain,labels_train = complex_data_augmentation(Xtrain,Ytrain,labels_train,noise_var,augmentation_factor)
+    # 
     
     # # convert labels to indicators
     # labels_train = one_hot_convert(labels_train)
@@ -178,6 +180,16 @@ for iterr in np.arange(iterations):
     gradient_clipping=10
     nn_filename = 'i3DAE_B3_Complex_New.pth' 
     alp_factor=25
+    aug_flag=True
+    if aug_flag==True:
+        batch_size=32
+        sigma=0.025
+        aug_factor=4
+    else:
+        batch_size=128
+        sigma=0
+        aug_factor=0
+            
     
     # model_goat = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
     # #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
@@ -190,7 +202,8 @@ for iterr in np.arange(iterations):
     model,acc,recon_loss_epochs,classif_loss_epochs,total_loss_epochs = training_loop_iAE3D_Complex(model,num_epochs,batch_size,
                             learning_rate,batch_val,patience,gradient_clipping,nn_filename,
                             Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
-                            input_size,num_classes,ksize,lstm_size,alp_factor)
+                            input_size,num_classes,ksize,lstm_size,alp_factor,aug_flag,
+                            sigma,aug_factor)
     
     # test the model on held out data 
     # recon acc

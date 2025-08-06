@@ -1751,7 +1751,8 @@ def validation_loss_3DCNNAE_complex(model,X_test,Y_test,labels_val,batch_val,alp
 def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_val,
                       patience,gradient_clipping,filename,
                       Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
-                      input_size,num_classes,ksize,lstm_size,alp_factor):
+                      input_size,num_classes,ksize,lstm_size,alp_factor,
+                      aug_flag,sigma,aug_factor):
     
    
     num_batches = math.ceil(Xtrain.shape[0]/batch_size)
@@ -1791,6 +1792,14 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
           Ytrain_batch = Ytrain[samples,:]        
           #labels_batch = labels_train[samples,:]
           labels_batch = labels_train[samples]
+          
+          # data augmentation
+          if aug_flag == True:
+              Xtrain_batch,Ytrain_batch,labels_batch = complex_data_augmentation(Xtrain_batch,
+                                                            Ytrain_batch,labels_batch,
+                                                            sigma,aug_factor)
+             
+          
           
           
           # split into real and imag parts 
@@ -1867,8 +1876,8 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
           print(goat_loss,goat_acc)
           break
     
-    #model_goat = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size)
-    model_goat = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size)
+    model_goat = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size)
+    #model_goat = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size)
     #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
     model_goat.load_state_dict(torch.load(filename))
     model_goat=model_goat.to(device)
