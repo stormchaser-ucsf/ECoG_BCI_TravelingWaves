@@ -1795,23 +1795,28 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
           
           # data augmentation
           if aug_flag == True:
-              Xtrain_batch,Ytrain_batch,labels_batch = complex_data_augmentation(Xtrain_batch,
+              Xtrain_batch = torch.from_numpy(Xtrain_batch).to(torch.cfloat).to(device)
+              Ytrain_batch = torch.from_numpy(Ytrain_batch).to(torch.cfloat).to(device)
+              labels_batch = torch.from_numpy(labels_batch).to(device).float()  
+              Xtrain_batch,Ytrain_batch,labels_batch = complex_data_augmentation_torch(Xtrain_batch,
                                                             Ytrain_batch,labels_batch,
                                                             sigma,aug_factor)
+              
+              Xtrain_batch_real,Xtrain_batch_imag = Xtrain_batch.real,Xtrain_batch.imag
+              Ytrain_batch_real,Ytrain_batch_imag = Ytrain_batch.real,Ytrain_batch.imag
+              
              
-          
-          
-          
-          # split into real and imag parts 
-          Xtrain_batch_real,Xtrain_batch_imag = Xtrain_batch.real,Xtrain_batch.imag
-          Ytrain_batch_real,Ytrain_batch_imag = Ytrain_batch.real,Ytrain_batch.imag
-          
-          #load to torch and push to GPU
-          Xtrain_batch_real = torch.from_numpy(Xtrain_batch_real).to(device).float()
-          Xtrain_batch_imag = torch.from_numpy(Xtrain_batch_imag).to(device).float()
-          Ytrain_batch_real = torch.from_numpy(Ytrain_batch_real).to(device).float()
-          Ytrain_batch_imag = torch.from_numpy(Ytrain_batch_imag).to(device).float()
-          labels_batch = torch.from_numpy(labels_batch).to(device).float()  
+          else:
+              # split into real and imag parts 
+              Xtrain_batch_real,Xtrain_batch_imag = Xtrain_batch.real,Xtrain_batch.imag
+              Ytrain_batch_real,Ytrain_batch_imag = Ytrain_batch.real,Ytrain_batch.imag
+              
+              #load to torch and push to GPU
+              Xtrain_batch_real = torch.from_numpy(Xtrain_batch_real).to(device).float()
+              Xtrain_batch_imag = torch.from_numpy(Xtrain_batch_imag).to(device).float()
+              Ytrain_batch_real = torch.from_numpy(Ytrain_batch_real).to(device).float()
+              Ytrain_batch_imag = torch.from_numpy(Ytrain_batch_imag).to(device).float()
+              labels_batch = torch.from_numpy(labels_batch).to(device).float()  
           
           # forward pass thru network
           opt.zero_grad() 
@@ -1917,6 +1922,98 @@ def test_model_complex(model,Xtest):
     decodes = np.concatenate(decodes,axis=0) 
     
     return recon_r,recon_i,decodes 
+
+#%% DATA AUGMENTATION
+# data augmentation: constant phase shifts, temporal roll, add gaussian noise
+#iterations: number of extra samples to create per training sample (augmentation factor)
+def complex_data_augmentation(Xtrain,Ytrain,labels_train,sigma,iterations): 
+    
+    shpe = np.r_[0, Xtrain.shape[1:]]
+    Xtrain_aug = np.empty(shpe,dtype=Xtrain.dtype)
+    Ytrain_aug = np.empty(shpe,dtype=Ytrain.dtype)
+    labels_train_aug = np.empty(0,dtype=labels_train.dtype)
+    n,c, h, w,t = Xtrain.shape
+    
+    for j in np.arange(iterations):
+        
+        # global phase shifts
+        thetas = rnd.uniform(0,2*np.pi,size=n)
+        phase_shifts = np.exp(1j*thetas)
+        phase_shifts = phase_shifts[:, np.newaxis, np.newaxis, np.newaxis, np.newaxis]
+        tmp = Xtrain * phase_shifts
+        tmp1 = Ytrain * phase_shifts
+        
+        # temporal roll of each trial
+        shifts = np.random.randint(0, t, size=n)
+        idx = (np.arange(t)[None, :] - shifts[:, None]) % t  # shape: (N, T)
+        idx = idx[:, None, None, None, :]  # shape: (N, 1, 1, 1, T)                
+        idx = np.tile(idx, (1, c, h, w, 1))  # shape: (N, 1, H, W, T)                
+        tmp = np.take_along_axis(tmp, idx, axis=-1)
+        tmp1 = np.take_along_axis(tmp1, idx, axis=-1)
+        
+        # add small gaussian noise only to the input
+        noise = rnd.randn(n,c,h,w,t) * sigma + 1j*rnd.randn(n,c,h,w,t) * sigma
+        tmp = tmp + noise
+        
+        Xtrain_aug = np.concatenate((Xtrain_aug,tmp),axis=0)
+        Ytrain_aug = np.concatenate((Ytrain_aug,tmp1),axis=0)
+        labels_train_aug = np.concatenate((labels_train_aug, labels_train),axis=0)
+    
+    
+    Xtrain_aug = np.concatenate((Xtrain, Xtrain_aug),axis=0)
+    Ytrain_aug = np.concatenate((Ytrain, Ytrain_aug),axis=0)
+    labels_train_aug = np.concatenate((labels_train,labels_train_aug),axis=0)
+    
+    return Xtrain_aug,Ytrain_aug,labels_train_aug
+        
+        
+def complex_data_augmentation_torch(Xtrain, Ytrain, labels_train, sigma, iterations):
+    """
+    Xtrain, Ytrain: complex-valued torch tensors of shape (N, C, H, W, T), dtype=torch.cfloat
+    labels_train: torch tensor of shape (N,)
+    sigma: float, stddev of noise
+    iterations: number of augmentation iterations
+    """
+    device = Xtrain.device
+    n, c, h, w, t = Xtrain.shape
+
+    Xtrain_aug = []
+    Ytrain_aug = []
+    labels_train_aug = []
+
+    for _ in range(iterations):
+        # Global complex phase shift
+        thetas = torch.rand(n, device=device) * 2 * torch.pi  # shape: (n,)
+        phase_shifts = torch.exp(1j * thetas).reshape(n, 1, 1, 1, 1)  # shape: (n,1,1,1,1)
+
+        tmp = Xtrain * phase_shifts
+        tmp1 = Ytrain * phase_shifts
+
+        # Temporal roll
+        shifts = torch.randint(0, t, (n,), device=device)  # shape: (n,)
+        idx = (torch.arange(t, device=device)[None, :] - shifts[:, None]) % t  # (n, t)
+        idx = idx.view(n, 1, 1, 1, t).expand(n, c, h, w, t)  # (n, c, h, w, t)
+
+        tmp = torch.gather(tmp, -1, idx)
+        tmp1 = torch.gather(tmp1, -1, idx)
+
+        # Add complex Gaussian noise to input only
+        noise_real = torch.randn(n, c, h, w, t, device=device) * sigma
+        noise_imag = torch.randn(n, c, h, w, t, device=device) * sigma
+        noise = torch.complex(noise_real, noise_imag)
+        tmp = tmp + noise
+
+        Xtrain_aug.append(tmp)
+        Ytrain_aug.append(tmp1)
+        labels_train_aug.append(labels_train)
+
+    # Concatenate augmented data
+    Xtrain_aug = torch.cat([Xtrain] + Xtrain_aug, dim=0)
+    Ytrain_aug = torch.cat([Ytrain] + Ytrain_aug, dim=0)
+    labels_train_aug = torch.cat([labels_train] + labels_train_aug, dim=0)
+
+    return Xtrain_aug, Ytrain_aug, labels_train_aug    
+    
         
 #%% PLOTTING FOR COMPLEX KERNELS
 
@@ -2111,51 +2208,6 @@ def plot_phasor_frame_time(x_real, x_imag, t, ax):
     #ax.invert_yaxis()
 
 
-# data augmentation: constant phase shifts, temporal roll, add gaussian noise
-#iterations: number of extra samples to create per training sample (augmentation factor)
-def complex_data_augmentation(Xtrain,Ytrain,labels_train,sigma,iterations): 
-    
-    shpe = np.r_[0, Xtrain.shape[1:]]
-    Xtrain_aug = np.empty(shpe,dtype=Xtrain.dtype)
-    Ytrain_aug = np.empty(shpe,dtype=Ytrain.dtype)
-    labels_train_aug = np.empty(0,dtype=labels_train.dtype)
-    n,c, h, w,t = Xtrain.shape
-    
-    for j in np.arange(iterations):
-        
-        # global phase shifts
-        thetas = rnd.uniform(0,2*np.pi,size=n)
-        phase_shifts = np.exp(1j*thetas)
-        phase_shifts = phase_shifts[:, np.newaxis, np.newaxis, np.newaxis, np.newaxis]
-        tmp = Xtrain * phase_shifts
-        tmp1 = Ytrain * phase_shifts
-        
-        # temporal roll of each trial
-        shifts = np.random.randint(0, t, size=n)
-        idx = (np.arange(t)[None, :] - shifts[:, None]) % t  # shape: (N, T)
-        idx = idx[:, None, None, None, :]  # shape: (N, 1, 1, 1, T)                
-        idx = np.tile(idx, (1, c, h, w, 1))  # shape: (N, 1, H, W, T)                
-        tmp = np.take_along_axis(tmp, idx, axis=-1)
-        tmp1 = np.take_along_axis(tmp1, idx, axis=-1)
-        
-        # add small gaussian noise only to the input
-        noise = rnd.randn(n,c,h,w,t) * sigma + 1j*rnd.randn(n,c,h,w,t) * sigma
-        tmp = tmp + noise
-        
-        Xtrain_aug = np.concatenate((Xtrain_aug,tmp),axis=0)
-        Ytrain_aug = np.concatenate((Ytrain_aug,tmp1),axis=0)
-        labels_train_aug = np.concatenate((labels_train_aug, labels_train),axis=0)
-    
-    
-    Xtrain_aug = np.concatenate((Xtrain, Xtrain_aug),axis=0)
-    Ytrain_aug = np.concatenate((Ytrain, Ytrain_aug),axis=0)
-    labels_train_aug = np.concatenate((labels_train,labels_train_aug),axis=0)
-    
-    return Xtrain_aug,Ytrain_aug,labels_train_aug
-        
-        
-    
-    
 
 #%% #### model training and validation sections 
 
