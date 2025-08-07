@@ -140,7 +140,7 @@ for iterr in np.arange(iterations):
     Ytrain= np.expand_dims(Ytrain,axis=1)
     Ytest= np.expand_dims(Ytest,axis=1)
     Yval= np.expand_dims(Yval,axis=1)    
-    # if want the 3D cnn to move through time first
+    # if want the 3D cnn to move through time first, comment this out
     Xtrain = np.transpose(Xtrain,(0,1,3,4,2)) 
     Xtest = np.transpose(Xtest,(0,1,3,4,2)) 
     Xval = np.transpose(Xval,(0,1,3,4,2)) 
@@ -150,9 +150,9 @@ for iterr in np.arange(iterations):
     
     
     # data augmentation
-    augmentation_factor=5
-    noise_var=0.025
-    Xtrain,Ytrain,labels_train = complex_data_augmentation(Xtrain,Ytrain,labels_train,noise_var,augmentation_factor)
+    # augmentation_factor=5
+    # noise_var=0.025
+    # Xtrain,Ytrain,labels_train = complex_data_augmentation(Xtrain,Ytrain,labels_train,noise_var,augmentation_factor)
     
     
     
@@ -191,6 +191,15 @@ for iterr in np.arange(iterations):
     gradient_clipping=10
     nn_filename = 'i3DAE_B3_Complex_New_ROI.pth' 
     alp_factor=2.5
+    aug_flag=True
+    if aug_flag==True:
+        batch_size=64
+        sigma=0.025
+        aug_factor=4
+    else:
+        batch_size=128
+        sigma=0
+        aug_factor=0
     
     # model_goat = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size)
     # #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
@@ -199,11 +208,12 @@ for iterr in np.arange(iterations):
     # model_goat.eval()
     
     
-    
+        
     model,acc,recon_loss_epochs,classif_loss_epochs,total_loss_epochs = training_loop_iAE3D_Complex(model,num_epochs,batch_size,
                             learning_rate,batch_val,patience,gradient_clipping,nn_filename,
                             Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
-                            input_size,num_classes,ksize,lstm_size,alp_factor)
+                            input_size,num_classes,ksize,lstm_size,alp_factor,aug_flag,
+                            sigma,aug_factor)
     
     # test the model on held out data 
     # recon acc
@@ -281,6 +291,10 @@ for iterr in np.arange(iterations):
 
 # plt.figure();
 # plt.stem(val)
+
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect() 
+
 
 tmp = np.mean(ol_mse_days,axis=0)
 tmp1 = np.mean(cl_mse_days,axis=0)
@@ -417,7 +431,7 @@ out_real,out_imag,logits = model(tmpx_r, tmpx_i)
 # plt.show()
 
 # Access activation for the target filter
-target_filter=5;
+target_filter=7;
 out_r = activation["real"]      # shape: [N, C, D, H, W]
 out_i = activation["imag"]
 magnitude = torch.sqrt(out_r**2 + out_i**2)       # shape: [N, C, D, H, W]
@@ -430,7 +444,7 @@ hook_handle.remove()
 
 # plot a movie of the activation 
 target_ch=target_filter
-trial=15
+trial=115
 x = out_r.to('cpu').detach().numpy()
 y = out_i.to('cpu').detach().numpy()
 x = (x[trial,target_ch,:])
