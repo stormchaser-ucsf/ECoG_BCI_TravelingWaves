@@ -63,7 +63,7 @@ from sklearn.preprocessing import MinMaxScaler
 # load the data 
 if os.name=='nt':
     #filename='alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
-    filename='alpha_dynamics_200Hz_AllDays_M1_Complex_ArtifactCorr_SinglePrec.mat'
+    filename='alpha_dynamics_200Hz_AllDays_STG_Complex_ArtifactCorr_SinglePrec.mat'
     filepath = 'F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/'
     filename = filepath + filename
     
@@ -183,14 +183,14 @@ for iterr in np.arange(iterations):
     print(f"Number of trainable parameters: {trainable_params}")
     
     # getparams and train the model 
-    num_epochs=50
+    num_epochs=100
     batch_size=128
     learning_rate=1e-3
     batch_val=512
     patience=6
     gradient_clipping=10
     nn_filename = 'i3DAE_B3_Complex_New_ROI.pth' 
-    alp_factor=2.5
+    alp_factor=5
     aug_flag=True
     if aug_flag==True:
         batch_size=64
@@ -492,6 +492,51 @@ plt.show()
 # save the animation
 ani.save("RealInput_Act_Layer4_Ch5_Phasor_M1.gif", writer="pillow", fps=4)
 
+
+#%% (MAIN MAIN) CHANNEL ABLATION EXPERIMENTS 
+
+
+# get the data
+days1 = np.where(labels_test_days==1)[0]
+X_day = Xtest[days1,:]
+Y_day = Ytest[days1,:]
+labels_day = labels_test[days1]
+
+ol_idx = np.where(labels_day == 0)[0]
+cl_idx = np.where(labels_day == 1)[0]
+
+ol_xtest = X_day[ol_idx,:]
+ol_ytest = Y_day[ol_idx,:]
+ol_xtest_real = np.real(ol_xtest)
+ol_xtest_imag = np.imag(ol_xtest)
+ol_ytest_real = np.real(ol_ytest)
+ol_ytest_imag = np.imag(ol_ytest)
+
+cl_xtest = X_day[cl_idx,:]
+cl_ytest = Y_day[cl_idx,:]
+cl_xtest_real = np.real(cl_xtest)
+cl_xtest_imag = np.imag(cl_xtest)
+cl_ytest_real = np.real(cl_ytest)
+cl_ytest_imag = np.imag(cl_ytest)
+
+l=np.arange(0,64)
+tmpx_r = torch.from_numpy(ol_xtest_real[l,:]).to(device).float()
+tmpx_i = torch.from_numpy(ol_xtest_imag[l,:]).to(device).float()
+tmpy_r = torch.from_numpy(ol_ytest_real[l,:]).to(device).float()
+tmpy_i = torch.from_numpy(ol_ytest_imag[l,:]).to(device).float()
+
+r,i,logits = model(tmpx_r,tmpy_i)
+
+results = []
+for layer in range(1, 7):  # conv1 to conv6
+    num_channels = getattr(model.encoder, f"conv{layer}").real_conv.out_channels
+    for ch in range(num_channels):
+        # have to loop over batches here
+        score = ablate_encoder_channel_complex(model, 
+                    input_real, input_imag, layer, ch)
+        results.append((layer, ch, score))
+
+ablate_encoder_channel_complex
 
 #%% STATISTICS: WHICH DAY HAS THE MOST ACTIVATION AT A PARTICULAR LAYER AND WHETHER OL/CL
 

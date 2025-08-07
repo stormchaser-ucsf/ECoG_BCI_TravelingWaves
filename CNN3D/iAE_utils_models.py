@@ -1782,7 +1782,10 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
       if epoch>round(num_epochs*0.6):
           for g in opt.param_groups:
               g['lr']=5e-4
-        
+      
+      # recon_loss_batch=[]
+      # classif_loss_batch=[]
+    
       for batch in range(num_batches):
                     
           #print(batch)
@@ -1832,6 +1835,8 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
           classif_loss = (classif_criterion(decodes,labels_batch))#/labels_batch.shape[0]      
           loss = alp_factor*recon_loss + classif_loss
           total_loss = loss.item()
+          # recon_loss_batch.append(recon_loss.item())
+          # classif_loss_batch.append(classif_loss.item())
           #print(classif_loss.item())
           
           # compute accuracy
@@ -2208,9 +2213,54 @@ def plot_phasor_frame_time(x_real, x_imag, t, ax):
     ax.set_ylim(-0.5, H - 0.5)
     #ax.invert_yaxis()
 
+#%% FUNCTIONS TO EVALUATE MODEL WITH ABLATION TO GET CHANNEL/LAYER IMPORTANCE
+
+@torch.no_grad()
 
 
-#%% #### model training and validation sections 
+def ablate_encoder_channel_complex(model, input_real, input_imag, layer_idx, channel_idx, labels):
+    
+    classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')# input. target
+    model.eval()
+    
+    
+    with torch.no_grad():
+            
+        
+        # Get encoder and classifier
+        encoder = model.encoder
+        classifier = model.classifier
+    
+        # Run inputs through encoder, ablating after the specified layer/channel
+        a, b = input_real.clone(), input_imag.clone()
+    
+        for i in range(1, 7):  # conv1 to conv6
+            conv_layer = getattr(encoder, f"conv{i}")
+            a, b = conv_layer(a, b)
+            a, b = encoder.elu(a), encoder.elu(b)
+    
+            if i == layer_idx:
+                # Ablate real and imaginary channels
+                if channel_idx < a.shape[1]:  # safety
+                    a[:, channel_idx, :, :, :] = 0
+                    b[:, channel_idx, :, :, :] = 0
+    
+        # Pass through classifier
+        logits = classifier(a, b)
+        
+        # Get the BCEWithLogitsLoss loss value by comparing logits to labels directly 
+        logits = logits.squeeze() # for BCE loss
+        classif_loss = (classif_criterion(logits,labels))#/labels_batch.shape[0]      
+        
+        
+        # Assuming classifier gives logits — use BCEWithLogitsLoss or softmax cross entropy
+        pred = torch.softmax(logits,dim=1)  # or softmax(logits, dim=1) depending on your setup
+
+    # Return predicted label or class score for `target_label`
+    #return pred[:, target_label].item()
+    return pred
+
+#%% #### model training and validation sections , real kernels
 
 # function to validate model 
 def validation_loss(model,X_test,Y_test,batch_val,val_type):    
