@@ -1916,18 +1916,19 @@ def test_model_complex(model,Xtest):
            out_r,out_i,dec = model(Xtest_real_batch,Xtest_imag_batch)
        
        out_r = out_r.cpu().detach().numpy()
-       out_i = out_i.cpu().detach().numpy()
-       dec = dec.cpu().detach().numpy()
-        
        recon_r.append(out_r)
-       recon_i.append(out_i)
+       out_i = out_i.cpu().detach().numpy()
+       recon_i.append(out_i)       
+       dec = dec.cpu().detach().numpy()
        decodes.append(dec)
+    
+           
        
     recon_r = np.concatenate(recon_r,axis=0) 
     recon_i = np.concatenate(recon_i,axis=0) 
     decodes = np.concatenate(decodes,axis=0) 
     
-    return recon_r,recon_i,decodes 
+    return recon_r,recon_i,decodes
 
 #%% DATA AUGMENTATION
 # data augmentation: constant phase shifts, temporal roll, add gaussian noise
@@ -2218,9 +2219,10 @@ def plot_phasor_frame_time(x_real, x_imag, t, ax):
 @torch.no_grad()
 
 
-def ablate_encoder_channel_complex(model, input_real, input_imag, layer_idx, channel_idx, labels):
+def ablate_encoder_channel_complex(model, input_real, input_imag,
+                                   layer_idx, channel_idx, labels):
     
-    classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')# input. target
+    classif_criterion = nn.BCEWithLogitsLoss(reduction='sum')# input. target
     model.eval()
     
     
@@ -2254,11 +2256,11 @@ def ablate_encoder_channel_complex(model, input_real, input_imag, layer_idx, cha
         
         
         # Assuming classifier gives logits — use BCEWithLogitsLoss or softmax cross entropy
-        pred = torch.softmax(logits,dim=1)  # or softmax(logits, dim=1) depending on your setup
+        #pred = torch.softmax(logits,dim=1)  # or softmax(logits, dim=1) depending on your setup
 
     # Return predicted label or class score for `target_label`
     #return pred[:, target_label].item()
-    return pred
+    return classif_loss
 
 #%% #### model training and validation sections , real kernels
 

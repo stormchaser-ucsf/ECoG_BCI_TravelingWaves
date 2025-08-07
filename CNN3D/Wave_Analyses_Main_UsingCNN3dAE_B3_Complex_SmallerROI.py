@@ -496,47 +496,66 @@ ani.save("RealInput_Act_Layer4_Ch5_Phasor_M1.gif", writer="pillow", fps=4)
 #%% (MAIN MAIN) CHANNEL ABLATION EXPERIMENTS 
 
 
-# get the data
-days1 = np.where(labels_test_days==1)[0]
-X_day = Xtest[days1,:]
-Y_day = Ytest[days1,:]
-labels_day = labels_test[days1]
+# get baseline classification loss from the model 
+r,i,decodes = test_model_complex(model, Xtest)
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect() 
+decodes =  torch.from_numpy(decodes).to(device).float()
+test_labels_torch = torch.from_numpy(labels_test).to(device).float()
+classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')# input. target
+baseline_loss = classif_criterion(torch.squeeze(decodes),test_labels_torch)
 
-ol_idx = np.where(labels_day == 0)[0]
-cl_idx = np.where(labels_day == 1)[0]
-
-ol_xtest = X_day[ol_idx,:]
-ol_ytest = Y_day[ol_idx,:]
-ol_xtest_real = np.real(ol_xtest)
-ol_xtest_imag = np.imag(ol_xtest)
-ol_ytest_real = np.real(ol_ytest)
-ol_ytest_imag = np.imag(ol_ytest)
-
-cl_xtest = X_day[cl_idx,:]
-cl_ytest = Y_day[cl_idx,:]
-cl_xtest_real = np.real(cl_xtest)
-cl_xtest_imag = np.imag(cl_xtest)
-cl_ytest_real = np.real(cl_ytest)
-cl_ytest_imag = np.imag(cl_ytest)
-
-l=np.arange(0,64)
-tmpx_r = torch.from_numpy(ol_xtest_real[l,:]).to(device).float()
-tmpx_i = torch.from_numpy(ol_xtest_imag[l,:]).to(device).float()
-tmpy_r = torch.from_numpy(ol_ytest_real[l,:]).to(device).float()
-tmpy_i = torch.from_numpy(ol_ytest_imag[l,:]).to(device).float()
-
-r,i,logits = model(tmpx_r,tmpy_i)
+Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
+num_batches = math.ceil(Xtest_real.shape[0]/2048)
+idx = (np.arange(Xtest_real.shape[0]))
+idx_split = np.array_split(idx,num_batches)
 
 results = []
 for layer in range(1, 7):  # conv1 to conv6
+    print(layer)
     num_channels = getattr(model.encoder, f"conv{layer}").real_conv.out_channels
     for ch in range(num_channels):
         # have to loop over batches here
-        score = ablate_encoder_channel_complex(model, 
-                    input_real, input_imag, layer, ch)
+        score=[]
+        for batch in range(num_batches):
+            
+            samples = idx_split[batch]
+            Xtest_real_batch = torch.from_numpy(Xtest_real[samples,:]).to(device).float()
+            Xtest_imag_batch = torch.from_numpy(Xtest_imag[samples,:]).to(device).float()
+            labels_batch = torch.from_numpy(labels_test[samples]).to(device).float()
+                
+            tmp = ablate_encoder_channel_complex(model, 
+                        Xtest_real_batch, Xtest_imag_batch, layer, ch,labels_batch)
+            score.append(tmp.item())
+        
+        score = sum(score)/Xtest.shape[0]
+        score = score/baseline_loss.item()
         results.append((layer, ch, score))
 
-ablate_encoder_channel_complex
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect() 
+
+
+# getting stats
+layer_4_results = [(ch, score) for lyr, ch, score in results if lyr == 4]
+layer_4_scores = [score for lyr, ch, score in results if lyr == 1]
+important_channels = [(layer, ch, score) for (layer, ch, score) in results if score > 1.1]
+
+# plotting
+import collections
+layer_dict = collections.defaultdict(list)
+for layer, ch, score in results:
+    layer_dict[layer].append(score)
+
+# Plot per layer
+for layer in sorted(layer_dict.keys()):
+    plt.figure()
+    plt.bar(range(len(layer_dict[layer])), layer_dict[layer])
+    plt.axhline(1.0, color='red', linestyle='--')
+    plt.title(f"Ablation Scores for Layer {layer}")
+    plt.xlabel("Channel")
+    plt.ylabel("Score (Ablated Loss / Baseline Loss)")
+    plt.show()
 
 #%% STATISTICS: WHICH DAY HAS THE MOST ACTIVATION AT A PARTICULAR LAYER AND WHETHER OL/CL
 
