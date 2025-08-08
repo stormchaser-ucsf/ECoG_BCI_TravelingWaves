@@ -2236,7 +2236,7 @@ def ablate_encoder_channel_complex(model, input_real, input_imag,
         # Run inputs through encoder, ablating after the specified layer/channel
         a, b = input_real.clone(), input_imag.clone()
     
-        for i in range(1, 7):  # conv1 to conv6
+        for i in range(1, 8):  # conv1 to conv6
             conv_layer = getattr(encoder, f"conv{i}")
             a, b = conv_layer(a, b)
             a, b = encoder.elu(a), encoder.elu(b)
