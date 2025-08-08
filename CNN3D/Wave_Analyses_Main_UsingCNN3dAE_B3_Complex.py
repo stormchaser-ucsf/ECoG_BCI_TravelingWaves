@@ -355,7 +355,7 @@ classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')# input. target
 baseline_loss = classif_criterion(torch.squeeze(decodes),test_labels_torch)
 
 Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
-num_batches = math.ceil(Xtest_real.shape[0]/2048)
+num_batches = math.ceil(Xtest_real.shape[0]/1024)
 idx = (np.arange(Xtest_real.shape[0]))
 idx_split = np.array_split(idx,num_batches)
 
@@ -416,6 +416,9 @@ results_act = []
 num_layers = round(sum(1 for m in model.encoder.modules() if isinstance(m, nn.Conv3d))/2)
 elu = nn.ELU()
 for layer in range(1, num_layers+1):  # conv1 to conv6
+
+    torch.cuda.empty_cache()
+    torch.cuda.ipc_collect() 
     print(f"Layer {layer}")
     num_channels = getattr(model.encoder, f"conv{layer}").real_conv.out_channels
     
@@ -504,7 +507,7 @@ plt.scatter(act_diffs, ablation_scores, alpha=0.7, edgecolor='k')
 
 # Optionally label points
 for i, label in enumerate(labels):
-    plt.text(act_diffs[i] + 0.002, ablation_scores[i] + 0.002, label, fontsize=8)
+    plt.text(act_diffs[i] + 0.0002, ablation_scores[i] + 0.0002, label, fontsize=8)
 
 plt.xlabel("Activation Magnitude Difference (|Class0 - Class1|)")
 plt.ylabel("Classification Loss Ratio (Ablation / Baseline)")
