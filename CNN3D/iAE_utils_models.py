@@ -1673,7 +1673,8 @@ def validation_loss_3DCNNAE_fullVal_complex(model,Xval,Yval,labels_val,batch_val
 
 
 # function to validate model 
-def validation_loss_3DCNNAE_complex(model,X_test,Y_test,labels_val,batch_val,alp_factor):    
+def validation_loss_3DCNNAE_complex(model,X_test,Y_test,labels_val,
+                                    batch_val,alp_factor):    
     
     crit_classif_val = nn.BCEWithLogitsLoss(reduction='mean')
     crit_recon_val = nn.MSELoss(reduction='mean') # if mean, it is over all elements         

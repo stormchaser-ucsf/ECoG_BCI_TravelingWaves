@@ -561,8 +561,9 @@ for layer in sorted(layer_dict.keys()):
 #%% LOOKING AT ACTIVATION PER CHANNEL LAYER TO SEE IF OL/CL ACTIVATES CERTAIN CHANNELS/LAYERS
 
 results = []
-
-for layer in range(1, 7):  # conv1 to conv6
+#num_layers =  len(list(model.encoder.children()))
+num_layers = round(sum(1 for m in model.encoder.modules() if isinstance(m, nn.Conv3d))/2)
+for layer in range(1, num_layers+1):  # conv1 to conv6
     print(f"Layer {layer}")
     num_channels = getattr(model.encoder, f"conv{layer}").real_conv.out_channels
     
@@ -582,6 +583,7 @@ for layer in range(1, 7):  # conv1 to conv6
             for i in range(1, layer + 1):
                 conv = getattr(model.encoder, f"conv{i}")
                 a, b = conv(a, b)
+                a,b = nn.ELU(a),nn.ELU(b)
 
             # Compute magnitude
             mag = torch.sqrt(a**2 + b**2)  # shape: [B, C, H, W, T]
