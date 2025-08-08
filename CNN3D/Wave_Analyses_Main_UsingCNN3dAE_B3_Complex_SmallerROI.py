@@ -530,6 +530,7 @@ for layer in range(1, 7):  # conv1 to conv6
         
         score = sum(score)/Xtest.shape[0]
         score = score/baseline_loss.item()
+        score = score/num_channels
         results.append((layer, ch, score))
 
 torch.cuda.empty_cache()
@@ -560,9 +561,10 @@ for layer in sorted(layer_dict.keys()):
 
 #%% LOOKING AT ACTIVATION PER CHANNEL LAYER TO SEE IF OL/CL ACTIVATES CERTAIN CHANNELS/LAYERS
 
-results = []
+results_act = []
 #num_layers =  len(list(model.encoder.children()))
 num_layers = round(sum(1 for m in model.encoder.modules() if isinstance(m, nn.Conv3d))/2)
+elu = nn.ELU()
 for layer in range(1, num_layers+1):  # conv1 to conv6
     print(f"Layer {layer}")
     num_channels = getattr(model.encoder, f"conv{layer}").real_conv.out_channels
@@ -583,7 +585,7 @@ for layer in range(1, num_layers+1):  # conv1 to conv6
             for i in range(1, layer + 1):
                 conv = getattr(model.encoder, f"conv{i}")
                 a, b = conv(a, b)
-                a,b = nn.ELU(a),nn.ELU(b)
+                a,b = elu(a),elu(b)
 
             # Compute magnitude
             mag = torch.sqrt(a**2 + b**2)  # shape: [B, C, H, W, T]
@@ -599,14 +601,14 @@ for layer in range(1, num_layers+1):  # conv1 to conv6
         mean_act_0 = sum(act_class_0) / len(act_class_0) if act_class_0 else 0.0
         mean_act_1 = sum(act_class_1) / len(act_class_1) if act_class_1 else 0.0
 
-        results.append((layer, ch, mean_act_0, mean_act_1))
+        results_act.append((layer, ch, mean_act_0, mean_act_1))
 
 
 # Organize results per layer
 from collections import defaultdict
 layer_to_diffs = defaultdict(list)
 
-for layer, ch, mean_0, mean_1 in results:
+for layer, ch, mean_0, mean_1 in results_act:
     diff = abs(mean_0 - mean_1)
     layer_to_diffs[layer].append((ch, diff))
 
@@ -627,6 +629,37 @@ for i, layer in enumerate(sorted(layer_to_diffs.keys())):
     ax.set_xticks(ch_ids)
 
 plt.tight_layout()
+plt.show()
+
+
+#%% PLOTTING ABLATION VS ACTIVATION STRENGTH DIFFERENCE
+
+
+
+# Convert to dict for easy lookup
+act_diff_dict = {(l, ch): abs(m0 - m1) for l, ch, m0, m1 in results_act}
+ablation_dict = {(l, ch): score for l, ch, score in results}
+
+# Make sure keys match in both
+common_keys = sorted(set(act_diff_dict.keys()) & set(ablation_dict.keys()))
+
+# Extract paired values
+act_diffs = [act_diff_dict[k] for k in common_keys]
+ablation_scores = [ablation_dict[k] for k in common_keys]
+labels = [f"L{l}_C{ch}" for l, ch in common_keys]
+
+# Scatter plot
+plt.figure(figsize=(7, 6))
+plt.scatter(act_diffs, ablation_scores, alpha=0.7, edgecolor='k')
+
+# Optionally label points
+for i, label in enumerate(labels):
+    plt.text(act_diffs[i] + 0.002, ablation_scores[i] + 0.002, label, fontsize=8)
+
+plt.xlabel("Activation Magnitude Difference (|Class0 - Class1|)")
+plt.ylabel("Classification Loss Ratio (Ablation / Baseline)")
+plt.title("Channel-wise: Activation Difference vs Classification Importance")
+plt.grid(True)
 plt.show()
 
 #%% STATISTICS: WHICH DAY HAS THE MOST ACTIVATION AT A PARTICULAR LAYER AND WHETHER OL/CL
