@@ -2223,6 +2223,7 @@ def plot_phasor_frame_time(x_real, x_imag, t, ax):
 def ablate_encoder_channel_complex(model, input_real, input_imag,
                                    layer_idx, channel_idx, labels):
     
+    num_layers = round(sum(1 for m in model.encoder.modules() if isinstance(m, nn.Conv3d))/2)    
     classif_criterion = nn.BCEWithLogitsLoss(reduction='sum')# input. target
     model.eval()
     
@@ -2237,7 +2238,7 @@ def ablate_encoder_channel_complex(model, input_real, input_imag,
         # Run inputs through encoder, ablating after the specified layer/channel
         a, b = input_real.clone(), input_imag.clone()
     
-        for i in range(1, 8):  # conv1 to conv6
+        for i in range(1, num_layers+1):  # conv1 to conv6
             conv_layer = getattr(encoder, f"conv{i}")
             a, b = conv_layer(a, b)
             a, b = encoder.elu(a), encoder.elu(b)
