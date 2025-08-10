@@ -180,6 +180,11 @@ plt.show()
 
 #%% EXAMINING GRADIENTS WRT TEST LOSS AT INDIVIDUAL CHANNELS/LAYERS
 
+
+
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect() 
+
 # ==== 1. Storage ====
 activations = {}
 gradients_sum = defaultdict(lambda: 0.0)
@@ -210,7 +215,7 @@ model.classifier.train()
 classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')
 
 Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
-num_batches = math.ceil(Xtest_real.shape[0]/2048)
+num_batches = math.ceil(Xtest_real.shape[0]/128)
 idx = (np.arange(Xtest_real.shape[0]))
 idx_split = np.array_split(idx,num_batches)
 
@@ -252,31 +257,31 @@ for name in gradients_sum:
         combined_mag = (real_vals**2 + imag_vals**2)**0.5
         combined_importance[base] = combined_mag
 
-# ==== 5. Plot per-layer ====
-for layer_name, ch_vals in combined_importance.items():
-    plt.figure(figsize=(8, 3))
-    plt.bar(range(len(ch_vals)), ch_vals)
-    plt.title(f"{layer_name}: Gradient Magnitude per Channel (real+imag combined)")
-    plt.xlabel("Channel")
-    plt.ylabel("Mean sqrt(real_grad^2 + imag_grad^2)")
-    plt.show()
+# # ==== 5. Plot per-layer ====
+# for layer_name, ch_vals in combined_importance.items():
+#     plt.figure(figsize=(8, 3))
+#     plt.bar(range(len(ch_vals)), ch_vals)
+#     plt.title(f"{layer_name}: Gradient Magnitude per Channel (real+imag combined)")
+#     plt.xlabel("Channel")
+#     plt.ylabel("Mean sqrt(real_grad^2 + imag_grad^2)")
+#     plt.show()
 
-# ==== 5a. Plot all at once ====
-n_layers = len(combined_importance)
-fig, axes = plt.subplots( n_layers, 1,figsize=(8 ,3* n_layers), sharey=True,sharex=False)
+# # ==== 5a. Plot all at once ====
+# n_layers = len(combined_importance)
+# fig, axes = plt.subplots( n_layers, 1,figsize=(8 ,3* n_layers), sharey=True,sharex=False)
 
-# Make sure axes is iterable even if there’s only 1 layer
-if n_layers == 1:
-    axes = [axes]
+# # Make sure axes is iterable even if there’s only 1 layer
+# if n_layers == 1:
+#     axes = [axes]
 
-for ax, (layer_name, ch_vals) in zip(axes, combined_importance.items()):
-    ax.bar(range(len(ch_vals)), ch_vals)
-    ax.set_title(f"{layer_name}")
-    ax.set_xlabel("Channel")
-    ax.set_ylabel("Mean sqrt(real^2 + imag^2)")
+# for ax, (layer_name, ch_vals) in zip(axes, combined_importance.items()):
+#     ax.bar(range(len(ch_vals)), ch_vals)
+#     ax.set_title(f"{layer_name}")
+#     ax.set_xlabel("Channel")
+#     ax.set_ylabel("Mean sqrt(real^2 + imag^2)")
 
-plt.tight_layout()
-plt.show()
+# plt.tight_layout()
+# plt.show()
 
 
 # ==== 6. Remove hooks ====

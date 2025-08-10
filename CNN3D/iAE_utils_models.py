@@ -1904,7 +1904,11 @@ def test_model_complex(model,Xtest):
     recon_r=[]
     recon_i=[]
     decodes=[]    
+<<<<<<< HEAD
     num_batches = math.ceil(Xtest_real.shape[0]/512)
+=======
+    num_batches = math.ceil(Xtest_real.shape[0]/1024)
+>>>>>>> 69c75a0679f25aa6949c20599f2e5eee16cdbc2d
     idx = (np.arange(Xtest_real.shape[0]))
     idx_split = np.array_split(idx,num_batches)
     model.eval()
@@ -2195,7 +2199,7 @@ def plot_phasor_frame(x_real, x_imag, t, ax):
     ax.set_aspect('equal')
     ax.set_xlim(-0.5, W - 0.5)
     ax.set_ylim(-0.5, H - 0.5)
-    ax.invert_yaxis()
+    #ax.invert_yaxis()
 
 def plot_phasor_frame_time(x_real, x_imag, t, ax):
     H, W = x_real.shape[1:]

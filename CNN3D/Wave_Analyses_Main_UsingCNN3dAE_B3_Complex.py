@@ -256,8 +256,11 @@ for iterr in np.arange(iterations):
         #                                   torch.from_numpy(tmp_labels).to(device))).item()
         classif_loss = (classif_criterion(torch.from_numpy(tmp_decodes.squeeze()).float(),
                                           torch.from_numpy(tmp_labels).float())).item()
+       
         
         ce_loss[iterr,i]= classif_loss
+        
+        del tmp_decodes, tmp_labels,classif_loss
     
     #del Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
 
@@ -342,182 +345,9 @@ data=np.load('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2.
 
 
 
-#%% (MAIN MAIN) CHANNEL ABLATION EXPERIMENTS 
 
 
-# get baseline classification loss from the model 
-r,i,decodes = test_model_complex(model, Xtest)
-torch.cuda.empty_cache()
-torch.cuda.ipc_collect() 
-decodes =  torch.from_numpy(decodes).to(device).float()
-test_labels_torch = torch.from_numpy(labels_test).to(device).float()
-classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')# input. target
-baseline_loss = classif_criterion(torch.squeeze(decodes),test_labels_torch)
-
-Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
-num_batches = math.ceil(Xtest_real.shape[0]/1024)
-idx = (np.arange(Xtest_real.shape[0]))
-idx_split = np.array_split(idx,num_batches)
-
-num_layers = round(sum(1 for m in model.encoder.modules() if isinstance(m, nn.Conv3d))/2)
-results = []
-for layer in range(1, num_layers+1):  # conv1 to conv6
-    print(layer)
-    num_channels = getattr(model.encoder, f"conv{layer}").real_conv.out_channels
-    for ch in range(num_channels):
-        # have to loop over batches here
-        score=[]
-        for batch in range(num_batches):
-            
-            samples = idx_split[batch]
-            Xtest_real_batch = torch.from_numpy(Xtest_real[samples,:]).to(device).float()
-            Xtest_imag_batch = torch.from_numpy(Xtest_imag[samples,:]).to(device).float()
-            labels_batch = torch.from_numpy(labels_test[samples]).to(device).float()
-                
-            tmp = ablate_encoder_channel_complex(model, 
-                        Xtest_real_batch, Xtest_imag_batch, layer, ch,labels_batch)
-            score.append(tmp.item())
-        
-        score = sum(score)/Xtest.shape[0]
-        score = score/baseline_loss.item()
-        score = score/num_channels
-        results.append((layer, ch, score))
-
-torch.cuda.empty_cache()
-torch.cuda.ipc_collect() 
-
-
-# getting stats
-layer_4_results = [(ch, score) for lyr, ch, score in results if lyr == 4]
-layer_4_scores = [score for lyr, ch, score in results if lyr == 1]
-important_channels = [(layer, ch, score) for (layer, ch, score) in results if score > 1.1]
-
-# plotting
-import collections
-layer_dict = collections.defaultdict(list)
-for layer, ch, score in results:
-    layer_dict[layer].append(score)
-
-# Plot per layer
-for layer in sorted(layer_dict.keys()):
-    plt.figure()
-    plt.bar(range(len(layer_dict[layer])), layer_dict[layer])
-    plt.axhline(1.0, color='red', linestyle='--')
-    plt.title(f"Ablation Scores for Layer {layer}")
-    plt.xlabel("Channel")
-    plt.ylabel("Score (Ablated Loss / Baseline Loss)")
-    plt.show()
-
-
-#%% LOOKING AT ACTIVATION PER CHANNEL LAYER TO SEE IF OL/CL ACTIVATES CERTAIN CHANNELS/LAYERS
-
-results_act = []
-#num_layers =  len(list(model.encoder.children()))
-num_layers = round(sum(1 for m in model.encoder.modules() if isinstance(m, nn.Conv3d))/2)
-elu = nn.ELU()
-for layer in range(1, num_layers+1):  # conv1 to conv6
-
-    torch.cuda.empty_cache()
-    torch.cuda.ipc_collect() 
-    print(f"Layer {layer}")
-    num_channels = getattr(model.encoder, f"conv{layer}").real_conv.out_channels
-    
-    for ch in range(num_channels):
-        act_class_0 = []
-        act_class_1 = []
-
-        for batch in range(num_batches):
-            samples = idx_split[batch]
-
-            Xtest_real_batch = torch.from_numpy(Xtest_real[samples, :]).to(device).float()
-            Xtest_imag_batch = torch.from_numpy(Xtest_imag[samples, :]).to(device).float()
-            labels_batch = torch.from_numpy(labels_test[samples]).to(device).float()
-
-            # Forward manually up to current layer
-            a, b = Xtest_real_batch.clone(), Xtest_imag_batch.clone()
-            for i in range(1, layer + 1):
-                conv = getattr(model.encoder, f"conv{i}")
-                a, b = conv(a, b)
-                a,b = elu(a),elu(b)
-
-            # Compute magnitude
-            mag = torch.sqrt(a**2 + b**2)  # shape: [B, C, H, W, T]
-            mag_ch = mag[:, ch]  # shape: [B, H, W, T]
-
-            # Mean over spatial/temporal dims
-            mag_mean = mag_ch.view(mag_ch.size(0), -1).mean(dim=1)  # shape: [B]
-
-            # Split by class
-            act_class_0.extend(mag_mean[labels_batch == 0].tolist())
-            act_class_1.extend(mag_mean[labels_batch == 1].tolist())
-
-        mean_act_0 = sum(act_class_0) / len(act_class_0) if act_class_0 else 0.0
-        mean_act_1 = sum(act_class_1) / len(act_class_1) if act_class_1 else 0.0
-
-        results_act.append((layer, ch, mean_act_0, mean_act_1))
-
-
-# Organize results per layer
-from collections import defaultdict
-layer_to_diffs = defaultdict(list)
-
-for layer, ch, mean_0, mean_1 in results_act:
-    diff = abs(mean_0 - mean_1)
-    layer_to_diffs[layer].append((ch, diff))
-
-# Plot layer by layer
-num_layers = len(layer_to_diffs)
-fig, axes = plt.subplots(nrows=num_layers, ncols=1, figsize=(10, 3 * num_layers))
-
-if num_layers == 1:
-    axes = [axes]  # make it iterable if only one layer
-
-for i, layer in enumerate(sorted(layer_to_diffs.keys())):
-    ch_ids, diffs = zip(*sorted(layer_to_diffs[layer]))
-    ax = axes[i]
-    ax.bar(ch_ids, diffs)
-    ax.set_title(f"Layer {layer}: Activation Difference (|class0 - class1|)")
-    ax.set_xlabel("Channel")
-    ax.set_ylabel("Mean Activation Difference")
-    ax.set_xticks(ch_ids)
-
-plt.tight_layout()
-plt.show()
-
-
-#%% PLOTTING ABLATION VS ACTIVATION STRENGTH DIFFERENCE
-
-
-
-# Convert to dict for easy lookup
-act_diff_dict = {(l, ch): abs(m0 - m1) for l, ch, m0, m1 in results_act}
-ablation_dict = {(l, ch): score for l, ch, score in results}
-
-# Make sure keys match in both
-common_keys = sorted(set(act_diff_dict.keys()) & set(ablation_dict.keys()))
-
-# Extract paired values
-act_diffs = [act_diff_dict[k] for k in common_keys]
-ablation_scores = [ablation_dict[k] for k in common_keys]
-labels = [f"L{l}_C{ch}" for l, ch in common_keys]
-
-# Scatter plot
-plt.figure(figsize=(7, 6))
-plt.scatter(act_diffs, ablation_scores, alpha=0.7, edgecolor='k')
-
-# Optionally label points
-for i, label in enumerate(labels):
-    plt.text(act_diffs[i] + 0.0002, ablation_scores[i] + 0.0002, label, fontsize=8)
-
-plt.xlabel("Activation Magnitude Difference (|Class0 - Class1|)")
-plt.ylabel("Classification Loss Ratio (Ablation / Baseline)")
-plt.title("Channel-wise: Activation Difference vs Classification Importance")
-plt.grid(True)
-plt.show()
-
-
-
-#%% (MAIN MAIN) EXAMINING WHICH LAYER GETS ACTIVATED MOST WITH THE INPUT 
+#%% (MAIN MAIN) PLOTTING LAYER ACTIVATIONS AS MOVIE AND PHASORS
 
 
 # get the CNN architecture model
@@ -536,8 +366,10 @@ if 'model' in locals():
 model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size).to(device)
 
 
-nn_filename = 'i3DAE_B3_Complex_New.pth' 
+# nn_filename = 'i3DAE_B3_Complex_New.pth' 
 model.load_state_dict(torch.load(nn_filename))
+
+
 
 
 #model=model_bkup
@@ -554,7 +386,7 @@ def hook_fn(module, input, output):
     activation["imag"] = out_i
 
 # Register hook to conv4 layer
-hook_handle = model.encoder.conv1.register_forward_hook(hook_fn) # change to different conv layers
+hook_handle = model.encoder.conv6.register_forward_hook(hook_fn) # change to different conv layers
 
 
 # get the data
@@ -580,7 +412,7 @@ cl_xtest_imag = np.imag(cl_xtest)
 cl_ytest_real = np.real(cl_ytest)
 cl_ytest_imag = np.imag(cl_ytest)
 
-l=np.arange(0,512)
+l=np.arange(0,128)
 tmpx_r = torch.from_numpy(ol_xtest_real[l,:]).to(device).float()
 tmpx_i = torch.from_numpy(ol_xtest_imag[l,:]).to(device).float()
 tmpy_r = torch.from_numpy(ol_ytest_real[l,:]).to(device).float()
@@ -624,7 +456,7 @@ torch.cuda.ipc_collect()  # helps reduce fragmentation
 
 # plot a movie of the activation 
 target_ch=target_filter
-trial=14
+trial=75
 x = out_r.to('cpu').detach().numpy()
 y = out_i.to('cpu').detach().numpy()
 x = (x[trial,target_ch,:])
@@ -653,7 +485,7 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-ani.save("RealInput.gif", writer="pillow", fps=6)
+ani.save("RealPart_Layer5_ch1_CL.gif", writer="pillow", fps=6)
 
 # phasor animation
 xreal = x;
@@ -671,7 +503,7 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-ani.save("RealInput_Phasor.gif", writer="pillow", fps=4)
+ani.save("Layser5_Ch1_Phasor_CL.gif", writer="pillow", fps=4)
 
 
 # 
@@ -685,28 +517,211 @@ plt.figure();
 plt.plot(x1,y1);
 plt.show();
 
-#%% plotting amplitude differences
-from scipy.stats import gaussian_kde
 
-ol_idx = np.where(labels==0)[0]
-cl_idx = np.where(labels==1)[0]
 
-ol = xdata[ol_idx,:].flatten()
-cl = xdata[cl_idx,:].flatten()
-plt.figure();
-#plt.boxplot([ol,cl]);
-kde = gaussian_kde(ol)
-x_range = np.linspace(min(ol), max(ol), 100)
-density_values = kde(x_range)
+#%% (MAIn MAIN) OPTIMIZING INPUT TO MAXIMALL ACTIVATE A CERTAIN LAYER CHANNEL
 
-# Plot KDE
-plt.plot(x_range, density_values, label="Density Estimate", color='red')
-plt.fill_between(x_range, density_values, alpha=0.3, color='red')  # Shaded area
-plt.xlabel("Value")
-plt.ylabel("Density")
-plt.title("Scipy Gaussian KDE")
-plt.legend()
+
+
+# get the CNN architecture model    
+num_classes=1    
+input_size=384*2
+lstm_size=32
+ksize=2;
+
+from iAE_utils_models import *
+if 'model' in locals():
+    del model    
+model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size).to(device)
+
+nn_filename = 'i3DAE_B3_Complex_New.pth' 
+model.load_state_dict(torch.load(nn_filename))
+
+model=model.eval()
+# print(model.encoder.conv1._forward_hooks)
+
+# Choose the target filter index
+target_filter = 0
+
+# Container to hold the activation
+activation = {}
+# ---- Hook function ----
+def hook_fn(module, input, output):
+    out_r, out_i = output
+    activation["real"] = out_r
+    activation["imag"] = out_i
+
+# Register hook to conv4 layer
+hook_handle = model.encoder.conv5.register_forward_hook(hook_fn)
+
+# Initialize complex input with gradients
+input_shape = (1, 1, 11, 23, 40)  # (batch, channels, H, W, T)
+x_real = torch.randn(input_shape, requires_grad=True, device=device)
+x_imag = torch.randn(input_shape, requires_grad=True,device=device)
+
+optimizer = optim.AdamW([x_real, x_imag], lr=1e-3)
+
+# Optimization loop
+losses=[];
+for step in range(3000):
+    
+    optimizer.zero_grad()
+    #out_r, out_i = conv(x_real, x_imag)
+    
+    _ = model(x_real, x_imag)
+
+    # Access activation for the target filter
+    out_r = activation["real"]      # shape: [1, C, D, H, W]
+    out_i = activation["imag"]
+    
+    magnitude = torch.sqrt(out_r**2 + out_i**2)    
+    # Maximize average activation of target filter
+    reg = 1e-4 * (x_real**2 + x_imag**2).mean()
+    loss = -magnitude[0, target_filter].mean() + reg
+    loss.backward()
+    optimizer.step()
+    #print(x_real.abs().mean().item(), x_imag.abs().mean().item())
+    losses.append(loss.item())
+    
+    if step % 50 == 0:
+        print(f"Step {step}, Loss: {-loss.item():.4f}")
+        
+    with torch.no_grad():
+        norm = torch.sqrt(x_real**2 + x_imag**2).mean()
+        x_real.div_(norm + 1e-8)
+        x_imag.div_(norm + 1e-8)
+        
+plt.plot(losses)
+hook_handle.remove()
+
+# Detach optimized input
+opt_real = x_real.to('cpu').detach().squeeze().numpy()
+opt_imag = x_imag.to('cpu').detach().squeeze().numpy()
+opt_complex = opt_real + 1j * opt_imag
+
+# Compute magnitude and phase
+magnitude = np.abs(opt_complex)
+phase = np.angle(opt_complex)
+
+# plot movie
+x = np.real(opt_complex)
+x = np.moveaxis(x, -1, 0)  # Shape: (40, 11, 23)
+
+# Normalize for visualization
+x = (x - x.min()) / (x.max() - x.min())
+
+# Plotting
+fig, ax = plt.subplots()
+im = ax.imshow(x[0], cmap='viridis', animated=True)
+title = ax.set_title("Time: 0", fontsize=12)
+#ax.set_title("Optimized Input Over Time")
+ax.axis('off')
+
+def update(frame):
+    im.set_array(x[frame])
+    title.set_text(f"Time: {frame}/40")
+    return [im]
+
+ani = animation.FuncAnimation(fig, update, frames=x.shape[0], interval=100, blit=True)
+
+# Show the animation
 plt.show()
+# save the animation
+ani.save("optimized_input_ch0_Layer5_hook.gif", writer="pillow", fps=6)
+
+
+
+# phasor animation
+xreal = opt_real;
+ximag = opt_imag;
+fig, ax = plt.subplots(figsize=(6, 6))
+
+def update(t):
+    #plot_phasor_frame_time(xreal, ximag, t, ax)
+    plot_phasor_frame(xreal, ximag, t, ax)
+    return []
+
+#ani = animation.FuncAnimation(fig, update, frames=xreal.shape[0], blit=False)
+ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
+
+plt.show()
+
+# save the animation
+ani.save("optimized_input_ch0__Layer5_hook_phasor.gif", writer="pillow", fps=4)
+
+
+
+#%% OLD VERSION OF ABOVE
+model=model.to(device)
+model=model.eval()
+conv = model.encoder.conv1.to(device)
+conv=conv.eval()
+# Choose the target filter index
+target_filter = 0
+
+# Initialize complex input with gradients
+input_shape = (1, 1, 11, 23, 40)  # (batch, channels, H, W, T)
+x_real = torch.randn(input_shape, requires_grad=True, device=device)
+x_imag = torch.randn(input_shape, requires_grad=True,device=device)
+
+optimizer = optim.AdamW([x_real, x_imag], lr=1e-3,weight_decay=1e-4)
+
+# Optimization loop
+losses=[];
+for step in range(20000):
+    
+    optimizer.zero_grad()
+    out_r, out_i = conv(x_real, x_imag)
+    
+    magnitude = torch.sqrt(out_r**2 + out_i**2)    
+    # Maximize average activation of target filter
+    reg = 1e-2 * (x_real**2 + x_imag**2).mean()
+    loss = -magnitude[0, target_filter].mean() + reg
+    loss.backward()
+    optimizer.step()
+    #print(x_real.abs().mean().item(), x_imag.abs().mean().item())
+    losses.append(loss.item())
+    
+    if step % 50 == 0:
+        print(f"Step {step}, Loss: {-loss.item():.4f}")
+        
+plt.plot(losses)
+
+# Detach optimized input
+opt_real = x_real.to('cpu').detach().squeeze().numpy()
+opt_imag = x_imag.to('cpu').detach().squeeze().numpy()
+opt_complex = opt_real + 1j * opt_imag
+
+# Compute magnitude and phase
+magnitude = np.abs(opt_complex)
+phase = np.angle(opt_complex)
+
+# plot movie
+x = np.real(opt_complex)
+x = np.moveaxis(x, -1, 0)  # Shape: (40, 11, 23)
+
+# Normalize for visualization
+x = (x - x.min()) / (x.max() - x.min())
+
+# Plotting
+fig, ax = plt.subplots()
+im = ax.imshow(x[0], cmap='viridis', animated=True)
+ax.set_title("Optimized Input Over Time")
+ax.axis('off')
+
+def update(frame):
+    im.set_array(x[frame])
+    return [im]
+
+ani = animation.FuncAnimation(fig, update, frames=x.shape[0], interval=100, blit=True)
+
+# Show the animation
+plt.show()
+# save the animation
+ani.save("optimized_input7.gif", writer="pillow", fps=10)
+
+
+
 
 #%% plotting data back for comparison sake
 
@@ -828,186 +843,8 @@ Z = Z.reshape(orig_shape[1:])
 # plot it
 plot_phasor_kernels_side_by_side_PCA(Z)
 
-#%% what input maximally activates a given layer
 
 
-model=model.to(device)
-model=model.eval()
-conv = model.encoder.conv1.to(device)
-conv=conv.eval()
-# Choose the target filter index
-target_filter = 7
-
-# Initialize complex input with gradients
-input_shape = (1, 1, 11, 23, 40)  # (batch, channels, H, W, T)
-x_real = torch.randn(input_shape, requires_grad=True, device=device)
-x_imag = torch.randn(input_shape, requires_grad=True,device=device)
-
-optimizer = optim.AdamW([x_real, x_imag], lr=1e-3,weight_decay=1e-4)
-
-# Optimization loop
-losses=[];
-for step in range(20000):
-    
-    optimizer.zero_grad()
-    out_r, out_i = conv(x_real, x_imag)
-    
-    magnitude = torch.sqrt(out_r**2 + out_i**2)    
-    # Maximize average activation of target filter
-    reg = 1e-2 * (x_real**2 + x_imag**2).mean()
-    loss = -magnitude[0, target_filter].mean() + reg
-    loss.backward()
-    optimizer.step()
-    #print(x_real.abs().mean().item(), x_imag.abs().mean().item())
-    losses.append(loss.item())
-    
-    if step % 50 == 0:
-        print(f"Step {step}, Loss: {-loss.item():.4f}")
-        
-plt.plot(losses)
-
-# Detach optimized input
-opt_real = x_real.to('cpu').detach().squeeze().numpy()
-opt_imag = x_imag.to('cpu').detach().squeeze().numpy()
-opt_complex = opt_real + 1j * opt_imag
-
-# Compute magnitude and phase
-magnitude = np.abs(opt_complex)
-phase = np.angle(opt_complex)
-
-# plot movie
-x = np.real(opt_complex)
-x = np.moveaxis(x, -1, 0)  # Shape: (40, 11, 23)
-
-# Normalize for visualization
-x = (x - x.min()) / (x.max() - x.min())
-
-# Plotting
-fig, ax = plt.subplots()
-im = ax.imshow(x[0], cmap='viridis', animated=True)
-ax.set_title("Optimized Input Over Time")
-ax.axis('off')
-
-def update(frame):
-    im.set_array(x[frame])
-    return [im]
-
-ani = animation.FuncAnimation(fig, update, frames=x.shape[0], interval=100, blit=True)
-
-# Show the animation
-plt.show()
-# save the animation
-ani.save("optimized_input7.gif", writer="pillow", fps=10)
-
-
-#%% (HOOK Functions) what input maximally activates a given layer
-
-
-# get the CNN architecture model
-num_classes=1    
-input_size=16*2
-lstm_size=8
-ksize=2;
-
-from iAE_utils_models import *
-if 'model' in locals():
-    del model    
-model = Autoencoder3D_Complex(ksize,num_classes,input_size,lstm_size).to(device)
-
-nn_filename = 'i3DAE_B3_Complex_New.pth' 
-model.load_state_dict(torch.load(nn_filename))
-
-model=model.eval()
-# print(model.encoder.conv1._forward_hooks)
-
-# Choose the target filter index
-target_filter = 14
-
-# Container to hold the activation
-activation = {}
-# ---- Hook function ----
-def hook_fn(module, input, output):
-    out_r, out_i = output
-    activation["real"] = out_r
-    activation["imag"] = out_i
-
-# Register hook to conv4 layer
-hook_handle = model.encoder.conv5.register_forward_hook(hook_fn)
-
-# Initialize complex input with gradients
-input_shape = (1, 1, 11, 23, 40)  # (batch, channels, H, W, T)
-x_real = torch.randn(input_shape, requires_grad=True, device=device)
-x_imag = torch.randn(input_shape, requires_grad=True,device=device)
-
-optimizer = optim.AdamW([x_real, x_imag], lr=1e-3)
-
-# Optimization loop
-losses=[];
-for step in range(3000):
-    
-    optimizer.zero_grad()
-    #out_r, out_i = conv(x_real, x_imag)
-    
-    _ = model(x_real, x_imag)
-
-    # Access activation for the target filter
-    out_r = activation["real"]      # shape: [1, C, D, H, W]
-    out_i = activation["imag"]
-    
-    magnitude = torch.sqrt(out_r**2 + out_i**2)    
-    # Maximize average activation of target filter
-    reg = 1e-4 * (x_real**2 + x_imag**2).mean()
-    loss = -magnitude[0, target_filter].mean() + reg
-    loss.backward()
-    optimizer.step()
-    #print(x_real.abs().mean().item(), x_imag.abs().mean().item())
-    losses.append(loss.item())
-    
-    if step % 50 == 0:
-        print(f"Step {step}, Loss: {-loss.item():.4f}")
-        
-    with torch.no_grad():
-        norm = torch.sqrt(x_real**2 + x_imag**2).mean()
-        x_real.div_(norm + 1e-8)
-        x_imag.div_(norm + 1e-8)
-        
-plt.plot(losses)
-hook_handle.remove()
-
-# Detach optimized input
-opt_real = x_real.to('cpu').detach().squeeze().numpy()
-opt_imag = x_imag.to('cpu').detach().squeeze().numpy()
-opt_complex = opt_real + 1j * opt_imag
-
-# Compute magnitude and phase
-magnitude = np.abs(opt_complex)
-phase = np.angle(opt_complex)
-
-# plot movie
-x = np.real(opt_complex)
-x = np.moveaxis(x, -1, 0)  # Shape: (40, 11, 23)
-
-# Normalize for visualization
-x = (x - x.min()) / (x.max() - x.min())
-
-# Plotting
-fig, ax = plt.subplots()
-im = ax.imshow(x[0], cmap='viridis', animated=True)
-title = ax.set_title("Time: 0", fontsize=12)
-#ax.set_title("Optimized Input Over Time")
-ax.axis('off')
-
-def update(frame):
-    im.set_array(x[frame])
-    title.set_text(f"Time: {frame}/40")
-    return [im]
-
-ani = animation.FuncAnimation(fig, update, frames=x.shape[0], interval=100, blit=True)
-
-# Show the animation
-plt.show()
-# save the animation
-ani.save("optimized_input_ch14__Layer5_hook.gif", writer="pillow", fps=6)
 
 
 
