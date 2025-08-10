@@ -184,6 +184,7 @@ plt.show()
 activations = {}
 gradients_sum = defaultdict(lambda: 0.0)
 num_batches_seen = defaultdict(lambda: 0)
+total_samples_seen = defaultdict(lambda: 0)
 
 # Hook to store activations and enable grad tracking
 def get_hook(name):
@@ -232,17 +233,22 @@ for batch_idx in range(num_batches):
     # Accumulate absolute gradients per channel
     for name, act in activations.items():
         grad = act.grad  # shape: [B, C, ...]
-        ch_importance = grad.abs().mean(dim=(0, 2, 3, 4))  # mean |grad| per channel
+        #ch_importance = grad.abs().sum(dim=(0, 2, 3, 4))  # mean |grad| per channel
+        ch_importance = grad.abs().mean(dim=( 2, 3, 4))  # mean |grad| per channel
+        ch_importance = ch_importance.sum(dim=0)
         gradients_sum[name] += ch_importance.detach().cpu().numpy()
         num_batches_seen[name] += 1
+        total_samples_seen[name] += len(samples)
 
 # ==== 4. Combine real + imag into a single magnitude ====
 combined_importance = defaultdict(list)
 for name in gradients_sum:
     if "_real" in name:
         base = name.replace("_real", "")
-        real_vals = gradients_sum[name] / num_batches_seen[name]
-        imag_vals = gradients_sum[name.replace("_real", "_imag")] / num_batches_seen[name.replace("_real", "_imag")]
+        #real_vals = gradients_sum[name] / num_batches_seen[name]
+        real_vals = gradients_sum[name] / total_samples_seen[name]
+        #imag_vals = gradients_sum[name.replace("_real", "_imag")] / num_batches_seen[name.replace("_real", "_imag")]
+        imag_vals = gradients_sum[name.replace("_real", "_imag")] / total_samples_seen[name.replace("_real", "_imag")]
         combined_mag = (real_vals**2 + imag_vals**2)**0.5
         combined_importance[base] = combined_mag
 
@@ -255,6 +261,24 @@ for layer_name, ch_vals in combined_importance.items():
     plt.ylabel("Mean sqrt(real_grad^2 + imag_grad^2)")
     plt.show()
 
+# ==== 5a. Plot all at once ====
+n_layers = len(combined_importance)
+fig, axes = plt.subplots( n_layers, 1,figsize=(8 ,3* n_layers), sharey=True,sharex=False)
+
+# Make sure axes is iterable even if there’s only 1 layer
+if n_layers == 1:
+    axes = [axes]
+
+for ax, (layer_name, ch_vals) in zip(axes, combined_importance.items()):
+    ax.bar(range(len(ch_vals)), ch_vals)
+    ax.set_title(f"{layer_name}")
+    ax.set_xlabel("Channel")
+    ax.set_ylabel("Mean sqrt(real^2 + imag^2)")
+
+plt.tight_layout()
+plt.show()
+
+
 # ==== 6. Remove hooks ====
 for h in hook_handles:
     h.remove()
@@ -263,4 +287,40 @@ for h in hook_handles:
 torch.cuda.empty_cache()
 torch.cuda.ipc_collect() 
 
+
+# Prepare a combined x-axis index for plotting
+all_channels = []
+all_values = []
+layer_boundaries = []
+offset = 0
+
+for layer_name, ch_vals in combined_importance.items():
+    ch_vals = np.array(ch_vals)
+    all_channels.extend(range(offset, offset + len(ch_vals)))
+    all_values.extend(ch_vals)
+    offset += len(ch_vals)
+    layer_boundaries.append(offset)  # store where layers end
+
+# Create one figure
+plt.figure(figsize=(14, 4))
+plt.bar(all_channels, all_values, color='steelblue')
+
+# Add vertical lines to mark layer boundaries
+for boundary in layer_boundaries[:-1]:  # skip final boundary
+    plt.axvline(boundary - 0.5, color='red', linestyle='--', alpha=0.7)
+
+# Add labels
+plt.xlabel("Channel (across all layers)")
+plt.ylabel("Mean sqrt(real_grad² + imag_grad²)")
+plt.title("Gradient Magnitude per Channel (All Layers Combined)")
+
+# Add layer names in the middle of each layer's range
+midpoints = [0] + layer_boundaries[:-1]
+for i, name in enumerate(combined_importance.keys()):
+    midpoint = (midpoints[i] + layer_boundaries[i] - 1) / 2
+    plt.text(midpoint, max(all_values) * 1.02, name,
+             ha='center', va='bottom', fontsize=8, rotation=0)
+
+plt.tight_layout()
+plt.show()
 
