@@ -206,7 +206,7 @@ for idx, layer in enumerate(model.encoder.children()):
 model.encoder.eval()
 model.decoder.eval()
 model.classifier.train()
-classif_criterion = nn.BCEWithLogitsLoss(reduction='sum')
+classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')
 
 Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
 num_batches = math.ceil(Xtest_real.shape[0]/2048)
