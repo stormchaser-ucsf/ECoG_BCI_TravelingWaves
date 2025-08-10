@@ -1904,7 +1904,7 @@ def test_model_complex(model,Xtest):
     recon_r=[]
     recon_i=[]
     decodes=[]    
-    num_batches = math.ceil(Xtest_real.shape[0]/2048)
+    num_batches = math.ceil(Xtest_real.shape[0]/512)
     idx = (np.arange(Xtest_real.shape[0]))
     idx_split = np.array_split(idx,num_batches)
     model.eval()
