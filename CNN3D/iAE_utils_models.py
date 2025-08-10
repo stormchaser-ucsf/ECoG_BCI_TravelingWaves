@@ -1753,7 +1753,7 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
                       patience,gradient_clipping,filename,
                       Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
                       input_size,num_classes,ksize,lstm_size,alp_factor,
-                      aug_flag,sigma,aug_factor):
+                      aug_flag,sigma,aug_factor,model_class):
     
    
     num_batches = math.ceil(Xtrain.shape[0]/batch_size)
@@ -1888,7 +1888,8 @@ def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_
           print(goat_loss,goat_acc)
           break
     
-    model_goat = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size)
+    #model_goat = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size)
+    model_goat = model_class(ksize,num_classes,input_size,lstm_size)
     #model_goat = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size)
     #model_goat = Autoencoder3D_B1(ksize,num_classes,input_size,lstm_size)    
     model_goat.load_state_dict(torch.load(filename))

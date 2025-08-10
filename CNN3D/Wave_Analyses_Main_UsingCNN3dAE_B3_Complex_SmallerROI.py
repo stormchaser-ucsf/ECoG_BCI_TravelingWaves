@@ -175,6 +175,7 @@ for iterr in np.arange(iterations):
         del model 
    
     model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
+    model_class = Autoencoder3D_Complex_ROI
     #model = Autoencoder3D_Complex_ROI_time(num_classes,input_size,lstm_size).to(device)
     #encoder=model.encoder
     
@@ -209,11 +210,12 @@ for iterr in np.arange(iterations):
     
     
         
-    model,acc,recon_loss_epochs,classif_loss_epochs,total_loss_epochs = training_loop_iAE3D_Complex(model,num_epochs,batch_size,
+    model,acc,recon_loss_epochs,classif_loss_epochs,
+    total_loss_epochs = training_loop_iAE3D_Complex(model,num_epochs,batch_size,
                             learning_rate,batch_val,patience,gradient_clipping,nn_filename,
                             Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
                             input_size,num_classes,ksize,lstm_size,alp_factor,aug_flag,
-                            sigma,aug_factor)
+                            sigma,aug_factor,model_class)
     
     # test the model on held out data 
     # recon acc
