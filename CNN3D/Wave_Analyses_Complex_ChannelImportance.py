@@ -356,6 +356,14 @@ plt.show()
 #%% GRAD CAM ANALYSES USING SAME CODE STRUCTURE AS ABOVE
 
 
+# ==== 6. Remove hooks ====
+for h in hook_handles:
+    h.remove()
+
+
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect() 
+
 # ===== Storage =====
 activations = {}
 per_channel_importance_real = defaultdict(lambda: 0.0)
@@ -371,12 +379,15 @@ def get_hook(name):
     return hook
 
 # ===== User setting =====
-target_layer_base = "layer4"  # <-- base name, no _real/_imag needed
+target_layer_base = "layer5"  # <-- base name, no _real/_imag needed
 
 # ===== Register hooks =====
 hook_handles = []
-for idx, layer in enumerate(model.decoder.children()):
+for idx, layer in enumerate(model.encoder.children()):
     layer_name_base = f"layer{idx+1}"
+    # print(layer_name_base)
+    # if idx==7:
+    #     print(layer)        
 
     if layer_name_base == target_layer_base:
         # Complex conv/deconv case
@@ -390,10 +401,20 @@ for idx, layer in enumerate(model.decoder.children()):
             hook_handles.append(layer.register_forward_hook(get_hook(layer_name_base)))
 
 # ===== Grad-CAM computation =====
-model.eval()
+model.encoder.eval()
+model.decoder.eval()
+model.classifier.train()
+
+idx = np.where(labels_test==1)[0]
 Xtest_real, Xtest_imag = Xtest.real, Xtest.imag
-num_batches = math.ceil(Xtest_real.shape[0] / 256)
-idx_split = np.array_split(np.arange(Xtest_real.shape[0]), num_batches)
+Ytest_real, Ytest_imag = Ytest.real, Ytest.imag
+Xr = Xtest_real[idx,:]
+Xi = Xtest_imag[idx,:]
+Yr = Ytest_real[idx,:]
+Yi = Ytest_imag[idx,:]
+
+num_batches = math.ceil(Xr.shape[0] / 256)
+idx_split = np.array_split(np.arange(Xr.shape[0]), num_batches)
 
 gradcam_sum_real = None
 gradcam_sum_imag = None
@@ -402,8 +423,8 @@ total_samples = 0
 for batch_idx in range(num_batches):
     samples = idx_split[batch_idx]
 
-    X_real_batch = torch.from_numpy(Xtest_real[samples]).to(device).float()
-    X_imag_batch = torch.from_numpy(Xtest_imag[samples]).to(device).float()
+    X_real_batch = torch.from_numpy(Xr[samples]).to(device).float()
+    X_imag_batch = torch.from_numpy(Xi[samples]).to(device).float()
 
     # Forward
     r, i, logits = model(X_real_batch, X_imag_batch)
@@ -419,8 +440,9 @@ for batch_idx in range(num_batches):
 
     if real_name in activations and imag_name in activations:
         # ----- REAL -----
+        
         act_real = activations[real_name]
-        grad_real = act_real.grad
+        grad_real = activations[real_name].grad
         w_real = grad_real.mean(dim=(2, 3, 4), keepdim=True)
         cam_real = (w_real * act_real).sum(dim=1)  # sum over channels
         ch_mag_real = (w_real * act_real).abs().mean(dim=(2, 3, 4))  # per-channel
@@ -491,16 +513,61 @@ per_channel_avg_real = per_channel_importance_real[target_layer_base] / total_sa
 per_channel_avg_imag = per_channel_importance_imag[target_layer_base] / total_samples_seen_imag[target_layer_base]
 
 # ===== Visualize REAL Grad-CAM =====
+
+# Plotting
+x1 = np.moveaxis(gradcam_avg_imag, -1, 0)  # Shape: (40, 11, 23)
 fig, ax = plt.subplots()
-im = ax.imshow(gradcam_avg_real[0, :, :], cmap='jet', origin='lower')
+im = ax.imshow(x1[0], cmap='magma', animated=True)
+title = ax.set_title("Time: 0", fontsize=12)
+#ax.set_title("Optimized Input Over Time")
+ax.axis('off')
+
+def update(frame):
+    im.set_array(x1[frame])    
+    title.set_text(f"Time: {frame}/{x1.shape[0]}")
+    return [im]
+
+ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, blit=False)
+
+# Show the animation
+plt.show()
+# save the animation
+ani.save("Grad_CAM_Layer5_CL.gif", writer="pillow", fps=6)
+
+
+
+# phasor animation
+xreal = gradcam_avg_real;
+ximag = gradcam_avg_imag;
+fig, ax = plt.subplots(figsize=(6, 6))
+
+def update(t):
+    #plot_phasor_frame_time(xreal, ximag, t, ax)
+    plot_phasor_frame(xreal, ximag, t, ax)
+    return []
+
+#ani = animation.FuncAnimation(fig, update, frames=xreal.shape[0], blit=False)
+ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
+
+plt.show()
+
+# save the animation
+ani.save("Grad_CAM_Layer5_CL_Phasor.gif", writer="pillow", fps=4)
+
+#%%
+fig, ax = plt.subplots()
+
+im = ax.imshow(x1[0, :, :], cmap='magma', origin='lower')
 
 def update(frame):
     im.set_array(gradcam_avg_real[frame, :, :])
     ax.set_title(f"REAL - Slice {frame}")
     return [im]
 
-ani = animation.FuncAnimation(fig, update, frames=gradcam_avg_real.shape[0], interval=100, blit=True)
+ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, blit=True)
 plt.show()
+# save the animation
+ani.save("Grad_CAM_Layer4_OL.gif", writer="pillow", fps=6)
 
 # ===== Visualize IMAG Grad-CAM (if exists) =====
 if gradcam_avg_imag is not None:
