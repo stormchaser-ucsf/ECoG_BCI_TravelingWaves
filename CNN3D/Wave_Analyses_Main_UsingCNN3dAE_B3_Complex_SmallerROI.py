@@ -174,7 +174,7 @@ for iterr in np.arange(iterations):
     if 'model' in locals():
         del model 
    
-    model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
+    model = Autoencoder3D_Complex_ROI(ksize,num_classes,input_size,lstm_size).to(device)
     model_class = Autoencoder3D_Complex_ROI
     #model = Autoencoder3D_Complex_ROI_time(num_classes,input_size,lstm_size).to(device)
     #encoder=model.encoder

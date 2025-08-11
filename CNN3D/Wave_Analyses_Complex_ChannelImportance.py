@@ -353,3 +353,180 @@ for i, name in enumerate(combined_importance.keys()):
 plt.tight_layout()
 plt.show()
 
+#%% GRAD CAM ANALYSES USING SAME CODE STRUCTURE AS ABOVE
+
+
+# ===== Storage =====
+activations = {}
+per_channel_importance_real = defaultdict(lambda: 0.0)
+per_channel_importance_imag = defaultdict(lambda: 0.0)
+total_samples_seen_real = defaultdict(int)
+total_samples_seen_imag = defaultdict(int)
+
+def get_hook(name):
+    """Store activations and retain gradients."""
+    def hook(module, input, output):
+        activations[name] = output
+        output.retain_grad()
+    return hook
+
+# ===== User setting =====
+target_layer_base = "layer4"  # <-- base name, no _real/_imag needed
+
+# ===== Register hooks =====
+hook_handles = []
+for idx, layer in enumerate(model.decoder.children()):
+    layer_name_base = f"layer{idx+1}"
+
+    if layer_name_base == target_layer_base:
+        # Complex conv/deconv case
+        if hasattr(layer, "real_deconv") and hasattr(layer, "imag_deconv"):
+            hook_handles.append(layer.real_deconv.register_forward_hook(get_hook(f"{layer_name_base}_real")))
+            hook_handles.append(layer.imag_deconv.register_forward_hook(get_hook(f"{layer_name_base}_imag")))
+        elif hasattr(layer, "real_conv") and hasattr(layer, "imag_conv"):
+            hook_handles.append(layer.real_conv.register_forward_hook(get_hook(f"{layer_name_base}_real")))
+            hook_handles.append(layer.imag_conv.register_forward_hook(get_hook(f"{layer_name_base}_imag")))
+        elif isinstance(layer, nn.Conv3d):
+            hook_handles.append(layer.register_forward_hook(get_hook(layer_name_base)))
+
+# ===== Grad-CAM computation =====
+model.eval()
+Xtest_real, Xtest_imag = Xtest.real, Xtest.imag
+num_batches = math.ceil(Xtest_real.shape[0] / 256)
+idx_split = np.array_split(np.arange(Xtest_real.shape[0]), num_batches)
+
+gradcam_sum_real = None
+gradcam_sum_imag = None
+total_samples = 0
+
+for batch_idx in range(num_batches):
+    samples = idx_split[batch_idx]
+
+    X_real_batch = torch.from_numpy(Xtest_real[samples]).to(device).float()
+    X_imag_batch = torch.from_numpy(Xtest_imag[samples]).to(device).float()
+
+    # Forward
+    r, i, logits = model(X_real_batch, X_imag_batch)
+    score = logits.mean()
+
+    # Backward
+    model.zero_grad()
+    score.backward(retain_graph=True)
+
+    # ---- Real & Imag parts ----
+    real_name = f"{target_layer_base}_real"
+    imag_name = f"{target_layer_base}_imag"
+
+    if real_name in activations and imag_name in activations:
+        # ----- REAL -----
+        act_real = activations[real_name]
+        grad_real = act_real.grad
+        w_real = grad_real.mean(dim=(2, 3, 4), keepdim=True)
+        cam_real = (w_real * act_real).sum(dim=1)  # sum over channels
+        ch_mag_real = (w_real * act_real).abs().mean(dim=(2, 3, 4))  # per-channel
+        per_channel_importance_real[target_layer_base] += ch_mag_real.sum(dim=0).detach().cpu().numpy()
+        total_samples_seen_real[target_layer_base] += ch_mag_real.shape[0]
+
+        cam_real = F.relu(cam_real)
+        cam_real = cam_real / (cam_real.max() + 1e-8)
+        cam_real_resized = F.interpolate(
+            cam_real.unsqueeze(1), size=X_real_batch.shape[2:], mode='trilinear', align_corners=False
+        ).squeeze(1)
+
+        # ----- IMAG -----
+        act_imag = activations[imag_name]
+        grad_imag = act_imag.grad
+        w_imag = grad_imag.mean(dim=(2, 3, 4), keepdim=True)
+        cam_imag = (w_imag * act_imag).sum(dim=1)
+        ch_mag_imag = (w_imag * act_imag).abs().mean(dim=(2, 3, 4))
+        per_channel_importance_imag[target_layer_base] += ch_mag_imag.sum(dim=0).detach().cpu().numpy()
+        total_samples_seen_imag[target_layer_base] += ch_mag_imag.shape[0]
+
+        cam_imag = F.relu(cam_imag)
+        cam_imag = cam_imag / (cam_imag.max() + 1e-8)
+        cam_imag_resized = F.interpolate(
+            cam_imag.unsqueeze(1), size=X_real_batch.shape[2:], mode='trilinear', align_corners=False
+        ).squeeze(1)
+
+    else:
+        # Single real-valued case
+        name = target_layer_base
+        act = activations[name]
+        grad = act.grad
+        w = grad.mean(dim=(2, 3, 4), keepdim=True)
+        cam_real = (w * act).sum(dim=1)
+        ch_mag_real = (w * act).abs().mean(dim=(2, 3, 4))
+        per_channel_importance_real[target_layer_base] += ch_mag_real.sum(dim=0).detach().cpu().numpy()
+        total_samples_seen_real[target_layer_base] += ch_mag_real.shape[0]
+
+        cam_real = F.relu(cam_real)
+        cam_real = cam_real / (cam_real.max() + 1e-8)
+        cam_real_resized = F.interpolate(
+            cam_real.unsqueeze(1), size=X_real_batch.shape[2:], mode='trilinear', align_corners=False
+        ).squeeze(1)
+        cam_imag_resized = None  # not used
+
+    # ---- Accumulate ----
+    cam_real_np = cam_real_resized.detach().cpu().numpy()
+    if gradcam_sum_real is None:
+        gradcam_sum_real = np.sum(cam_real_np, axis=0)
+    else:
+        gradcam_sum_real += np.sum(cam_real_np, axis=0)
+
+    if cam_imag_resized is not None:
+        cam_imag_np = cam_imag_resized.detach().cpu().numpy()
+        if gradcam_sum_imag is None:
+            gradcam_sum_imag = np.sum(cam_imag_np, axis=0)
+        else:
+            gradcam_sum_imag += np.sum(cam_imag_np, axis=0)
+
+    total_samples += cam_real_np.shape[0]
+
+# ===== Average spatial Grad-CAM =====
+gradcam_avg_real = gradcam_sum_real / total_samples
+gradcam_avg_imag = gradcam_sum_imag / total_samples if gradcam_sum_imag is not None else None
+
+# ===== Average per-channel magnitudes =====
+per_channel_avg_real = per_channel_importance_real[target_layer_base] / total_samples_seen_real[target_layer_base]
+per_channel_avg_imag = per_channel_importance_imag[target_layer_base] / total_samples_seen_imag[target_layer_base]
+
+# ===== Visualize REAL Grad-CAM =====
+fig, ax = plt.subplots()
+im = ax.imshow(gradcam_avg_real[0, :, :], cmap='jet', origin='lower')
+
+def update(frame):
+    im.set_array(gradcam_avg_real[frame, :, :])
+    ax.set_title(f"REAL - Slice {frame}")
+    return [im]
+
+ani = animation.FuncAnimation(fig, update, frames=gradcam_avg_real.shape[0], interval=100, blit=True)
+plt.show()
+
+# ===== Visualize IMAG Grad-CAM (if exists) =====
+if gradcam_avg_imag is not None:
+    fig, ax = plt.subplots()
+    im = ax.imshow(gradcam_avg_imag[0, :, :], cmap='jet', origin='lower')
+
+    def update_imag(frame):
+        im.set_array(gradcam_avg_imag[frame, :, :])
+        ax.set_title(f"IMAG - Slice {frame}")
+        return [im]
+
+    ani = animation.FuncAnimation(fig, update_imag, frames=gradcam_avg_imag.shape[0], interval=100, blit=True)
+    plt.show()
+
+# ===== Print per-channel importance =====
+print(f"Per-channel REAL Grad-CAM magnitudes for {target_layer_base}:")
+print(per_channel_avg_real)
+if gradcam_avg_imag is not None:
+    print(f"Per-channel IMAG Grad-CAM magnitudes for {target_layer_base}:")
+    print(per_channel_avg_imag)
+
+
+
+
+
+
+
+
+

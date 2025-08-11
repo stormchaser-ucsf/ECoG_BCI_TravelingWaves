@@ -1422,7 +1422,7 @@ class Decoder3D_Complex_ROI(nn.Module):
 
 
 class Autoencoder3D_Complex_ROI(nn.Module):
-    def __init__(self, num_classes,input_size,lstm_size):
+    def __init__(self, ksize,num_classes,input_size,lstm_size):
     #def __init__(self, ksize):
         super(Autoencoder3D_Complex_ROI, self).__init__()
         self.encoder = Encoder3D_Complex_ROI()
