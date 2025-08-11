@@ -201,24 +201,38 @@ def get_hook(name):
         output.retain_grad()
     return hook
 
-# ==== 2. Register hooks ====
+# # ==== 2. Register hooks ====
+# hook_handles = []
+# for idx, layer in enumerate(model.decoder.children()):
+#     # For complex conv layers with separate real and imaginary convs
+#     if hasattr(layer, "real_conv") and hasattr(layer, "imag_conv"):
+#         hook_handles.append(layer.real_conv.register_forward_hook(get_hook(f"layer{idx+1}_real")))
+#         hook_handles.append(layer.imag_conv.register_forward_hook(get_hook(f"layer{idx+1}_imag")))
+#     elif isinstance(layer, nn.Conv3d):  # Fallback if it's just a regular conv
+#         hook_handles.append(layer.register_forward_hook(get_hook(f"layer{idx+1}")))
+
+# ==== 2. Register hooks decoder layers ====
 hook_handles = []
-for idx, layer in enumerate(model.encoder.children()):
+for idx, layer in enumerate(model.decoder.children()):
     # For complex conv layers with separate real and imaginary convs
-    if hasattr(layer, "real_conv") and hasattr(layer, "imag_conv"):
-        hook_handles.append(layer.real_conv.register_forward_hook(get_hook(f"layer{idx+1}_real")))
-        hook_handles.append(layer.imag_conv.register_forward_hook(get_hook(f"layer{idx+1}_imag")))
+    if hasattr(layer, "real_deconv") and hasattr(layer, "imag_deconv"):
+        hook_handles.append(layer.real_deconv.register_forward_hook(get_hook(f"layer{idx+1}_real")))
+        hook_handles.append(layer.imag_deconv.register_forward_hook(get_hook(f"layer{idx+1}_imag")))
     elif isinstance(layer, nn.Conv3d):  # Fallback if it's just a regular conv
         hook_handles.append(layer.register_forward_hook(get_hook(f"layer{idx+1}")))
+
+
 
 # ==== 3. Loop over batches ====
 model.encoder.eval()
 model.decoder.eval()
 model.classifier.train()
-classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')
+#classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')
+recon_criterion = nn.MSELoss(reduction='mean')
 
 Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
-num_batches = math.ceil(Xtest_real.shape[0]/512)
+Ytest_real,Ytest_imag = Ytest.real,Ytest.imag
+num_batches = math.ceil(Xtest_real.shape[0]/256)
 idx = (np.arange(Xtest_real.shape[0]))
 idx_split = np.array_split(idx,num_batches)
 
@@ -228,11 +242,16 @@ for batch_idx in range(num_batches):
 
     Xtest_real_batch = torch.from_numpy(Xtest_real[samples, :]).to(device).float()
     Xtest_imag_batch = torch.from_numpy(Xtest_imag[samples, :]).to(device).float()
+    Ytest_real_batch = torch.from_numpy(Ytest_real[samples, :]).to(device).float()
+    Ytest_imag_batch = torch.from_numpy(Ytest_imag[samples, :]).to(device).float()
     labels_batch = torch.from_numpy(labels_test[samples]).to(device).float()
 
     # Forward pass
     r,i,logits = model(Xtest_real_batch, Xtest_imag_batch)
-    loss = classif_criterion(logits.squeeze(), labels_batch)
+    #loss = classif_criterion(logits.squeeze(), labels_batch)
+    loss1 = recon_criterion(r,Ytest_real_batch)
+    loss2 = recon_criterion(i,Ytest_imag_batch)
+    loss=1*(loss1+loss2)
 
     # Backward pass
     model.zero_grad()
@@ -328,7 +347,7 @@ plt.title("Gradient Magnitude per Channel")
 midpoints = [0] + layer_boundaries[:-1]
 for i, name in enumerate(combined_importance.keys()):
     midpoint = (midpoints[i] + layer_boundaries[i] - 1) / 2
-    plt.text(midpoint, max(all_values) * 1.02, name,
+    plt.text(midpoint, max(all_values) * 0.99, name,
              ha='center', va='bottom', fontsize=8, rotation=0)
 
 plt.tight_layout()

@@ -458,7 +458,7 @@ torch.cuda.ipc_collect()  # helps reduce fragmentation
 
 # plot a movie of the activation 
 target_ch=target_filter
-trial=75
+trial=12
 x = out_r.to('cpu').detach().numpy()
 y = out_i.to('cpu').detach().numpy()
 x = (x[trial,target_ch,:])
