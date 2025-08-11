@@ -240,10 +240,12 @@ for batch_idx in range(num_batches):
 
     # Accumulate absolute gradients per channel
     for name, act in activations.items():
-        grad = act.grad  # shape: [B, C, ...]
+        grad = act.grad  # shape: [B, C, H,W,T]
+        #print(grad.shape)
+        #print(name)
         #ch_importance = grad.abs().sum(dim=(0, 2, 3, 4))  # mean |grad| per channel
-        ch_importance = grad.abs().mean(dim=( 2, 3, 4))  # mean |grad| per channel
-        ch_importance = ch_importance.sum(dim=0)
+        ch_importance = grad.abs().mean(dim=( 2, 3, 4))  # mean |grad| over dimensions, gets mean gradient per channel
+        ch_importance = ch_importance.sum(dim=0) # sum over all the batch samples as batch samples not uniform per batch
         gradients_sum[name] += ch_importance.detach().cpu().numpy()
         num_batches_seen[name] += 1
         total_samples_seen[name] += len(samples)
@@ -320,7 +322,7 @@ for boundary in layer_boundaries[:-1]:  # skip final boundary
 # Add labels
 plt.xlabel("Channel (across all layers)")
 plt.ylabel("Mean sqrt(real_grad² + imag_grad²)")
-plt.title("Gradient Magnitude per Channel (All Layers Combined)")
+plt.title("Gradient Magnitude per Channel")
 
 # Add layer names in the middle of each layer's range
 midpoints = [0] + layer_boundaries[:-1]
