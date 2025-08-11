@@ -532,7 +532,8 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-ani.save("Grad_CAM_Layer1_OL_STG.gif", writer="pillow", fps=6)
+filename = 'Grad_CAM_'  + target_layer_base + 'OL.gif'
+ani.save(filename, writer="pillow", fps=6)
 
 
 
@@ -540,8 +541,13 @@ ani.save("Grad_CAM_Layer1_OL_STG.gif", writer="pillow", fps=6)
 scaler = MaxAbsScaler()
 xreal = gradcam_avg_real;
 ximag = gradcam_avg_imag;
-xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
-ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
+xc = xreal + 1j*ximag
+xc_abs = np.abs(xc)
+xreal = xreal
+ximag = ximag
+
+#xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
+#ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
 fig, ax = plt.subplots(figsize=(6, 6))
 
 def update(t):
@@ -555,7 +561,8 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-ani.save("Grad_CAM_Layer1_OL_Phasor_STG.gif", writer="pillow", fps=4)
+filename = 'Grad_CAM_'  + target_layer_base + 'OL_Phasor.gif'
+ani.save(filename, writer="pillow", fps=4)
 
 #%%
 fig, ax = plt.subplots()

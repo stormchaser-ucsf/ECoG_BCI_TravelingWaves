@@ -352,6 +352,14 @@ data=np.load('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2.
 #%% (MAIN MAIN) PLOTTING LAYER ACTIVATIONS AS MOVIE AND PHASORS
 
 
+for h in hook_handles:
+    h.remove()
+
+
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect() 
+
+
 # get the CNN architecture model
 num_classes=1    
 input_size=384*2
@@ -388,7 +396,7 @@ def hook_fn(module, input, output):
     activation["imag"] = out_i
 
 # Register hook to conv4 layer
-hook_handle = model.encoder.conv4.register_forward_hook(hook_fn) # change to different conv layers
+hook_handle = model.encoder.conv6.register_forward_hook(hook_fn) # change to different conv layers
 
 
 # get the data
@@ -479,7 +487,7 @@ ax.axis('off')
 
 def update(frame):
     im.set_array(x1[frame])
-    im.set_clim(vmin=0.09, vmax=0.15)
+    #im.set_clim(vmin=0.09, vmax=0.15)
     title.set_text(f"Time: {frame}/{x1.shape[0]}")
     return [im]
 
@@ -488,11 +496,14 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-ani.save("RealPart_Layer4_ch0_CL.gif", writer="pillow", fps=6)
+ani.save("RealPart_Layer6_ch0_CL.gif", writer="pillow", fps=6)
 
 # phasor animation
 xreal = x;
 ximag = y;
+xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
+ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
+
 fig, ax = plt.subplots(figsize=(6, 6))
 
 def update(t):
@@ -506,7 +517,7 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-ani.save("Layser4_Ch0_Phasor_CL.gif", writer="pillow", fps=4)
+ani.save("Layer6_Ch0_Phasor_CL.gif", writer="pillow", fps=4)
 
 
 # 
