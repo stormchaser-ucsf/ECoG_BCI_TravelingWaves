@@ -379,7 +379,7 @@ def get_hook(name):
     return hook
 
 # ===== User setting =====
-target_layer_base = "layer4"  # <-- base name, no _real/_imag needed
+target_layer_base = "layer1"  # <-- base name, no _real/_imag needed
 
 # ===== Register hooks =====
 hook_handles = []
@@ -532,7 +532,7 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-ani.save("Grad_CAM_Layer4_OL_STG.gif", writer="pillow", fps=6)
+ani.save("Grad_CAM_Layer1_OL_STG.gif", writer="pillow", fps=6)
 
 
 
@@ -555,7 +555,7 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-ani.save("Grad_CAM_Layer4_OL_Phasor_STG.gif", writer="pillow", fps=4)
+ani.save("Grad_CAM_Layer1_OL_Phasor_STG.gif", writer="pillow", fps=4)
 
 #%%
 fig, ax = plt.subplots()

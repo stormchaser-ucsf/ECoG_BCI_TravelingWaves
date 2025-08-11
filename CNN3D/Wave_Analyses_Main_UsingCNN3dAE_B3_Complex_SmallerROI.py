@@ -350,17 +350,26 @@ np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2',
 #%% (MAIN MAIN) PLOTTING LAYER ACTIVATION PATTERNS 
 
 
+# ==== 6. Remove hooks ====
+for h in hook_handles:
+    h.remove()
+
+
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect() 
+
 # get the CNN architecture model
 num_classes=1    
 input_size=32*2
 lstm_size=16
+ksize=2
 
 from iAE_utils_models import *
 
 if 'model' in locals():
     del model 
 
-model = Autoencoder3D_Complex_ROI(num_classes,input_size,lstm_size).to(device)
+model = Autoencoder3D_Complex_ROI(ksize,num_classes,input_size,lstm_size).to(device)
 #model = Autoencoder3D_Complex_ROI_time(num_classes,input_size,lstm_size).to(device)
 
 
@@ -382,7 +391,7 @@ def hook_fn(module, input, output):
     activation["imag"] = out_i
 
 # Register hook to conv4 layer
-hook_handle = model.encoder.conv4.register_forward_hook(hook_fn) # change to different conv layers
+hook_handle = model.encoder.conv1.register_forward_hook(hook_fn) # change to different conv layers
 
 
 # get the data
@@ -409,10 +418,10 @@ cl_ytest_real = np.real(cl_ytest)
 cl_ytest_imag = np.imag(cl_ytest)
 
 l=np.arange(0,512)
-tmpx_r = torch.from_numpy(ol_xtest_real[l,:]).to(device).float()
-tmpx_i = torch.from_numpy(ol_xtest_imag[l,:]).to(device).float()
-tmpy_r = torch.from_numpy(ol_ytest_real[l,:]).to(device).float()
-tmpy_i = torch.from_numpy(ol_ytest_imag[l,:]).to(device).float()
+tmpx_r = torch.from_numpy(cl_xtest_real[l,:]).to(device).float()
+tmpx_i = torch.from_numpy(cl_xtest_imag[l,:]).to(device).float()
+tmpy_r = torch.from_numpy(cl_ytest_real[l,:]).to(device).float()
+tmpy_i = torch.from_numpy(cl_ytest_imag[l,:]).to(device).float()
 
 # tmpx_r = torch.from_numpy(cl_xtest_real[l,:]).to(device).float()
 # tmpx_i = torch.from_numpy(cl_xtest_imag[l,:]).to(device).float()
@@ -432,7 +441,7 @@ out_real,out_imag,logits = model(tmpx_r, tmpx_i)
 # plt.show()
 
 # Access activation for the target filter
-target_filter=7;
+target_filter=0;
 out_r = activation["real"]      # shape: [N, C, D, H, W]
 out_i = activation["imag"]
 magnitude = torch.sqrt(out_r**2 + out_i**2)       # shape: [N, C, D, H, W]
@@ -474,11 +483,13 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-ani.save("RealInput_Act_Layer4_Ch5_M1.gif", writer="pillow", fps=6)
+ani.save("RealInput_Act_Layer1_Ch7_STG.gif", writer="pillow", fps=6)
 
 # phasor animation
 xreal = x;
 ximag = y;
+xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
+ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
 fig, ax = plt.subplots(figsize=(6, 6))
 
 def update(t):
@@ -491,7 +502,7 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[-1], blit=False)
 plt.show()
 
 # save the animation
-ani.save("RealInput_Act_Layer4_Ch5_Phasor_M1.gif", writer="pillow", fps=4)
+ani.save("RealInput_Act_Layer1_Ch7_Phasor_STG.gif", writer="pillow", fps=4)
 
 
 
