@@ -202,24 +202,24 @@ def get_hook(name):
     return hook
 
 # # ==== 2. Register hooks ====
+hook_handles = []
+for idx, layer in enumerate(model.encoder.children()):
+    # For complex conv layers with separate real and imaginary convs
+    if hasattr(layer, "real_conv") and hasattr(layer, "imag_conv"):
+        hook_handles.append(layer.real_conv.register_forward_hook(get_hook(f"layer{idx+1}_real")))
+        hook_handles.append(layer.imag_conv.register_forward_hook(get_hook(f"layer{idx+1}_imag")))
+    elif isinstance(layer, nn.Conv3d):  # Fallback if it's just a regular conv
+        hook_handles.append(layer.register_forward_hook(get_hook(f"layer{idx+1}")))
+
+# ==== 2. Register hooks decoder layers ====
 # hook_handles = []
 # for idx, layer in enumerate(model.decoder.children()):
 #     # For complex conv layers with separate real and imaginary convs
-#     if hasattr(layer, "real_conv") and hasattr(layer, "imag_conv"):
-#         hook_handles.append(layer.real_conv.register_forward_hook(get_hook(f"layer{idx+1}_real")))
-#         hook_handles.append(layer.imag_conv.register_forward_hook(get_hook(f"layer{idx+1}_imag")))
+#     if hasattr(layer, "real_deconv") and hasattr(layer, "imag_deconv"):
+#         hook_handles.append(layer.real_deconv.register_forward_hook(get_hook(f"layer{idx+1}_real")))
+#         hook_handles.append(layer.imag_deconv.register_forward_hook(get_hook(f"layer{idx+1}_imag")))
 #     elif isinstance(layer, nn.Conv3d):  # Fallback if it's just a regular conv
 #         hook_handles.append(layer.register_forward_hook(get_hook(f"layer{idx+1}")))
-
-# ==== 2. Register hooks decoder layers ====
-hook_handles = []
-for idx, layer in enumerate(model.decoder.children()):
-    # For complex conv layers with separate real and imaginary convs
-    if hasattr(layer, "real_deconv") and hasattr(layer, "imag_deconv"):
-        hook_handles.append(layer.real_deconv.register_forward_hook(get_hook(f"layer{idx+1}_real")))
-        hook_handles.append(layer.imag_deconv.register_forward_hook(get_hook(f"layer{idx+1}_imag")))
-    elif isinstance(layer, nn.Conv3d):  # Fallback if it's just a regular conv
-        hook_handles.append(layer.register_forward_hook(get_hook(f"layer{idx+1}")))
 
 
 
@@ -227,12 +227,12 @@ for idx, layer in enumerate(model.decoder.children()):
 model.encoder.eval()
 model.decoder.eval()
 model.classifier.train()
-#classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')
-recon_criterion = nn.MSELoss(reduction='mean')
+classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')
+#recon_criterion = nn.MSELoss(reduction='mean')
 
 Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
 Ytest_real,Ytest_imag = Ytest.real,Ytest.imag
-num_batches = math.ceil(Xtest_real.shape[0]/256)
+num_batches = math.ceil(Xtest_real.shape[0]/128)
 idx = (np.arange(Xtest_real.shape[0]))
 idx_split = np.array_split(idx,num_batches)
 
@@ -248,10 +248,10 @@ for batch_idx in range(num_batches):
 
     # Forward pass
     r,i,logits = model(Xtest_real_batch, Xtest_imag_batch)
-    #loss = classif_criterion(logits.squeeze(), labels_batch)
-    loss1 = recon_criterion(r,Ytest_real_batch)
-    loss2 = recon_criterion(i,Ytest_imag_batch)
-    loss=1*(loss1+loss2)
+    loss = classif_criterion(logits.squeeze(), labels_batch)
+    # loss1 = recon_criterion(r,Ytest_real_batch)
+    # loss2 = recon_criterion(i,Ytest_imag_batch)
+    # loss=1*(loss1+loss2)
 
     # Backward pass
     model.zero_grad()
@@ -379,7 +379,7 @@ def get_hook(name):
     return hook
 
 # ===== User setting =====
-target_layer_base = "layer5"  # <-- base name, no _real/_imag needed
+target_layer_base = "layer4"  # <-- base name, no _real/_imag needed
 
 # ===== Register hooks =====
 hook_handles = []
@@ -405,7 +405,7 @@ model.encoder.eval()
 model.decoder.eval()
 model.classifier.train()
 
-idx = np.where(labels_test==1)[0]
+idx = np.where(labels_test==0)[0]
 Xtest_real, Xtest_imag = Xtest.real, Xtest.imag
 Ytest_real, Ytest_imag = Ytest.real, Ytest.imag
 Xr = Xtest_real[idx,:]
@@ -532,13 +532,16 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-ani.save("Grad_CAM_Layer5_CL.gif", writer="pillow", fps=6)
+ani.save("Grad_CAM_Layer4_OL_STG.gif", writer="pillow", fps=6)
 
 
 
 # phasor animation
+scaler = MaxAbsScaler()
 xreal = gradcam_avg_real;
 ximag = gradcam_avg_imag;
+xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
+ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
 fig, ax = plt.subplots(figsize=(6, 6))
 
 def update(t):
@@ -552,7 +555,7 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-ani.save("Grad_CAM_Layer5_CL_Phasor.gif", writer="pillow", fps=4)
+ani.save("Grad_CAM_Layer4_OL_Phasor_STG.gif", writer="pillow", fps=4)
 
 #%%
 fig, ax = plt.subplots()

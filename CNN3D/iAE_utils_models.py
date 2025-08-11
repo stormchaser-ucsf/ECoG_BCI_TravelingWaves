@@ -35,6 +35,7 @@ import scipy.stats as stats
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from collections import defaultdict
+from sklearn.preprocessing import MaxAbsScaler
 
 # setting up GPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
