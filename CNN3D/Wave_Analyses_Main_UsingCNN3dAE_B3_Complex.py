@@ -166,6 +166,7 @@ for iterr in np.arange(iterations):
         del model 
    
     model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size).to(device)
+    model_class = Autoencoder3D_Complex_deep
     
     #get number of parameters
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -203,7 +204,7 @@ for iterr in np.arange(iterations):
                             learning_rate,batch_val,patience,gradient_clipping,nn_filename,
                             Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
                             input_size,num_classes,ksize,lstm_size,alp_factor,aug_flag,
-                            sigma,aug_factor)
+                            sigma,aug_factor,model_class)
     
     # test the model on held out data 
     # recon acc
@@ -247,6 +248,7 @@ for iterr in np.arange(iterations):
         balanced_acc = balan_acc(idx,decodes1)
         balanced_acc_days[iterr,i]=balanced_acc
         #print(balanced_acc*100)
+        
         #balanced_decoding_acc.append(balanced_acc*100)
         
         # cross entropy loss
@@ -386,7 +388,7 @@ def hook_fn(module, input, output):
     activation["imag"] = out_i
 
 # Register hook to conv4 layer
-hook_handle = model.encoder.conv6.register_forward_hook(hook_fn) # change to different conv layers
+hook_handle = model.encoder.conv4.register_forward_hook(hook_fn) # change to different conv layers
 
 
 # get the data
@@ -439,7 +441,7 @@ with torch.no_grad():
 # plt.show()
 
 # Access activation for the target filter
-target_filter=1;
+target_filter=0;
 out_r = activation["real"]      # shape: [N, C, D, H, W]
 out_i = activation["imag"]
 magnitude = torch.sqrt(out_r**2 + out_i**2)       # shape: [N, C, D, H, W]
@@ -466,7 +468,7 @@ x1 = np.moveaxis(x, -1, 0)  # Shape: (40, 11, 23)
 #x1 = y # if already in time shape first
 
 # Normalize for visualization
-x1 = (x1 - x1.min()) / (x1.max() - x1.min())
+#x1 = (x1 - x1.min()) / (x1.max() - x1.min())
 
 # Plotting
 fig, ax = plt.subplots()
@@ -477,6 +479,7 @@ ax.axis('off')
 
 def update(frame):
     im.set_array(x1[frame])
+    im.set_clim(vmin=0.09, vmax=0.15)
     title.set_text(f"Time: {frame}/{x1.shape[0]}")
     return [im]
 
@@ -485,7 +488,7 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-ani.save("RealPart_Layer5_ch1_CL.gif", writer="pillow", fps=6)
+ani.save("RealPart_Layer4_ch0_CL.gif", writer="pillow", fps=6)
 
 # phasor animation
 xreal = x;
@@ -503,12 +506,12 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-ani.save("Layser5_Ch1_Phasor_CL.gif", writer="pillow", fps=4)
+ani.save("Layser4_Ch0_Phasor_CL.gif", writer="pillow", fps=4)
 
 
 # 
-x1=x[4,4,:]
-y1=x[5,5,:]
+x1=xreal[4,4,:]
+y1=ximag[4,4,:]
 plt.plot(x1)
 plt.plot(y1)
 plt.show();

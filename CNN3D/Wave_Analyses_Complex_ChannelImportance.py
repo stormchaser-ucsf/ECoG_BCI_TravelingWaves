@@ -6,11 +6,11 @@ Created on Sat Aug  9 18:54:09 2025
 """
 
 
-from iAE_utils_models import *
 
 #%% (MAIN MAIN) CHANNEL ABLATION EXPERIMENTS 
 
 
+from iAE_utils_models import *
 # get baseline classification loss from the model 
 r,i,decodes = test_model_complex(model, Xtest)
 torch.cuda.empty_cache()
@@ -77,6 +77,7 @@ for layer in sorted(layer_dict.keys()):
 
 #%% LOOKING AT ACTIVATION PER CHANNEL LAYER TO SEE IF OL/CL ACTIVATES CERTAIN CHANNELS/LAYERS
 
+from iAE_utils_models import *
 results_act = []
 #num_layers =  len(list(model.encoder.children()))
 num_layers = round(sum(1 for m in model.encoder.modules() if isinstance(m, nn.Conv3d))/2)
@@ -151,6 +152,7 @@ plt.show()
 #%% PLOTTING ABLATION VS ACTIVATION STRENGTH DIFFERENCE
 
 
+from iAE_utils_models import *
 
 # Convert to dict for easy lookup
 act_diff_dict = {(l, ch): abs(m0 - m1) for l, ch, m0, m1 in results_act}
@@ -181,6 +183,7 @@ plt.show()
 #%% EXAMINING GRADIENTS WRT TEST LOSS AT INDIVIDUAL CHANNELS/LAYERS
 
 
+from iAE_utils_models import *
 
 torch.cuda.empty_cache()
 torch.cuda.ipc_collect() 
@@ -215,7 +218,7 @@ model.classifier.train()
 classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')
 
 Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
-num_batches = math.ceil(Xtest_real.shape[0]/128)
+num_batches = math.ceil(Xtest_real.shape[0]/512)
 idx = (np.arange(Xtest_real.shape[0]))
 idx_split = np.array_split(idx,num_batches)
 
