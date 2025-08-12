@@ -1678,6 +1678,11 @@ def compute_RF(dilation, stride,kernel_size):
     
     return rf
 
+# dilation = [2,2,2,2,2,2,3]
+# stride = [1,1,1,1,1,1,1]
+# kernel_size = [3,3,3,3,3,3,4]
+# rf =  compute_RF(dilation, stride,kernel_size)
+
 # class Encoder3D_Complex(nn.Module):
 #     def __init__(self,ksize):
 #         super(Encoder3D_Complex, self).__init__()
