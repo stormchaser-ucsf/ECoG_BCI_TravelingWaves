@@ -384,7 +384,11 @@ def hook_fn(module, input, output):
 
 # Register hook to conv4 layer
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 hook_handle = model.encoder.conv4.register_forward_hook(hook_fn) # change to different conv layers
+=======
+hook_handle = model.encoder.conv5.register_forward_hook(hook_fn) # change to different conv layers
+>>>>>>> Stashed changes
 =======
 hook_handle = model.encoder.conv5.register_forward_hook(hook_fn) # change to different conv layers
 >>>>>>> Stashed changes
@@ -480,7 +484,11 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 plt.show()
 # save the animation
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 ani.save("RealInput_Act_Layer5_Ch0_STG.gif", writer="pillow", fps=6)
+=======
+ani.save("RealInput_Act_Layer5_Ch7_STG.gif", writer="pillow", fps=6)
+>>>>>>> Stashed changes
 =======
 ani.save("RealInput_Act_Layer5_Ch7_STG.gif", writer="pillow", fps=6)
 >>>>>>> Stashed changes
@@ -503,12 +511,15 @@ plt.show()
 
 # save the animation
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 ani.save("RealInput_Act_Layer5_Ch0_Phasor_STG.gif", writer="pillow", fps=4)
 
 plt.plot(xreal[0,0,:])
 plt.plot(ximag[0,0,:])
 plt.show()
 =======
+=======
+>>>>>>> Stashed changes
 ani.save("RealInput_Act_Layer5_Ch7_Phasor_STG.gif", writer="pillow", fps=4)
 
 
@@ -520,6 +531,9 @@ for h in hook_handles:
 torch.cuda.empty_cache()
 torch.cuda.ipc_collect() 
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
 #%% STATISTICS: WHICH DAY HAS THE MOST ACTIVATION AT A PARTICULAR LAYER AND WHETHER OL/CL
