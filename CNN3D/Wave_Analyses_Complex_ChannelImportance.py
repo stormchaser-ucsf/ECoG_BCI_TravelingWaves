@@ -102,7 +102,9 @@ for layer in range(1, num_layers+1):  # conv1 to conv6
             for i in range(1, layer + 1):
                 conv = getattr(model.encoder, f"conv{i}")
                 a, b = conv(a, b)
-                a,b = elu(a),elu(b)
+                #a,b = elu(a),elu(b)
+                z = ((a**2) + (b**2))**0.5
+                a,b = a*encoder.elu(z)/z, b*encoder.elu(z)/z
 
             # Compute magnitude
             mag = torch.sqrt(a**2 + b**2)  # shape: [B, C, H, W, T]

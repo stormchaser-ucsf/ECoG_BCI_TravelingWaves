@@ -2272,7 +2272,9 @@ def ablate_encoder_channel_complex(model, input_real, input_imag,
         for i in range(1, num_layers+1):  # conv1 to conv6
             conv_layer = getattr(encoder, f"conv{i}")
             a, b = conv_layer(a, b)
-            a, b = encoder.elu(a), encoder.elu(b)
+            #a, b = encoder.elu(a), encoder.elu(b)
+            z = ((a**2) + (b**2))**0.5
+            a,b = a*encoder.elu(z)/z, b*encoder.elu(z)/z
     
             if i == layer_idx:
                 # Ablate real and imaginary channels
