@@ -1069,6 +1069,22 @@ class Autoencoder3D_B1(nn.Module):
 #%%
 ##### COMPLEX AUTOENCODER FUNCTIONS 
 
+
+class ModELU(nn.Module):
+    def __init__(self, bias_init=0.0, alpha=1.0):
+        super(ModELU, self).__init__()
+        self.bias = nn.Parameter(torch.tensor(bias_init))
+        self.elu = nn.ELU(alpha=alpha)
+        
+    def forward(self, a,b):              
+        r = torch.sqrt(a**2 + b**2 + 1e-12) # avoid divide by zero in subsequent steps
+        activated_r = self.elu(r + self.bias)
+        a = (activated_r / r) * a
+        b = (activated_r / r) * b        
+        return a,b
+
+
+
 def complex_activation(fr,fi,data):
     act = (fr(data.real) - fi(data.imag)) + 1j*(fr(data.imag) + fi(data.real))
     return act
@@ -1226,7 +1242,8 @@ class Encoder3D_Complex_deep(nn.Module):
         self.conv5 = ComplexConv3D(16, 16, (2,3,3), (1, 1, 1),0,(1,2,2))  
         self.conv6 = ComplexConv3D(16, 16, (2,3,3), (1, 1, 1),0,(1,2,2))  
         self.conv7 = ComplexConv3D(16, 24, (2,3,4), (1, 1, 1),0,(1,2,3))  
-        self.elu = nn.ELU()
+        #self.elu = nn.ELU()
+        self.elu = ModELU()
         
 
     def forward(self, a,b):        
@@ -1234,37 +1251,44 @@ class Encoder3D_Complex_deep(nn.Module):
         #z=torch.square(a) + torch.square(b)
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        a,b = self.elu(a),self.elu(b)        
+        #a,b = self.elu(a),self.elu(b)    
+        a,b=self.elu(a,b)
         
         a,b = self.conv2(a,b)        
         #z = ((a**2) + (b**2))**0.5
         #a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        a,b = self.elu(a),self.elu(b)        
+        #a,b = self.elu(a),self.elu(b)    
+        a,b=self.elu(a,b)
         
         a,b = self.conv3(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        a,b = self.elu(a),self.elu(b)               
+        #a,b = self.elu(a),self.elu(b)    
+        a,b=self.elu(a,b)
         
         a,b = self.conv4(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        a,b = self.elu(a),self.elu(b)                
+        #a,b = self.elu(a),self.elu(b)    
+        a,b=self.elu(a,b)             
         
         a,b = self.conv5(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        a,b = self.elu(a),self.elu(b)        
+        #a,b = self.elu(a),self.elu(b)    
+        a,b=self.elu(a,b)      
 
         a,b = self.conv6(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        a,b = self.elu(a),self.elu(b)             
+        #a,b = self.elu(a),self.elu(b)    
+        a,b=self.elu(a,b)
 
         a,b = self.conv7(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        a,b = self.elu(a),self.elu(b)                     
+        #a,b = self.elu(a),self.elu(b)    
+        a,b=self.elu(a,b)                    
         
         return a,b
 
@@ -1280,38 +1304,45 @@ class Decoder3D_Complex_deep(nn.Module):
         self.deconv5 = ComplexConvTranspose3D(12, 12, (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
         self.deconv6 = ComplexConvTranspose3D(12, 12, (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
         self.deconv7 = ComplexConvTranspose3D(12, 1,  (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
-        self.elu = nn.ELU()        
+        #self.elu = nn.ELU()        
+        self.elu = ModELU()        
         
     def forward(self, a,b):        
          a,b = self.deconv1(a,b)        
          #z = ((a**2) + (b**2))**0.5
          #a,b = a*self.elu(z)/z, b*self.elu(z)/z
-         a,b = self.elu(a),self.elu(b)        
+         #a,b = self.elu(a),self.elu(b)    
+         a,b=self.elu(a,b)  
          
          a,b = self.deconv2(a,b)        
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-         a,b = self.elu(a),self.elu(b)             
+         #a,b = self.elu(a),self.elu(b)    
+         a,b=self.elu(a,b)          
          
          a,b = self.deconv3(a,b)        
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-         a,b = self.elu(a),self.elu(b)               
+         #a,b = self.elu(a),self.elu(b)    
+         a,b=self.elu(a,b)              
          
          a,b = self.deconv4(a,b)        
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-         a,b = self.elu(a),self.elu(b)              
+         #a,b = self.elu(a),self.elu(b)    
+         a,b=self.elu(a,b)               
          
          a,b = self.deconv5(a,b)         
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-         a,b = self.elu(a),self.elu(b)        
+         #a,b = self.elu(a),self.elu(b)    
+         a,b=self.elu(a,b)        
          
          a,b = self.deconv6(a,b)         
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-         a,b = self.elu(a),self.elu(b)        
+         #a,b = self.elu(a),self.elu(b)    
+         a,b=self.elu(a,b)      
          
          a,b = self.deconv7(a,b)         
          
@@ -1374,20 +1405,6 @@ class Autoencoder3D_Complex_deep(nn.Module):
 ####### end #######
 
 ########### SMALLER ROI COMPLEX CNN AE #####
-
-
-class ModELU(nn.Module):
-    def __init__(self, bias_init=0.0, alpha=1.0):
-        super(ModELU, self).__init__()
-        self.bias = nn.Parameter(torch.tensor(bias_init))
-        self.elu = nn.ELU(alpha=alpha)
-        
-    def forward(self, a,b):              
-        r = torch.sqrt(a**2 + b**2 + 1e-12) # avoid divide by zero in subsequent steps
-        activated_r = self.elu(r + self.bias)
-        a = (activated_r / r) * a
-        b = (activated_r / r) * b        
-        return a,b
 
 #in_channels, out_channels, ksize, strd, pad,dil
 class Encoder3D_Complex_ROI(nn.Module):
