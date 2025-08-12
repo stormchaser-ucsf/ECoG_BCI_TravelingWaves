@@ -1231,6 +1231,7 @@ class Encoder3D_Complex_deep(nn.Module):
 
     def forward(self, a,b):        
         a,b = self.conv1(a,b) 
+        #z=torch.square(a) + torch.square(b)
         z = ((a**2) + (b**2))**0.5
         a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)        

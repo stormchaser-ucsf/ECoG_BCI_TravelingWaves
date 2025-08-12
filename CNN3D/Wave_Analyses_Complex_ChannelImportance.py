@@ -541,8 +541,8 @@ ani.save(filename, writer="pillow", fps=6)
 scaler = MaxAbsScaler()
 xreal = gradcam_avg_real;
 ximag = gradcam_avg_imag;
-xc = xreal + 1j*ximag
-xc_abs = np.abs(xc)
+# xc = xreal + 1j*ximag
+# xc_abs = np.abs(xc)
 xreal = xreal
 ximag = ximag
 

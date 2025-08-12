@@ -466,7 +466,7 @@ torch.cuda.ipc_collect()  # helps reduce fragmentation
 
 # plot a movie of the activation 
 target_ch=target_filter
-trial=12
+trial=61
 x = out_r.to('cpu').detach().numpy()
 y = out_i.to('cpu').detach().numpy()
 x = (x[trial,target_ch,:])
@@ -501,8 +501,8 @@ ani.save("RealPart_Layer6_ch0_CL.gif", writer="pillow", fps=6)
 # phasor animation
 xreal = x;
 ximag = y;
-xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
-ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
+#xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
+#ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
 
 fig, ax = plt.subplots(figsize=(6, 6))
 
