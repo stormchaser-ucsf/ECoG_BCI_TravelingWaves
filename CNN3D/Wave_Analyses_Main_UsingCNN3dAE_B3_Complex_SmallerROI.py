@@ -391,7 +391,7 @@ def hook_fn(module, input, output):
     activation["imag"] = out_i
 
 # Register hook to conv4 layer
-hook_handle = model.encoder.conv1.register_forward_hook(hook_fn) # change to different conv layers
+hook_handle = model.encoder.conv4.register_forward_hook(hook_fn) # change to different conv layers
 
 
 # get the data
@@ -483,13 +483,13 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-ani.save("RealInput_Act_Layer1_Ch7_STG.gif", writer="pillow", fps=6)
+ani.save("RealInput_Act_Layer5_Ch0_STG.gif", writer="pillow", fps=6)
 
 # phasor animation
 xreal = x;
 ximag = y;
-xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
-ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
+#xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
+#ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
 fig, ax = plt.subplots(figsize=(6, 6))
 
 def update(t):
@@ -502,9 +502,11 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[-1], blit=False)
 plt.show()
 
 # save the animation
-ani.save("RealInput_Act_Layer1_Ch7_Phasor_STG.gif", writer="pillow", fps=4)
+ani.save("RealInput_Act_Layer5_Ch0_Phasor_STG.gif", writer="pillow", fps=4)
 
-
+plt.plot(xreal[0,0,:])
+plt.plot(ximag[0,0,:])
+plt.show()
 
 #%% STATISTICS: WHICH DAY HAS THE MOST ACTIVATION AT A PARTICULAR LAYER AND WHETHER OL/CL
 

@@ -566,6 +566,10 @@ plt.show()
 filename = 'Grad_CAM_'  + target_layer_base + 'OL_Phasor.gif'
 ani.save(filename, writer="pillow", fps=4)
 
+plt.plot(xreal[0,0,:])
+plt.plot(ximag[0,0,:])
+plt.show()
+
 #%%
 fig, ax = plt.subplots()
 
