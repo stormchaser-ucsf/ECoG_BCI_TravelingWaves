@@ -1243,7 +1243,13 @@ class Encoder3D_Complex_deep(nn.Module):
         self.conv6 = ComplexConv3D(16, 16, (2,3,3), (1, 1, 1),0,(1,2,2))  
         self.conv7 = ComplexConv3D(16, 24, (2,3,4), (1, 1, 1),0,(1,2,3))  
         #self.elu = nn.ELU()
-        self.elu = ModELU()
+        self.elu1 = ModELU()
+        self.elu2 = ModELU()
+        self.elu3 = ModELU()
+        self.elu4 = ModELU()
+        self.elu5 = ModELU()
+        self.elu6 = ModELU()
+        self.elu7 = ModELU()
         
 
     def forward(self, a,b):        
@@ -1252,43 +1258,43 @@ class Encoder3D_Complex_deep(nn.Module):
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)    
-        a,b=self.elu(a,b)
+        a,b=self.elu1(a,b)
         
         a,b = self.conv2(a,b)        
         #z = ((a**2) + (b**2))**0.5
         #a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)    
-        a,b=self.elu(a,b)
+        a,b=self.elu2(a,b)
         
         a,b = self.conv3(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)    
-        a,b=self.elu(a,b)
+        a,b=self.elu3(a,b)
         
         a,b = self.conv4(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)    
-        a,b=self.elu(a,b)             
+        a,b=self.elu4(a,b)             
         
         a,b = self.conv5(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)    
-        a,b=self.elu(a,b)      
+        a,b=self.elu5(a,b)      
 
         a,b = self.conv6(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)    
-        a,b=self.elu(a,b)
+        a,b=self.elu6(a,b)
 
         a,b = self.conv7(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)    
-        a,b=self.elu(a,b)                    
+        a,b=self.elu7(a,b)                    
         
         return a,b
 
@@ -1305,44 +1311,50 @@ class Decoder3D_Complex_deep(nn.Module):
         self.deconv6 = ComplexConvTranspose3D(12, 12, (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
         self.deconv7 = ComplexConvTranspose3D(12, 1,  (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
         #self.elu = nn.ELU()        
-        self.elu = ModELU()        
+        self.elu1 = ModELU()
+        self.elu2 = ModELU()
+        self.elu3 = ModELU()
+        self.elu4 = ModELU()
+        self.elu5 = ModELU()
+        self.elu6 = ModELU()
+             
         
     def forward(self, a,b):        
          a,b = self.deconv1(a,b)        
          #z = ((a**2) + (b**2))**0.5
          #a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)    
-         a,b=self.elu(a,b)  
+         a,b=self.elu1(a,b)  
          
          a,b = self.deconv2(a,b)        
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)    
-         a,b=self.elu(a,b)          
+         a,b=self.elu2(a,b)          
          
          a,b = self.deconv3(a,b)        
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)    
-         a,b=self.elu(a,b)              
+         a,b=self.elu3(a,b)              
          
          a,b = self.deconv4(a,b)        
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)    
-         a,b=self.elu(a,b)               
+         a,b=self.elu4(a,b)               
          
          a,b = self.deconv5(a,b)         
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)    
-         a,b=self.elu(a,b)        
+         a,b=self.elu5(a,b)        
          
          a,b = self.deconv6(a,b)         
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)    
-         a,b=self.elu(a,b)      
+         a,b=self.elu6(a,b)      
          
          a,b = self.deconv7(a,b)         
          
