@@ -381,7 +381,7 @@ def get_hook(name):
     return hook
 
 # ===== User setting =====
-target_layer_base = "layer3"  # <-- base name, no _real/_imag needed
+target_layer_base = "layer4"  # <-- base name, no _real/_imag needed
 
 # ===== Register hooks =====
 hook_handles = []
@@ -507,7 +507,7 @@ for batch_idx in range(num_batches):
     total_samples += cam_real_np.shape[0]
 
 # cleaning up
-del score,r,i,logits,activations,grad,X_real_batch,X_imag_batch
+del score,r,i,logits,activations,X_real_batch,X_imag_batch
 torch.cuda.empty_cache()
 torch.cuda.ipc_collect()
 
@@ -525,7 +525,7 @@ per_channel_avg_imag = per_channel_importance_imag[target_layer_base] / total_sa
 x  = (gradcam_avg_real**2 + gradcam_avg_imag**2)**0.5
 x1 = np.moveaxis(x, -1, 0)  # Shape: (40, 11, 23)
 fig, ax = plt.subplots()
-im = ax.imshow(x1[0], cmap='magma', animated=True)
+im = ax.imshow(x1[0], cmap='jet', animated=True)
 title = ax.set_title("Time: 0", fontsize=12)
 #ax.set_title("Optimized Input Over Time")
 ax.axis('off')
@@ -555,7 +555,7 @@ xreal = xreal
 ximag = ximag
 
 xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
-ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
+imag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
 fig, ax = plt.subplots(figsize=(6, 6))
 
 def update(t):
