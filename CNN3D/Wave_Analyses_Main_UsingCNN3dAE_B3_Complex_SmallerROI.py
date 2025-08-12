@@ -350,14 +350,6 @@ np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2',
 #%% (MAIN MAIN) PLOTTING LAYER ACTIVATION PATTERNS 
 
 
-# ==== 6. Remove hooks ====
-for h in hook_handles:
-    h.remove()
-
-
-torch.cuda.empty_cache()
-torch.cuda.ipc_collect() 
-
 # get the CNN architecture model
 num_classes=1    
 input_size=32*2
@@ -391,7 +383,11 @@ def hook_fn(module, input, output):
     activation["imag"] = out_i
 
 # Register hook to conv4 layer
+<<<<<<< Updated upstream
 hook_handle = model.encoder.conv4.register_forward_hook(hook_fn) # change to different conv layers
+=======
+hook_handle = model.encoder.conv5.register_forward_hook(hook_fn) # change to different conv layers
+>>>>>>> Stashed changes
 
 
 # get the data
@@ -483,7 +479,11 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
+<<<<<<< Updated upstream
 ani.save("RealInput_Act_Layer5_Ch0_STG.gif", writer="pillow", fps=6)
+=======
+ani.save("RealInput_Act_Layer5_Ch7_STG.gif", writer="pillow", fps=6)
+>>>>>>> Stashed changes
 
 # phasor animation
 xreal = x;
@@ -502,11 +502,25 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[-1], blit=False)
 plt.show()
 
 # save the animation
+<<<<<<< Updated upstream
 ani.save("RealInput_Act_Layer5_Ch0_Phasor_STG.gif", writer="pillow", fps=4)
 
 plt.plot(xreal[0,0,:])
 plt.plot(ximag[0,0,:])
 plt.show()
+=======
+ani.save("RealInput_Act_Layer5_Ch7_Phasor_STG.gif", writer="pillow", fps=4)
+
+
+# ==== 6. Remove hooks ====
+for h in hook_handles:
+    h.remove()
+
+
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect() 
+
+>>>>>>> Stashed changes
 
 #%% STATISTICS: WHICH DAY HAS THE MOST ACTIVATION AT A PARTICULAR LAYER AND WHETHER OL/CL
 
