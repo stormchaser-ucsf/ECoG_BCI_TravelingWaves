@@ -230,7 +230,7 @@ model.encoder.eval()
 model.decoder.eval()
 model.classifier.train()
 classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')
-#recon_criterion = nn.MSELoss(reduction='mean')
+recon_criterion = nn.MSELoss(reduction='mean')
 
 Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
 Ytest_real,Ytest_imag = Ytest.real,Ytest.imag
@@ -250,10 +250,10 @@ for batch_idx in range(num_batches):
 
     # Forward pass
     r,i,logits = model(Xtest_real_batch, Xtest_imag_batch)
-    loss = classif_criterion(logits.squeeze(), labels_batch)
-    # loss1 = recon_criterion(r,Ytest_real_batch)
-    # loss2 = recon_criterion(i,Ytest_imag_batch)
-    # loss=1*(loss1+loss2)
+    #loss = classif_criterion(logits.squeeze(), labels_batch)
+    loss1 = recon_criterion(r,Ytest_real_batch)
+    loss2 = recon_criterion(i,Ytest_imag_batch)
+    loss=1*(loss1+loss2)
 
     # Backward pass
     model.zero_grad()
