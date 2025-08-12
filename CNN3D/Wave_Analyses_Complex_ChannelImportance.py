@@ -21,7 +21,7 @@ classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')# input. target
 baseline_loss = classif_criterion(torch.squeeze(decodes),test_labels_torch)
 
 Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
-num_batches = math.ceil(Xtest_real.shape[0]/2048)
+num_batches = math.ceil(Xtest_real.shape[0]/128)
 idx = (np.arange(Xtest_real.shape[0]))
 idx_split = np.array_split(idx,num_batches)
 
@@ -104,7 +104,7 @@ for layer in range(1, num_layers+1):  # conv1 to conv6
                 a, b = conv(a, b)
                 #a,b = elu(a),elu(b)
                 z = ((a**2) + (b**2))**0.5
-                a,b = a*encoder.elu(z)/z, b*encoder.elu(z)/z
+                a,b = a*elu(z)/z, b*elu(z)/z
 
             # Compute magnitude
             mag = torch.sqrt(a**2 + b**2)  # shape: [B, C, H, W, T]
@@ -381,7 +381,7 @@ def get_hook(name):
     return hook
 
 # ===== User setting =====
-target_layer_base = "layer1"  # <-- base name, no _real/_imag needed
+target_layer_base = "layer3"  # <-- base name, no _real/_imag needed
 
 # ===== Register hooks =====
 hook_handles = []
@@ -506,6 +506,11 @@ for batch_idx in range(num_batches):
 
     total_samples += cam_real_np.shape[0]
 
+# cleaning up
+del score,r,i,logits,activations,grad,X_real_batch,X_imag_batch
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect()
+
 # ===== Average spatial Grad-CAM =====
 gradcam_avg_real = gradcam_sum_real / total_samples
 gradcam_avg_imag = gradcam_sum_imag / total_samples if gradcam_sum_imag is not None else None
@@ -517,7 +522,8 @@ per_channel_avg_imag = per_channel_importance_imag[target_layer_base] / total_sa
 # ===== Visualize REAL Grad-CAM =====
 
 # Plotting
-x1 = np.moveaxis(gradcam_avg_imag, -1, 0)  # Shape: (40, 11, 23)
+x  = (gradcam_avg_real**2 + gradcam_avg_imag**2)**0.5
+x1 = np.moveaxis(x, -1, 0)  # Shape: (40, 11, 23)
 fig, ax = plt.subplots()
 im = ax.imshow(x1[0], cmap='magma', animated=True)
 title = ax.set_title("Time: 0", fontsize=12)
@@ -534,7 +540,7 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-filename = 'Grad_CAM_'  + target_layer_base + 'OL.gif'
+filename = 'Grad_CAM_'  + target_layer_base + 'OL_Mag.gif'
 ani.save(filename, writer="pillow", fps=6)
 
 
@@ -548,8 +554,8 @@ ximag = gradcam_avg_imag;
 xreal = xreal
 ximag = ximag
 
-#xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
-#ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
+xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
+ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
 fig, ax = plt.subplots(figsize=(6, 6))
 
 def update(t):
@@ -565,6 +571,10 @@ plt.show()
 # save the animation
 filename = 'Grad_CAM_'  + target_layer_base + 'OL_Phasor.gif'
 ani.save(filename, writer="pillow", fps=4)
+
+plt.plot(xreal[0,0,:])
+plt.plot(ximag[0,0,:])
+plt.show();
 
 #%%
 fig, ax = plt.subplots()

@@ -164,6 +164,10 @@ for iterr in np.arange(iterations):
     
     if 'model' in locals():
         del model 
+    
+        
+    torch.cuda.empty_cache()
+    torch.cuda.ipc_collect() 
    
     model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size).to(device)
     model_class = Autoencoder3D_Complex_deep
