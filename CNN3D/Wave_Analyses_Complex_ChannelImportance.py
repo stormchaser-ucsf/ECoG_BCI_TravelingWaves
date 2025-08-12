@@ -540,7 +540,7 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-filename = 'Grad_CAM_'  + target_layer_base + 'OL_Mag.gif'
+filename = 'ROI_Grad_CAM_'  + target_layer_base + 'OL_Mag.gif'
 ani.save(filename, writer="pillow", fps=6)
 
 
@@ -555,7 +555,7 @@ xreal = xreal
 ximag = ximag
 
 xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
-imag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
+ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
 fig, ax = plt.subplots(figsize=(6, 6))
 
 def update(t):
@@ -569,7 +569,7 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-filename = 'Grad_CAM_'  + target_layer_base + 'OL_Phasor.gif'
+filename = 'ROI_Grad_CAM_'  + target_layer_base + 'OL_Phasor.gif'
 ani.save(filename, writer="pillow", fps=4)
 
 plt.plot(xreal[0,0,:])
