@@ -574,11 +574,10 @@ ani.save(filename, writer="pillow", fps=4)
 
 plt.plot(xreal[0,0,:])
 plt.plot(ximag[0,0,:])
-<<<<<<< HEAD
+
 plt.show();
-=======
-plt.show()
->>>>>>> e33585ba97e0763be9b3c4fa40a73cf79918e75e
+
+
 
 #%%
 fig, ax = plt.subplots()
