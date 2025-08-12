@@ -230,7 +230,7 @@ model.encoder.eval()
 model.decoder.eval()
 model.classifier.train()
 classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')
-#recon_criterion = nn.MSELoss(reduction='mean')
+recon_criterion = nn.MSELoss(reduction='mean')
 
 Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
 Ytest_real,Ytest_imag = Ytest.real,Ytest.imag
@@ -250,10 +250,10 @@ for batch_idx in range(num_batches):
 
     # Forward pass
     r,i,logits = model(Xtest_real_batch, Xtest_imag_batch)
-    loss = classif_criterion(logits.squeeze(), labels_batch)
-    # loss1 = recon_criterion(r,Ytest_real_batch)
-    # loss2 = recon_criterion(i,Ytest_imag_batch)
-    # loss=1*(loss1+loss2)
+    #loss = classif_criterion(logits.squeeze(), labels_batch)
+    loss1 = recon_criterion(r,Ytest_real_batch)
+    loss2 = recon_criterion(i,Ytest_imag_batch)
+    loss=1*(loss1+loss2)
 
     # Backward pass
     model.zero_grad()
@@ -407,7 +407,7 @@ model.encoder.eval()
 model.decoder.eval()
 model.classifier.train()
 
-idx = np.where(labels_test==0)[0]
+idx = np.where(labels_test==1)[0]
 Xtest_real, Xtest_imag = Xtest.real, Xtest.imag
 Ytest_real, Ytest_imag = Ytest.real, Ytest.imag
 Xr = Xtest_real[idx,:]
@@ -427,10 +427,16 @@ for batch_idx in range(num_batches):
 
     X_real_batch = torch.from_numpy(Xr[samples]).to(device).float()
     X_imag_batch = torch.from_numpy(Xi[samples]).to(device).float()
+    Y_real_batch = torch.from_numpy(Yr[samples]).to(device).float()
+    Y_imag_batch = torch.from_numpy(Yi[samples]).to(device).float()
 
     # Forward
     r, i, logits = model(X_real_batch, X_imag_batch)
-    score = logits.mean()
+    #score = logits.mean()
+    s1 = torch.square(Y_real_batch - r)
+    s2 = torch.square(Y_imag_batch - i)
+    s = torch.sqrt(s1+s2)
+    score = s.mean()
 
     # Backward
     model.zero_grad()
@@ -507,7 +513,8 @@ for batch_idx in range(num_batches):
     total_samples += cam_real_np.shape[0]
 
 # cleaning up
-del score,r,i,logits,activations,X_real_batch,X_imag_batch
+del score,r,i,logits,activations,X_real_batch,X_imag_batch, Y_real_batch,Y_imag_batch
+del s1,s2,s
 torch.cuda.empty_cache()
 torch.cuda.ipc_collect()
 
@@ -540,7 +547,7 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-filename = 'ROI_Grad_CAM_'  + target_layer_base + 'OL_Mag.gif'
+filename = 'Grad_CAM_'  + target_layer_base + 'CL_Mag_Recon.gif'
 ani.save(filename, writer="pillow", fps=6)
 
 
@@ -569,7 +576,7 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-filename = 'ROI_Grad_CAM_'  + target_layer_base + 'OL_Phasor.gif'
+filename = 'Grad_CAM_'  + target_layer_base + 'CL_Phasor_Recon.gif'
 ani.save(filename, writer="pillow", fps=4)
 
 plt.plot(xreal[0,0,:])
