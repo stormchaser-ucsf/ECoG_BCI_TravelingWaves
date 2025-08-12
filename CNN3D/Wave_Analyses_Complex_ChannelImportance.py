@@ -407,7 +407,7 @@ model.encoder.eval()
 model.decoder.eval()
 model.classifier.train()
 
-idx = np.where(labels_test==1)[0]
+idx = np.where(labels_test==0)[0]
 Xtest_real, Xtest_imag = Xtest.real, Xtest.imag
 Ytest_real, Ytest_imag = Ytest.real, Ytest.imag
 Xr = Xtest_real[idx,:]
@@ -547,7 +547,7 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-filename = 'Grad_CAM_'  + target_layer_base + 'CL_Mag_Recon.gif'
+filename = 'Grad_CAM_'  + target_layer_base + 'OL_Mag_Recon_v2.gif'
 ani.save(filename, writer="pillow", fps=6)
 
 
@@ -576,7 +576,7 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-filename = 'Grad_CAM_'  + target_layer_base + 'CL_Phasor_Recon.gif'
+filename = 'Grad_CAM_'  + target_layer_base + 'OL_Phasor_Recon_v2.gif'
 ani.save(filename, writer="pillow", fps=4)
 
 plt.plot(xreal[0,0,:])
