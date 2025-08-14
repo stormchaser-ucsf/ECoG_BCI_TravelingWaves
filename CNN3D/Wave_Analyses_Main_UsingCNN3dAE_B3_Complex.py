@@ -88,8 +88,11 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 1
+iterations = 15
 days = np.unique(labels_days)
+
+decoding_accuracy=[]
+balanced_decoding_accuracy=[]
 
 decoding_acc=[]
 balanced_decoding_acc=[];
@@ -177,7 +180,7 @@ for iterr in np.arange(iterations):
     print(f"Number of trainable parameters: {trainable_params}")
     
     # getparams and train the model 
-    num_epochs=150
+    num_epochs=100
     batch_size=128
     learning_rate=1e-3
     batch_val=2048
@@ -213,6 +216,11 @@ for iterr in np.arange(iterations):
     # test the model on held out data 
     # recon acc
     recon_r,recon_i,decodes = test_model_complex(model,Xtest)
+    dec_output = np.array(convert_to_ClassNumbers_sigmoid_list(decodes))
+    x=np.array(labels_test)[:,None]
+    decoding_accuracy.append( (np.sum(dec_output==x)/dec_output.shape[0]*100).tolist())
+    balanced_decoding_accuracy.append(balan_acc(dec_output,x)*100)
+    # get the accuracy across days 
         
     for i in np.arange(len(days)): # loop over the 10 days 
         idx_days = np.where(labels_test_days == days[i])[0]
@@ -268,7 +276,7 @@ for iterr in np.arange(iterations):
         
         del tmp_decodes, tmp_labels,classif_loss
     
-    #del Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
+    del Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
 
 # classif_loss = (classif_criterion(torch.from_numpy(tmp_labels[:1,:]).to(device),
 #                                    tmp_decodes[:1,:])).item()
@@ -321,6 +329,9 @@ plt.figure();
 plt.plot(tmp)
 
 plt.figure();
+plt.boxplot(tmp)
+
+plt.figure();
 plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
 
 
@@ -340,6 +351,8 @@ np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_DataAug
           balanced_acc_days = balanced_acc_days,
           ol_mse_days = ol_mse_days,
           cl_mse_days=cl_mse_days,
+          balanced_decoding_accuracy=balanced_decoding_accuracy,
+          decoding_accuracy=decoding_accuracy
           )
 
 
