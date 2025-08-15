@@ -346,7 +346,7 @@ plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 
 #%% SAVING 
 
-np.savez('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_DataAug', 
+np.savez('Alpha_200Hz_AllDays_B3_Complex_DataAug_15Iter', 
           ce_loss = ce_loss,
           balanced_acc_days = balanced_acc_days,
           ol_mse_days = ol_mse_days,
