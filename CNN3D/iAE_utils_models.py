@@ -1434,30 +1434,42 @@ class Encoder3D_Complex_ROI(nn.Module):
         self.elu4 = ModELU()
         self.elu5 = ModELU()
         self.elu6 = ModELU()
+        self.bn1 = ComplexBatchNorm(8)
+        self.bn2 = ComplexBatchNorm(8)
+        self.bn3 = ComplexBatchNorm(12)
+        self.bn4 = ComplexBatchNorm(12)
+        self.bn5 = ComplexBatchNorm(16)
+        self.bn6 = ComplexBatchNorm(32)
         
 
     def forward(self, a,b):        
-        a,b = self.conv1(a,b)        
+        a,b = self.conv1(a,b)       
+        a,b = self.bn1(a,b)
         #a,b = self.elu(a),self.elu(b)        
         a,b = self.elu1(a,b)
         
         a,b = self.conv2(a,b)        
         #a,b = self.elu(a),self.elu(b)        
+        a,b = self.bn2(a,b)
         a,b = self.elu2(a,b)
         
-        a,b = self.conv3(a,b)        
+        a,b = self.conv3(a,b)      
+        a,b = self.bn3(a,b)
         #a,b = self.elu(a),self.elu(b)        
         a,b = self.elu3(a,b)
         
-        a,b = self.conv4(a,b)        
+        a,b = self.conv4(a,b)      
+        a,b = self.bn4(a,b)
         #a,b = self.elu(a),self.elu(b)        
         a,b = self.elu4(a,b)    
         
-        a,b = self.conv5(a,b)        
+        a,b = self.conv5(a,b)  
+        a,b = self.bn5(a,b)
         #a,b = self.elu(a),self.elu(b)        
         a,b = self.elu5(a,b)     
         
-        a,b = self.conv6(a,b)        
+        a,b = self.conv6(a,b) 
+        a,b = self.bn6(a,b)
         #a,b = self.elu(a),self.elu(b)        
         a,b = self.elu6(a,b)      
         
@@ -1481,27 +1493,38 @@ class Decoder3D_Complex_ROI(nn.Module):
         self.elu3 = ModELU()
         self.elu4 = ModELU()
         self.elu5 = ModELU()
+        self.bn1 = ComplexBatchNorm(16)
+        self.bn2 = ComplexBatchNorm(12)
+        self.bn3 = ComplexBatchNorm(12)
+        self.bn4 = ComplexBatchNorm(8)
+        self.bn5 = ComplexBatchNorm(8)
+        
         
         
         
     def forward(self, a,b):        
-         a,b = self.deconv1(a,b)        
+         a,b = self.deconv1(a,b)   
+         a,b = self.bn1(a,b)
          #a,b = self.elu(a),self.elu(b)        
          a,b = self.elu1(a,b)
          
-         a,b = self.deconv2(a,b)        
+         a,b = self.deconv2(a,b)  
+         a,b = self.bn2(a,b)
          #a,b = self.elu(a),self.elu(b)        
          a,b = self.elu2(a,b)      
          
-         a,b = self.deconv3(a,b)        
+         a,b = self.deconv3(a,b)   
+         a,b = self.bn3(a,b)
          #a,b = self.elu(a),self.elu(b)        
          a,b = self.elu3(a,b)      
          
-         a,b = self.deconv4(a,b)        
+         a,b = self.deconv4(a,b)  
+         a,b = self.bn4(a,b)
          #a,b = self.elu(a),self.elu(b)        
          a,b = self.elu4(a,b)     
          
-         a,b = self.deconv5(a,b)                 
+         a,b = self.deconv5(a,b)   
+         a,b = self.bn5(a,b)
          #a,b = self.elu(a),self.elu(b)        
          a,b = self.elu5(a,b)    
          
@@ -2033,7 +2056,101 @@ def test_model_complex(model,Xtest):
     
     return recon_r,recon_i,decodes
 
-#%% DATA AUGMENTATION
+#%% BATCH NORM COMPLEX CNN
+
+class ComplexBatchNorm(nn.Module):
+    def __init__(self, num_features, eps=1e-6, momentum=0.9):
+        super().__init__()
+        self.num_features = num_features
+        self.eps = eps
+        self.momentum = momentum
+        
+        
+        # Learnable affine parameters
+        # Symmetric 2x2 scaling matrix: [[a, b], [b, c]]
+        # init
+        a_init = 1.0 / math.sqrt(2)
+        c_init = 1.0 / math.sqrt(2)
+        b_init = 0.0
+               
+        
+        self.a = nn.Parameter(torch.full((num_features,), a_init))
+        self.b = nn.Parameter(torch.full((num_features,), b_init))
+        self.c = nn.Parameter(torch.full((num_features,), c_init))
+        
+        # Shift (β): initialized to zero
+        self.bias = nn.Parameter(torch.zeros(num_features, 2))
+        
+        # Running stats
+        self.register_buffer('running_mean', torch.zeros(num_features, 2))
+        self.register_buffer('running_covar', torch.eye(2).unsqueeze(0).repeat(num_features, 1, 1))
+    
+    def forward(self,input_real,input_imag):
+        B,C,D,H,W = input_real.shape
+        
+        # Merge real and imag into (B, C, D, H, W, 2)
+        input = torch.stack([input_real, input_imag], dim=-1)  # (B, C, D, H, W, 2)
+
+        if self.training:
+          # Flatten batch + spatial dims -> (C, N, 2)
+          inp = input.permute(1, 0, 2, 3, 4, 5).reshape(C, -1, 2)
+
+          # Mean per channel
+          mean = inp.mean(dim=1)  # (C, 2)
+          centered = inp - mean[:, None, :]
+
+          # Covariance per channel
+          cov = torch.einsum('cni, cnj -> cij', centered, centered) / (centered.shape[1] - 1)
+
+          #  Regularize covariance (add eps to diagonal)
+          eye = torch.eye(2, device=input.device).unsqueeze(0)
+          cov_reg = cov + self.eps * eye
+
+          # Whitening: inverse sqrt via Cholesky
+          L = torch.linalg.cholesky(cov_reg)
+          L_inv = torch.linalg.inv(L)
+          cov_inv_sqrt = L_inv.transpose(-1, -2) @ L_inv
+
+          # Whiten
+          normed = torch.einsum('cij, cnj -> cni', cov_inv_sqrt, centered)
+
+          # Update running stats
+          self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mean.detach()
+          self.running_covar = (1 - self.momentum) * self.running_covar + self.momentum * cov.detach()
+        
+        
+        else:
+            # Inference: use running stats
+            inp = input.permute(1, 0, 2, 3, 4, 5).reshape(C, -1, 2)
+            centered = inp - self.running_mean[:, None, :]
+
+            # Regularize covariance at inference
+            eye = torch.eye(2, device=input.device).unsqueeze(0)
+            cov_reg = self.running_covar + self.eps * eye
+
+            L = torch.linalg.cholesky(cov_reg)
+            L_inv = torch.linalg.inv(L)
+            cov_inv_sqrt = L_inv.transpose(-1, -2) @ L_inv
+            normed = torch.einsum('cij, cnj -> cni', cov_inv_sqrt, centered)
+
+        # Build learnable symmetric scaling matrix Γ = [[a, b], [b, c]]
+        weight = torch.stack([
+            torch.stack([self.a, self.b], dim=-1),
+            torch.stack([self.b, self.c], dim=-1)
+        ], dim=1)  # (C, 2, 2)
+
+        # Apply affine transform
+        out = torch.einsum('cij, cnj -> cni', weight, normed) + self.bias[:, None, :]
+
+        # Reshape back to (B, C, D, H, W, 2)
+        out = out.reshape(C, B, D, H, W, 2).permute(1, 0, 2, 3, 4, 5)
+
+        # Split real and imag before returning
+        out_real, out_imag = out[..., 0], out[..., 1]
+        return out_real, out_imag
+
+
+#%% DATA AUGMENTATION COMPLEX KERNELS
 # data augmentation: constant phase shifts, temporal roll, add gaussian noise
 #iterations: number of extra samples to create per training sample (augmentation factor)
 def complex_data_augmentation(Xtrain,Ytrain,labels_train,sigma,iterations): 

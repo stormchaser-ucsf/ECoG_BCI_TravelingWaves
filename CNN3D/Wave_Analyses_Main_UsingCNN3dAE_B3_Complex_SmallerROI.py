@@ -487,19 +487,16 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 ani.save("RealInput_Act_Layer5_Ch0_STG.gif", writer="pillow", fps=6)
-=======
+
 ani.save("RealInput_Act_Layer5_Ch7_STG.gif", writer="pillow", fps=6)
->>>>>>> Stashed changes
-=======
+
+
 ani.save("RealInput_Act_Layer5_Ch7_STG.gif", writer="pillow", fps=6)
->>>>>>> Stashed changes
-=======
+
+
 ani.save("RealInput_Act_Layer5_Ch7_STG.gif", writer="pillow", fps=6)
->>>>>>> Stashed changes
+
 
 # phasor animation
 xreal = x;
@@ -518,19 +515,12 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[-1], blit=False)
 plt.show()
 
 # save the animation
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
+
 ani.save("RealInput_Act_Layer5_Ch0_Phasor_STG.gif", writer="pillow", fps=4)
 
 plt.plot(xreal[0,0,:])
 plt.plot(ximag[0,0,:])
 plt.show()
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 ani.save("RealInput_Act_Layer5_Ch7_Phasor_STG.gif", writer="pillow", fps=4)
 
 
@@ -542,13 +532,6 @@ for h in hook_handles:
 torch.cuda.empty_cache()
 torch.cuda.ipc_collect() 
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
 #%% STATISTICS: WHICH DAY HAS THE MOST ACTIVATION AT A PARTICULAR LAYER AND WHETHER OL/CL
 
