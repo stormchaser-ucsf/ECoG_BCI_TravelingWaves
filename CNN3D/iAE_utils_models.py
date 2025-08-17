@@ -1460,42 +1460,42 @@ class Encoder3D_Complex_ROI(nn.Module):
         self.elu4 = ModELU()
         self.elu5 = ModELU()
         self.elu6 = ModELU()
-        self.bn1 = ComplexBatchNorm(8)
-        self.bn2 = ComplexBatchNorm(8)
-        self.bn3 = ComplexBatchNorm(12)
-        self.bn4 = ComplexBatchNorm(12)
-        self.bn5 = ComplexBatchNorm(16)
-        self.bn6 = ComplexBatchNorm(32)
+        # self.bn1 = ComplexBatchNorm(8)
+        # self.bn2 = ComplexBatchNorm(8)
+        # self.bn3 = ComplexBatchNorm(12)
+        # self.bn4 = ComplexBatchNorm(12)
+        # self.bn5 = ComplexBatchNorm(16)
+        # self.bn6 = ComplexBatchNorm(32)
         
 
     def forward(self, a,b):        
         a,b = self.conv1(a,b)       
-        a,b = self.bn1(a,b)
+        #a,b = self.bn1(a,b)
         #a,b = self.elu(a),self.elu(b)        
         a,b = self.elu1(a,b)
         
         a,b = self.conv2(a,b)        
         #a,b = self.elu(a),self.elu(b)        
-        a,b = self.bn2(a,b)
+        #a,b = self.bn2(a,b)
         a,b = self.elu2(a,b)
         
         a,b = self.conv3(a,b)      
-        a,b = self.bn3(a,b)
+        #a,b = self.bn3(a,b)
         #a,b = self.elu(a),self.elu(b)        
         a,b = self.elu3(a,b)
         
         a,b = self.conv4(a,b)      
-        a,b = self.bn4(a,b)
+        #a,b = self.bn4(a,b)
         #a,b = self.elu(a),self.elu(b)        
         a,b = self.elu4(a,b)    
         
         a,b = self.conv5(a,b)  
-        a,b = self.bn5(a,b)
+        #a,b = self.bn5(a,b)
         #a,b = self.elu(a),self.elu(b)        
         a,b = self.elu5(a,b)     
         
         a,b = self.conv6(a,b) 
-        a,b = self.bn6(a,b)
+        #a,b = self.bn6(a,b)
         #a,b = self.elu(a),self.elu(b)        
         a,b = self.elu6(a,b)      
         
@@ -1519,38 +1519,38 @@ class Decoder3D_Complex_ROI(nn.Module):
         self.elu3 = ModELU()
         self.elu4 = ModELU()
         self.elu5 = ModELU()
-        self.bn1 = ComplexBatchNorm(16)
-        self.bn2 = ComplexBatchNorm(12)
-        self.bn3 = ComplexBatchNorm(12)
-        self.bn4 = ComplexBatchNorm(8)
-        self.bn5 = ComplexBatchNorm(8)
+        # self.bn1 = ComplexBatchNorm(16)
+        # self.bn2 = ComplexBatchNorm(12)
+        # self.bn3 = ComplexBatchNorm(12)
+        # self.bn4 = ComplexBatchNorm(8)
+        # self.bn5 = ComplexBatchNorm(8)
         
         
         
         
     def forward(self, a,b):        
          a,b = self.deconv1(a,b)   
-         a,b = self.bn1(a,b)
+         #a,b = self.bn1(a,b)
          #a,b = self.elu(a),self.elu(b)        
          a,b = self.elu1(a,b)
          
          a,b = self.deconv2(a,b)  
-         a,b = self.bn2(a,b)
+         #a,b = self.bn2(a,b)
          #a,b = self.elu(a),self.elu(b)        
          a,b = self.elu2(a,b)      
          
          a,b = self.deconv3(a,b)   
-         a,b = self.bn3(a,b)
+         #a,b = self.bn3(a,b)
          #a,b = self.elu(a),self.elu(b)        
          a,b = self.elu3(a,b)      
          
          a,b = self.deconv4(a,b)  
-         a,b = self.bn4(a,b)
+         #a,b = self.bn4(a,b)
          #a,b = self.elu(a),self.elu(b)        
          a,b = self.elu4(a,b)     
          
          a,b = self.deconv5(a,b)   
-         a,b = self.bn5(a,b)
+         #a,b = self.bn5(a,b)
          #a,b = self.elu(a),self.elu(b)        
          a,b = self.elu5(a,b)    
          
