@@ -191,9 +191,9 @@ real_recon,imag_recon,logits = model(tmp_real,tmp_imag)
 # computing receptive field sizes
 
 # time
-dilation =[2,2,2,2,3,3]
+dilation =[2,2,2,1,1,1]
 stride=[1,1,1,1,1,1]
-kernel_size=[3,3,3,3,4,4]
+kernel_size=[5,5,5,5,5,5]
 r=compute_RF(dilation, stride,kernel_size)
 print(r)
 print(np.cumsum(r))
