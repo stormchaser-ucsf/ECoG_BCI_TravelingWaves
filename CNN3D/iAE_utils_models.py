@@ -2098,6 +2098,10 @@ class ComplexBatchNorm(nn.Module):
         a_init = 1.0 / math.sqrt(2)
         c_init = 1.0 / math.sqrt(2)
         b_init = 0.0
+        
+        # a_init = 1.0
+        # c_init = 1.0
+        # b_init = 0.0
                
         
         self.a = nn.Parameter(torch.full((num_features,), a_init))
@@ -2134,11 +2138,14 @@ class ComplexBatchNorm(nn.Module):
 
           # Whitening: inverse sqrt via Cholesky
           L = torch.linalg.cholesky(cov_reg)
-          L_inv = torch.linalg.inv(L)
-          cov_inv_sqrt = L_inv.transpose(-1, -2) @ L_inv
+          normed = torch.linalg.solve_triangular(L,centered.transpose(1, 2), 
+                                upper=False).transpose(1, 2)  # (C, N, 2)
+          
+          # L_inv = torch.linalg.inv(L)
+          # cov_inv_sqrt = L_inv.transpose(-1, -2) @ L_inv
 
-          # Whiten
-          normed = torch.einsum('cij, cnj -> cni', cov_inv_sqrt, centered)
+          # # Whiten
+          # normed = torch.einsum('cij, cnj -> cni', cov_inv_sqrt, centered)
 
           # Update running stats
           self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mean.detach()
@@ -2155,9 +2162,11 @@ class ComplexBatchNorm(nn.Module):
             cov_reg = self.running_covar + self.eps * eye
 
             L = torch.linalg.cholesky(cov_reg)
-            L_inv = torch.linalg.inv(L)
-            cov_inv_sqrt = L_inv.transpose(-1, -2) @ L_inv
-            normed = torch.einsum('cij, cnj -> cni', cov_inv_sqrt, centered)
+            normed = torch.linalg.solve_triangular(L,centered.transpose(1, 2), 
+                                  upper=False).transpose(1, 2)  # (C, N, 2)
+            # L_inv = torch.linalg.inv(L)
+            # cov_inv_sqrt = L_inv.transpose(-1, -2) @ L_inv
+            # normed = torch.einsum('cij, cnj -> cni', cov_inv_sqrt, centered)
 
         # Build learnable symmetric scaling matrix Γ = [[a, b], [b, c]]
         weight = torch.stack([
