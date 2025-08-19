@@ -19,8 +19,8 @@ import os
 if os.name=='nt':
     os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
 else:       
-    os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
-    #os.chdir('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/')
+    #os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
+    os.chdir('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/')
 
     
 
@@ -61,11 +61,11 @@ if os.name=='nt':
     filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3/'
     filename = filepath + filename
 else:
-    #filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
-    #filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
-    #filename = filepath + filename
+    filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
     filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
-    filepath = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/'
+    #filename = filepath + filename
+    #filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
+    #filepath = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/'
     filename = filepath + filename
     
         
@@ -182,15 +182,15 @@ for iterr in np.arange(iterations):
     # getparams and train the model 
     num_epochs=100
     batch_size=128
-    learning_rate=3e-3
+    learning_rate=2e-3
     batch_val=2048
     patience=6
     gradient_clipping=10
     nn_filename = 'i3DAE_B3_Complex_New.pth' 
     alp_factor=25
-    aug_flag=False
+    aug_flag=True
     if aug_flag==True:
-        batch_size=64
+        batch_size=128
         sigma=0.025
         aug_factor=4
     else:
