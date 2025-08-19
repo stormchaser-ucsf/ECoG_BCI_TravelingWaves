@@ -751,4 +751,65 @@ for t in range(num_time_steps, len(axes)):
 plt.tight_layout()
 plt.show()
 
+#%% COMPLEX BATCH NORM TESTING HERE
 
+tmp = Xtrain[:32,:]
+input_real = torch.from_numpy(tmp.real).float().to(device)
+input_imag = torch.from_numpy(tmp.imag).float().to(device)
+m1 = nn.Conv3d(1, 8, kernel_size=(3,2,2),dilation=(2,1,1)).to(device)
+m2 = nn.Conv3d(1, 8, kernel_size=(3,2,2),dilation=(2,1,1)).to(device)
+
+input_real=m1(input_real)
+input_imag=m1(input_imag)
+B,C,D,H,W = input_real.shape
+input = torch.stack([input_real, input_imag], dim=-1)  # (B, C, D, H, W, 2)
+inp = input.permute(1, 0, 2, 3, 4, 5)
+inp = inp.reshape(C, -1, 2)
+
+mean = torch.mean(inp,dim=1)
+centered = inp - mean[:, None, :]
+N = centered.shape[1]
+
+# compute covariance per channel 
+cov = torch.matmul(torch.transpose(centered,1,2),centered)/(N-1)
+
+# regularize
+eye = torch.eye(2,device = cov.device)
+
+# regular covariance, add eps per channel 
+eps=1e-9
+cov = cov + eps*eye[None,:,:]
+
+# cholesky factor
+cov_chol = torch.linalg.cholesky(cov)
+
+# chol inv
+cov_chol_inv = torch.linalg.inv(cov_chol)
+
+
+# multiply centered data with cholesky factor to whiten
+whitened = torch.matmul(centered,torch.transpose(cov_chol_inv,2,1))
+#check
+cov_ckh = torch.matmul(torch.transpose(whitened,1,2),whitened)/(N-1)
+
+# scale and add shift (affine transform)
+a_init = 1.0 / math.sqrt(3)
+c_init = 1.0 / math.sqrt(2)
+b_init = 0.0
+num_features = 8
+a = nn.Parameter(torch.full((num_features,), a_init))
+b = nn.Parameter(torch.full((num_features,), b_init))
+c = nn.Parameter(torch.full((num_features,), c_init))
+
+weight = torch.stack([
+    torch.stack([a, b], dim=1),
+    torch.stack([b, c], dim=1)
+], dim=1).to(device)  # (C, 2, 2)
+
+bias = nn.Parameter(torch.rand(num_features, 2)).to(device)
+
+# apply affine transform
+out = torch.matmul(whitened,weight) + bias[:,None,:]
+
+# reshape
+out = out.reshape(C, B, D, H, W, 2).permute(1, 0, 2, 3, 4, 5)

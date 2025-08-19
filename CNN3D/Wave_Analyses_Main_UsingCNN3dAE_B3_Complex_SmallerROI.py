@@ -186,14 +186,14 @@ for iterr in np.arange(iterations):
     # getparams and train the model 
     num_epochs=100
     batch_size=128
-    learning_rate=1e-3
+    learning_rate=2e-3
     batch_val=512
     patience=6
     gradient_clipping=10
     nn_filename = 'i3DAE_B3_Complex_New_ROI.pth' 
     alp_factor=5
     aug_flag=False
-    if aug_flag==True:
+    if aug_flag==False:
         batch_size=64
         sigma=0.025
         aug_factor=4

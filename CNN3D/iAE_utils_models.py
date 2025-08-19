@@ -2126,26 +2126,25 @@ class ComplexBatchNorm(nn.Module):
           inp = input.permute(1, 0, 2, 3, 4, 5).reshape(C, -1, 2)
 
           # Mean per channel
-          mean = inp.mean(dim=1)  # (C, 2)
+          mean = torch.mean(inp,dim=1)  # (C, 2)
           centered = inp - mean[:, None, :]
 
           # Covariance per channel
-          cov = torch.einsum('cni, cnj -> cij', centered, centered) / (centered.shape[1] - 1)
+          N = centered.shape[1]
+          cov = torch.matmul(torch.transpose(centered,1,2),centered)/(N-1)
 
           #  Regularize covariance (add eps to diagonal)
-          eye = torch.eye(2, device=input.device).unsqueeze(0)
-          cov_reg = cov + self.eps * eye
+          eye = torch.eye(2, device=cov.device)
+          cov_reg = cov + self.eps * eye[None,:,:]
 
-          # Whitening: inverse sqrt via Cholesky
+          # Cholesky factor
           L = torch.linalg.cholesky(cov_reg)
-          # normed = torch.linalg.solve_triangular(L,centered.transpose(1, 2), 
-          #                       upper=False).transpose(1, 2)  # (C, N, 2)
           
-          L_inv = torch.linalg.inv(L)
-          cov_inv_sqrt = L_inv.transpose(-1, -2) @ L_inv
+          # Inverse cholesky factor          
+          L_inv = torch.linalg.inv(L)          
 
-          # # Whiten
-          normed = torch.einsum('cij, cnj -> cni', cov_inv_sqrt, centered)
+          # multiply centered data with transpose of inv. chol factor to whiten
+          whitened = torch.matmul(centered,torch.transpose(L_inv,2,1))
 
           # Update running stats
           self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mean.detach()
@@ -2158,15 +2157,18 @@ class ComplexBatchNorm(nn.Module):
             centered = inp - self.running_mean[:, None, :]
 
             # Regularize covariance at inference
-            eye = torch.eye(2, device=input.device).unsqueeze(0)
-            cov_reg = self.running_covar + self.eps * eye
-
+            eye = torch.eye(2, device=centered.device)
+            cov_reg = self.running_covar + self.eps * eye[None,:,:]            
+            
+            # Cholesky factor
             L = torch.linalg.cholesky(cov_reg)
-            normed = torch.linalg.solve_triangular(L,centered.transpose(1, 2), 
-                                  upper=False).transpose(1, 2)  # (C, N, 2)
-            # L_inv = torch.linalg.inv(L)
-            # cov_inv_sqrt = L_inv.transpose(-1, -2) @ L_inv
-            # normed = torch.einsum('cij, cnj -> cni', cov_inv_sqrt, centered)
+            
+            # Inverse cholesky factor          
+            L_inv = torch.linalg.inv(L)          
+
+            # multiply centered data with transpose of inv. chol factor to whiten
+            whitened = torch.matmul(centered,torch.transpose(L_inv,2,1))
+            
 
         # Build learnable symmetric scaling matrix Γ = [[a, b], [b, c]]
         weight = torch.stack([
@@ -2175,7 +2177,8 @@ class ComplexBatchNorm(nn.Module):
         ], dim=1)  # (C, 2, 2)
 
         # Apply affine transform
-        out = torch.einsum('cij, cnj -> cni', weight, normed) + self.bias[:, None, :]
+        out = torch.matmul(whitened,weight) + self.bias[:,None,:]
+        #out = torch.einsum('cij, cnj -> cni', weight, normed) + self.bias[:, None, :]
 
         # Reshape back to (B, C, D, H, W, 2)
         out = out.reshape(C, B, D, H, W, 2).permute(1, 0, 2, 3, 4, 5)
