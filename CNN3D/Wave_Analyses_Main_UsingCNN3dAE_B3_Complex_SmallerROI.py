@@ -192,8 +192,8 @@ for iterr in np.arange(iterations):
     gradient_clipping=10
     nn_filename = 'i3DAE_B3_Complex_New_ROI.pth' 
     alp_factor=5
-    aug_flag=False
-    if aug_flag==False:
+    aug_flag=True
+    if aug_flag==True:
         batch_size=64
         sigma=0.025
         aug_factor=4
