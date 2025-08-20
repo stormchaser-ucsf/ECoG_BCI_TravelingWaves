@@ -629,9 +629,24 @@ from iAE_utils_models import *
 torch.cuda.empty_cache()
 torch.cuda.ipc_collect() 
 
+# get the CNN architecture model
+num_classes=1    
+input_size=32*2
+lstm_size=16
+ksize=2;
+
+from iAE_utils_models import *
+
+if 'model' in locals():
+    del model 
+ 
+model = Autoencoder3D_Complex_ROI(ksize,num_classes,input_size,lstm_size).to(device)
+model.load_state_dict(torch.load(nn_filename))
+
+
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
 layer_name = 'layer2'
-channel_idx = 0
+channel_idx = 7
 batch_size=256
 
 activations_real, activations_imag = get_channel_activations(model, Xtest, Ytest,
@@ -641,7 +656,7 @@ activations_real, activations_imag = get_channel_activations(model, Xtest, Ytest
 activations = activations_real + 1j*activations_imag
 
 # RUN COMPLEX PCA
-eigvals, eigmaps, Z = complex_pca(activations,6)
+eigvals, eigmaps, Z = complex_pca(activations,5)
 
 # plot phasors of the eigenmaps
 pc_idx=0;
@@ -651,6 +666,7 @@ U = eigmaps[:,:,pc_idx].real
 V = eigmaps[:,:,pc_idx].imag
 plt.figure()
 plt.quiver(X,Y,U,V,angles='xy')
-
+plt.xlim(X.min()-1,X.max()+1)
+plt.ylim(Y.min()-1,Y.max()+1)
 
 
