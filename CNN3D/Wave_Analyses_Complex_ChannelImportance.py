@@ -234,7 +234,7 @@ recon_criterion = nn.MSELoss(reduction='mean')
 
 Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
 Ytest_real,Ytest_imag = Ytest.real,Ytest.imag
-num_batches = math.ceil(Xtest_real.shape[0]/128)
+num_batches = math.ceil(Xtest_real.shape[0]/256)
 idx = (np.arange(Xtest_real.shape[0]))
 idx_split = np.array_split(idx,num_batches)
 
@@ -250,10 +250,10 @@ for batch_idx in range(num_batches):
 
     # Forward pass
     r,i,logits = model(Xtest_real_batch, Xtest_imag_batch)
-    #loss = classif_criterion(logits.squeeze(), labels_batch)
-    loss1 = recon_criterion(r,Ytest_real_batch)
-    loss2 = recon_criterion(i,Ytest_imag_batch)
-    loss=1*(loss1+loss2)
+    loss = classif_criterion(logits.squeeze(), labels_batch)
+    #loss1 = recon_criterion(r,Ytest_real_batch)
+    #loss2 = recon_criterion(i,Ytest_imag_batch)
+    #loss=1*(loss1+loss2)
 
     # Backward pass
     model.zero_grad()
@@ -381,7 +381,7 @@ def get_hook(name):
     return hook
 
 # ===== User setting =====
-target_layer_base = "layer4"  # <-- base name, no _real/_imag needed
+target_layer_base = "layer2"  # <-- base name, no _real/_imag needed
 
 # ===== Register hooks =====
 hook_handles = []
@@ -547,7 +547,7 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-filename = 'Grad_CAM_'  + target_layer_base + 'OL_Mag_Recon_v2.gif'
+filename = 'Grad_CAM_'  + target_layer_base + 'OL_Mag_Recon_v2_ROI.gif'
 ani.save(filename, writer="pillow", fps=6)
 
 
@@ -561,8 +561,8 @@ ximag = gradcam_avg_imag;
 xreal = xreal
 ximag = ximag
 
-xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
-ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
+# xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
+# ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
 fig, ax = plt.subplots(figsize=(6, 6))
 
 def update(t):
@@ -576,7 +576,7 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-filename = 'Grad_CAM_'  + target_layer_base + 'OL_Phasor_Recon_v2.gif'
+filename = 'Grad_CAM_'  + target_layer_base + 'OL_Phasor_Recon_v2_ROI.gif'
 ani.save(filename, writer="pillow", fps=4)
 
 plt.plot(xreal[0,0,:])
@@ -622,10 +622,35 @@ if gradcam_avg_imag is not None:
     print(per_channel_avg_imag)
 
 
+#%% DO PCA TO EXAMINE ACTIVATIONS OF INDIVIDUAL CHANNELS OF A LAYER
 
+# PRELIMS
+from iAE_utils_models import *
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect() 
 
+# GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
+layer_name = 'layer2'
+channel_idx = 0
+batch_size=256
 
+activations_real, activations_imag = get_channel_activations(model, Xtest, Ytest,
+                                    labels_test,device,layer_name,
+                                    channel_idx,batch_size)
 
+activations = activations_real + 1j*activations_imag
+
+# RUN COMPLEX PCA
+eigvals, eigmaps, Z = complex_pca(activations,6)
+
+# plot phasors of the eigenmaps
+pc_idx=0;
+H,W = eigmaps.shape[:2]
+Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+U = eigmaps[:,:,pc_idx].real
+V = eigmaps[:,:,pc_idx].imag
+plt.figure()
+plt.quiver(X,Y,U,V,angles='xy')
 
 
 

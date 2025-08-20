@@ -2472,6 +2472,178 @@ def plot_phasor_frame_time(x_real, x_imag, t, ax):
     ax.set_ylim(-0.5, H - 0.5)
     #ax.invert_yaxis()
 
+#%% COMPLEX PCA/ICA
+
+def complex_pca(activations, n_components=5):
+    """
+    Complex PCA on channel activations.
+    activations: torch.Tensor, shape [B, H, W, T] complex dtype
+    """
+    B, W, H, T = activations.shape
+    X = np.transpose(activations,(0,3,1,2))
+    X = X.reshape(B*T,W*H)   
+    
+    # Mean-center
+    X_mean = np.mean(X,axis=0)
+    X_centered = X - X_mean
+
+    # Complex covariance (Hermitian)
+    C = (X_centered.conj().T @ X_centered) / (B-1)  # [D, D]
+
+    # Eigendecomposition
+    eigvals, eigvecs = np.linalg.eigh(C)  # since Hermitian
+    
+    # Sort by descending eigenvalue
+    idx = np.argsort(eigvals)[::-1]
+    eigvals = eigvals[idx]
+    eigvecs = eigvecs[:, idx]    
+    
+    # get cumulative VAF
+    VAF = np.cumsum(eigvals)/np.sum(eigvals)
+    
+    # Keep top n_components
+    eigvals = eigvals[:n_components]
+    eigvecs = eigvecs[:, :n_components]  # [D, n_components]
+
+    # Project data
+    Z = X_centered @ eigvecs  # [B, n_components]
+    
+    # reshape the projected data in the form of the trials 
+    Z = Z.reshape(B,T,n_components);
+
+    # Reshape eigenvectors 
+    eigmaps = eigvecs.reshape(W,H,n_components)    
+
+    return eigvals, eigmaps, Z
+
+#%% UNIVERSAL CODE TO GET THE ACTIVATIONS AT ANY CHANNEL AND LAYER USING HOOKS
+
+def get_channel_activations(model, 
+                            Xtest, Ytest, labels_test, 
+                            device, 
+                            layer_name: str, 
+                            channel_idx: int,
+                            batch_size: int = 256):
+    """
+    Extract real and imaginary activations from a specific layer and channel
+    in a complex autoencoder model during forward/backward passes.
+
+    Args:
+        model: Complex autoencoder model with encoder, decoder, classifier.
+        Xtest: Complex test input data (numpy complex64 array).
+        Ytest: Complex test target data (numpy complex64 array).
+        labels_test: Labels for classification.
+        device: torch device ("cuda" or "cpu").
+        layer_name: String key for the layer (e.g., "layer3").
+        channel_idx: Channel index to extract activations from.
+        batch_size: Batch size for forward passes.
+
+    Returns:
+        activations_real: numpy array of real activations for the channel
+        activations_imag: numpy array of imaginary activations for the channel
+    """
+
+    # ==== 1. Storage ====
+    activations = {}
+    # gradients_sum = defaultdict(lambda: 0.0)
+    # num_batches_seen = defaultdict(lambda: 0)
+    # total_samples_seen = defaultdict(lambda: 0)
+
+    # Hook to store activations and enable grad tracking
+    def get_hook(name):
+        def hook(module, input, output):
+            activations[name] = output
+            #output.retain_grad()
+        return hook
+
+    # ==== 2. Register hooks for encoder ====
+    hook_handles = []
+    for idx, layer in enumerate(model.encoder.children()):
+        if hasattr(layer, "real_conv") and hasattr(layer, "imag_conv"):
+            hook_handles.append(layer.real_conv.register_forward_hook(get_hook(f"layer{idx+1}_real")))
+            hook_handles.append(layer.imag_conv.register_forward_hook(get_hook(f"layer{idx+1}_imag")))
+        elif isinstance(layer, nn.Conv3d):  # fallback
+            hook_handles.append(layer.register_forward_hook(get_hook(f"layer{idx+1}")))
+
+    # ==== (Optional) Register hooks for decoder ====
+    # for idx, layer in enumerate(model.decoder.children()):
+    #     if hasattr(layer, "real_deconv") and hasattr(layer, "imag_deconv"):
+    #         hook_handles.append(layer.real_deconv.register_forward_hook(get_hook(f"layer{idx+1}_real")))
+    #         hook_handles.append(layer.imag_deconv.register_forward_hook(get_hook(f"layer{idx+1}_imag")))
+    #     elif isinstance(layer, nn.Conv3d):
+    #         hook_handles.append(layer.register_forward_hook(get_hook(f"layer{idx+1}")))
+
+    # ==== 3. Eval/train modes ====
+    model.encoder.eval()
+    model.decoder.eval()
+    model.classifier.train()
+
+    classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')
+    #recon_criterion = nn.MSELoss(reduction='mean')
+
+    Xtest_real, Xtest_imag = Xtest.real, Xtest.imag
+    Ytest_real, Ytest_imag = Ytest.real, Ytest.imag
+
+    num_batches = math.ceil(Xtest_real.shape[0] / batch_size)
+    idx = np.arange(Xtest_real.shape[0])
+    idx_split = np.array_split(idx, num_batches)
+
+    # storage for requested channel activations
+    all_real_ch = []
+    all_imag_ch = []
+
+    # ==== 4. Loop over batches ====
+    for batch_idx in range(num_batches):
+        samples = idx_split[batch_idx]
+
+        Xtest_real_batch = torch.from_numpy(Xtest_real[samples, :]).to(device).float()
+        Xtest_imag_batch = torch.from_numpy(Xtest_imag[samples, :]).to(device).float()
+        Ytest_real_batch = torch.from_numpy(Ytest_real[samples, :]).to(device).float()
+        Ytest_imag_batch = torch.from_numpy(Ytest_imag[samples, :]).to(device).float()
+        labels_batch = torch.from_numpy(labels_test[samples]).to(device).float()
+
+        # Forward pass
+        r, i, logits = model(Xtest_real_batch, Xtest_imag_batch)
+        loss = classif_criterion(logits.squeeze(), labels_batch)
+
+        # # Backward pass
+        # model.zero_grad()
+        # loss.backward()
+
+        # Extract real activations
+        rlayer_name = layer_name + '_real'
+        if rlayer_name in activations:
+            act = activations[rlayer_name]
+            ch_act = act[:,channel_idx].detach().cpu().numpy()
+            all_real_ch.append(ch_act)
+        
+        # Extract imag activations
+        ilayer_name = layer_name + '_imag'
+        if ilayer_name in activations:
+            act = activations[ilayer_name]
+            ch_act = act[:,channel_idx].detach().cpu().numpy()
+            all_imag_ch.append(ch_act)
+        
+
+        # # Accumulate absolute gradients per channel (for importance)
+        # for name, act in activations.items():
+        #     grad = act.grad  # shape: [B, C, H,W,T]
+        #     ch_importance = grad.abs().mean(dim=(2, 3, 4))
+        #     ch_importance = ch_importance.sum(dim=0)
+        #     gradients_sum[name] += ch_importance.detach().cpu().numpy()
+        #     num_batches_seen[name] += 1
+        #     total_samples_seen[name] += len(samples)
+
+    # Cleanup hooks
+    for h in hook_handles:
+        h.remove()
+
+    # Concatenate collected activations
+    activations_real = np.concatenate(all_real_ch, axis=0) if all_real_ch else None
+    activations_imag = np.concatenate(all_imag_ch, axis=0) if all_imag_ch else None
+
+    return activations_real, activations_imag
+
 #%% FUNCTIONS TO EVALUATE MODEL WITH ABLATION TO GET CHANNEL/LAYER IMPORTANCE
 
 @torch.no_grad()
