@@ -2514,7 +2514,7 @@ def complex_pca(activations, n_components=5):
     # Reshape eigenvectors 
     eigmaps = eigvecs.reshape(W,H,n_components)    
 
-    return eigvals, eigmaps, Z
+    return eigvals, eigmaps, Z, VAF
 
 #%% UNIVERSAL CODE TO GET THE ACTIVATIONS AT ANY CHANNEL AND LAYER USING HOOKS
 

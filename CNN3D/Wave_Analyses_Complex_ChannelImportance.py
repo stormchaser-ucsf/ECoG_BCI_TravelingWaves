@@ -652,10 +652,10 @@ activations_real, activations_imag = get_channel_activations(model, Xtest, Ytest
 activations = activations_real + 1j*activations_imag
 
 # RUN COMPLEX PCA
-eigvals, eigmaps, Z = complex_pca(activations,5)
+eigvals, eigmaps, Z , VAF = complex_pca(activations,15)
 
 # plot phasors of the eigenmaps
-pc_idx=1;
+pc_idx=4;
 H,W = eigmaps.shape[:2]
 Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
 U = eigmaps[:,:,pc_idx].real
@@ -673,14 +673,16 @@ plt.imshow(ph,vmin=-1, vmax=1)
 plt.colorbar()
 
 # plot activations
-scores = Z[100,:,pc_idx]
-# a = np.angle(scores)
-# a = np.cos(a)
-a = np.abs(scores)
+scores = Z[0,:,pc_idx]
+a = np.angle(scores)
+a = np.cos(a)
+# a = np.abs(scores)
 plt.figure()
 plt.plot(a)
 
-
+# plot VAF
+plt.figure()
+plt.stem(VAF)
 
 
 
