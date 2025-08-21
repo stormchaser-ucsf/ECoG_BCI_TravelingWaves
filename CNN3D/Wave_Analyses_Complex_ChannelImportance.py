@@ -636,12 +636,16 @@ from iAE_utils_models import *
 if 'model' in locals():
     del model 
  
-model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size).to(device)
+model = Autoencoder3D_Complex_ROI(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
+<<<<<<< Updated upstream
 layer_name = 'layer3'
+=======
+layer_name = 'layer1'
+>>>>>>> Stashed changes
 channel_idx = 0
 batch_size=256
 
@@ -655,7 +659,7 @@ activations = activations_real + 1j*activations_imag
 eigvals, eigmaps, Z = complex_pca(activations,5)
 
 # plot phasors of the eigenmaps
-pc_idx=0;
+pc_idx=1;
 H,W = eigmaps.shape[:2]
 Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
 U = eigmaps[:,:,pc_idx].real
@@ -664,5 +668,13 @@ plt.figure()
 plt.quiver(X,Y,U,V,angles='xy')
 plt.xlim(X.min()-1,X.max()+1)
 plt.ylim(Y.min()-1,Y.max()+1)
+
+# plot phase map
+pc_idx=1;
+ph = np.angle(eigmaps[:,:,pc_idx])
+ph = np.cos(ph)
+plt.figure()
+plt.imshow(ph,vmin=-1, vmax=1)
+plt.colorbar()
 
 
