@@ -642,7 +642,11 @@ model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 layer_name = 'layer3'
+=======
+layer_name = 'layer1'
+>>>>>>> Stashed changes
 =======
 layer_name = 'layer1'
 >>>>>>> Stashed changes
