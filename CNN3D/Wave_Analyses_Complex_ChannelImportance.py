@@ -630,17 +630,13 @@ torch.cuda.empty_cache()
 torch.cuda.ipc_collect() 
 
 # get the CNN architecture model
-num_classes=1    
-input_size=32*2
-lstm_size=16
-ksize=2;
 
 from iAE_utils_models import *
 
 if 'model' in locals():
     del model 
  
-model = Autoencoder3D_Complex_ROI(ksize,num_classes,input_size,lstm_size).to(device)
+model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 
