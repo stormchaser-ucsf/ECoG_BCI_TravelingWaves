@@ -642,7 +642,7 @@ model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
 layer_name = 'layer3'
-channel_idx = 11
+channel_idx = 0
 batch_size=256
 
 activations_real, activations_imag = get_channel_activations(model, Xtest, Ytest,
