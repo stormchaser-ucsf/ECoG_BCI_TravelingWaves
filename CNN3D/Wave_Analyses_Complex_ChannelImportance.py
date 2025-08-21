@@ -636,21 +636,13 @@ from iAE_utils_models import *
 if 'model' in locals():
     del model 
  
-model = Autoencoder3D_Complex_ROI(ksize,num_classes,input_size,lstm_size).to(device)
+model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 layer_name = 'layer3'
-=======
-layer_name = 'layer1'
->>>>>>> Stashed changes
-=======
-layer_name = 'layer1'
->>>>>>> Stashed changes
-channel_idx = 0
+channel_idx = 7
 batch_size=256
 
 activations_real, activations_imag = get_channel_activations(model, Xtest, Ytest,
@@ -674,11 +666,21 @@ plt.xlim(X.min()-1,X.max()+1)
 plt.ylim(Y.min()-1,Y.max()+1)
 
 # plot phase map
-pc_idx=1;
 ph = np.angle(eigmaps[:,:,pc_idx])
 ph = np.cos(ph)
 plt.figure()
 plt.imshow(ph,vmin=-1, vmax=1)
 plt.colorbar()
+
+# plot activations
+scores = Z[100,:,pc_idx]
+# a = np.angle(scores)
+# a = np.cos(a)
+a = np.abs(scores)
+plt.figure()
+plt.plot(a)
+
+
+
 
 
