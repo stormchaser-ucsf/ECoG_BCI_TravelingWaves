@@ -88,7 +88,7 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 15
+iterations = 1
 days = np.unique(labels_days)
 
 decoding_accuracy=[]
