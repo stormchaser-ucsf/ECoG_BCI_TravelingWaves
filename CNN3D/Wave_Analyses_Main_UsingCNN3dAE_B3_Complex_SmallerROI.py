@@ -226,6 +226,24 @@ for iterr in np.arange(iterations):
     x=np.array(labels_test)[:,None]
     decoding_accuracy.append( (np.sum(dec_output==x)/dec_output.shape[0]*100).tolist())
     balanced_decoding_accuracy.append(balan_acc(dec_output,x)*100)
+    
+    # looking at difference in mean amplitude across days
+    # a=[]
+    # b=[]
+    # for i in np.arange(len(days)):
+    #     idx_days = np.where(labels_test_days == days[i])[0]
+    #     tmp_labels = labels_test[idx_days]
+    #     idx = (tmp_labels)
+    #     idx_cl = np.where(idx==1)[0]
+    #     idx_ol = np.where(idx==0)[0]
+    #     a.append(np.mean(np.abs(Xtest[idx_ol,:].ravel())))
+    #     b.append(np.mean(np.abs(Xtest[idx_cl,:].ravel())))
+    
+    # plt.figure()
+    # plt.plot(a)
+    # plt.plot(b)
+    # plt.legend(('OL','CL'))
+    # print(stats.ttest_rel(a,b))
         
     for i in np.arange(len(days)): # loop over the 10 days 
         idx_days = np.where(labels_test_days == days[i])[0]
