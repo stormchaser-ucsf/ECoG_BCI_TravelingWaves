@@ -2474,6 +2474,11 @@ def plot_phasor_frame_time(x_real, x_imag, t, ax):
 
 #%% COMPLEX PCA/ICA
 
+def zscore_complex(data, axis=0):
+    mu = np.mean(data, axis=axis, keepdims=True)
+    std = np.sqrt(np.mean(np.abs(data - mu)**2, axis=axis, keepdims=True))
+    return (data - mu) / std
+
 def complex_pca(activations, n_components=5):
     """
     Complex PCA on channel activations.
@@ -2510,11 +2515,93 @@ def complex_pca(activations, n_components=5):
     
     # reshape the projected data in the form of the trials 
     Z = Z.reshape(B,T,n_components);
-
+    
     # Reshape eigenvectors 
     eigmaps = eigvecs.reshape(W,H,n_components)    
 
     return eigvals, eigmaps, Z, VAF
+
+
+def complex_pca_PerCondition(activations, labels_tmp, n_components=5):
+    """
+    Complex PCA on channel activations.
+    activations: torch.Tensor, shape [B, H, W, T] complex dtype
+    """
+    
+    idxA = np.where(labels_tmp==0)[0]    
+    idxB = np.where(labels_tmp==1)[0]
+    dataA = activations[idxA,:]
+    dataB = activations[idxB,:]
+    
+    B1, W, H, T = dataA.shape
+    B2, W, H, T = dataB.shape
+    
+    X1 = np.transpose(dataA,(0,3,1,2))
+    X1 = X1.reshape(B1*T,W*H)   
+    
+    X2 = np.transpose(dataB,(0,3,1,2))
+    X2 = X2.reshape(B2*T,W*H)   
+    
+    # Mean-center
+    X1_mean = np.mean(X1,axis=0)
+    X1_centered = X1 - X1_mean
+    
+    X2_mean = np.mean(X2,axis=0)
+    X2_centered = X2 - X2_mean
+    
+    # z-score
+    X1_centered = zscore_complex(X1_centered)
+    X2_centered = zscore_complex(X2_centered)
+    
+    
+    # put it together 
+    X_centered = np.concatenate((X1_centered,X2_centered),axis=0)
+    B = X_centered.shape[0]
+
+    # Complex covariance (Hermitian)
+    C = (X_centered.conj().T @ X_centered) / (B-1)  # [D, D]
+
+    # Eigendecomposition
+    eigvals, eigvecs = np.linalg.eigh(C)  # since Hermitian
+    
+    # Sort by descending eigenvalue
+    idx = np.argsort(eigvals)[::-1]
+    eigvals = eigvals[idx]
+    eigvecs = eigvecs[:, idx]    
+    
+    # get cumulative VAF
+    VAF = np.cumsum(eigvals)/np.sum(eigvals)
+    
+    # Keep top n_components
+    eigvals = eigvals[:n_components]
+    eigvecs = eigvecs[:, :n_components]  # [D, n_components]
+
+    # Project data
+    Z = X_centered @ eigvecs  # [B, n_components]
+    Z1 = X1_centered @ eigvecs
+    Z2 = X2_centered @ eigvecs
+    
+    
+    # recon energy for all modes
+    reconA=[]
+    reconB=[]
+    # recon data per condition  and get recon energy per mode    
+    for pc_idx in np.arange(n_components):
+        
+        #print(pc_idx)        
+        X1hat = Z1[:,pc_idx][:,None] @ eigvecs[:,pc_idx][:,None].conj().T
+        X2hat = Z2[:,pc_idx][:,None] @ eigvecs[:,pc_idx][:,None].conj().T
+        
+        reconA.append(lin.norm(X1hat,'fro')/lin.norm(X1_centered,'fro'))
+        reconB.append(lin.norm(X2hat,'fro')/lin.norm(X2_centered,'fro'))        
+    
+    # reshape the projected data in the form of the trials 
+    Z = Z.reshape(B1+B2,T,n_components);
+    
+    # Reshape eigenvectors 
+    eigmaps = eigvecs.reshape(W,H,n_components)    
+
+    return eigvals, eigmaps, Z, VAF, reconA, reconB
 
 #%% UNIVERSAL CODE TO GET THE ACTIVATIONS AT ANY CHANNEL AND LAYER USING HOOKS
 

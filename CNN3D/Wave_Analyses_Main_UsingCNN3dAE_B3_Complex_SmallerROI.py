@@ -105,6 +105,8 @@ cl_mse_days=np.zeros((iterations,len(days)))
 ol_mse_days=np.zeros((iterations,len(days)))
 balanced_acc_days=np.zeros((iterations,len(days)))
 ce_loss = np.zeros((iterations,len(days)))
+decoding_accuracy=[]
+balanced_decoding_accuracy=[]
 
 print(xdata.shape)
 
@@ -192,7 +194,7 @@ for iterr in np.arange(iterations):
     gradient_clipping=10
     nn_filename = 'i3DAE_B3_Complex_New_ROI.pth' 
     alp_factor=5
-    aug_flag=False
+    aug_flag=True
     if aug_flag==True:
         batch_size=64
         sigma=0.025
@@ -219,6 +221,10 @@ for iterr in np.arange(iterations):
     # test the model on held out data 
     # recon acc
     recon_r,recon_i,decodes = test_model_complex(model,Xtest)
+    dec_output = np.array(convert_to_ClassNumbers_sigmoid_list(decodes))
+    x=np.array(labels_test)[:,None]
+    decoding_accuracy.append( (np.sum(dec_output==x)/dec_output.shape[0]*100).tolist())
+    balanced_decoding_accuracy.append(balan_acc(dec_output,x)*100)
         
     for i in np.arange(len(days)): # loop over the 10 days 
         idx_days = np.where(labels_test_days == days[i])[0]
@@ -238,8 +244,10 @@ for iterr in np.arange(iterations):
         recon_i_cl = tmp_recon_i[idx_cl,:]        
         Ytest_r_cl = tmp_ydata_r[idx_cl,:]
         Ytest_i_cl = tmp_ydata_i[idx_cl,:]        
-        r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / Ytest_r_cl.shape[0]
-        i_cl_error = (np.sum((recon_i_cl - Ytest_i_cl)**2)) / Ytest_i_cl.shape[0]
+        #r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / Ytest_r_cl.shape[0]
+        #i_cl_error = (np.sum((recon_i_cl - Ytest_i_cl)**2)) / Ytest_i_cl.shape[0]
+        r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / np.sum((Ytest_r_cl**2))
+        i_cl_error = (np.sum((recon_i_cl - Ytest_i_cl)**2)) / np.sum((Ytest_i_cl**2))
         cl_mse_days[iterr,i] = r_cl_error + i_cl_error
         #print(cl_error)
         #cl_mse.append(cl_error)
@@ -249,8 +257,10 @@ for iterr in np.arange(iterations):
         recon_i_ol = tmp_recon_i[idx_ol,:]        
         Ytest_r_ol = tmp_ydata_r[idx_ol,:]
         Ytest_i_ol = tmp_ydata_i[idx_ol,:]        
-        r_ol_error = (np.sum((recon_r_ol - Ytest_r_ol)**2)) / Ytest_r_ol.shape[0]
-        i_ol_error = (np.sum((recon_i_ol - Ytest_i_ol)**2)) / Ytest_i_ol.shape[0]
+        # r_ol_error = (np.sum((recon_r_ol - Ytest_r_ol)**2)) / Ytest_r_ol.shape[0]
+        # i_ol_error = (np.sum((recon_i_ol - Ytest_i_ol)**2)) / Ytest_i_ol.shape[0]
+        r_ol_error = (np.sum((recon_r_ol - Ytest_r_ol)**2)) / np.sum((Ytest_r_ol**2))
+        i_ol_error = (np.sum((recon_i_ol - Ytest_i_ol)**2)) / np.sum((Ytest_i_ol**2))        
         ol_mse_days[iterr,i] = r_ol_error + i_ol_error
         
                 

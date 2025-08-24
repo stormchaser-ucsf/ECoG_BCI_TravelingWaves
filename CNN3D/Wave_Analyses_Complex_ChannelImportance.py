@@ -190,6 +190,15 @@ from iAE_utils_models import *
 torch.cuda.empty_cache()
 torch.cuda.ipc_collect() 
 
+
+
+if 'model' in locals():
+    del model 
+ 
+model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
+model.load_state_dict(torch.load(nn_filename))
+
+
 # ==== 1. Storage ====
 activations = {}
 gradients_sum = defaultdict(lambda: 0.0)
@@ -232,8 +241,10 @@ model.classifier.train()
 classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')
 recon_criterion = nn.MSELoss(reduction='mean')
 
-Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
-Ytest_real,Ytest_imag = Ytest.real,Ytest.imag
+# Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
+# Ytest_real,Ytest_imag = Ytest.real,Ytest.imag
+Xtest_real,Xtest_imag = Xval.real,Xval.imag
+Ytest_real,Ytest_imag = Yval.real,Yval.imag
 num_batches = math.ceil(Xtest_real.shape[0]/256)
 idx = (np.arange(Xtest_real.shape[0]))
 idx_split = np.array_split(idx,num_batches)
@@ -246,14 +257,15 @@ for batch_idx in range(num_batches):
     Xtest_imag_batch = torch.from_numpy(Xtest_imag[samples, :]).to(device).float()
     Ytest_real_batch = torch.from_numpy(Ytest_real[samples, :]).to(device).float()
     Ytest_imag_batch = torch.from_numpy(Ytest_imag[samples, :]).to(device).float()
-    labels_batch = torch.from_numpy(labels_test[samples]).to(device).float()
+    #labels_batch = torch.from_numpy(labels_test[samples]).to(device).float()
+    labels_batch = torch.from_numpy(labels_val[samples]).to(device).float()
 
     # Forward pass
     r,i,logits = model(Xtest_real_batch, Xtest_imag_batch)
-    loss = classif_criterion(logits.squeeze(), labels_batch)
-    #loss1 = recon_criterion(r,Ytest_real_batch)
-    #loss2 = recon_criterion(i,Ytest_imag_batch)
-    #loss=1*(loss1+loss2)
+    #loss = classif_criterion(logits.squeeze(), labels_batch)
+    loss1 = recon_criterion(r,Ytest_real_batch)
+    loss2 = recon_criterion(i,Ytest_imag_batch)
+    loss=1*(loss1+loss2)
 
     # Backward pass
     model.zero_grad()
@@ -642,11 +654,11 @@ model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
 layer_name = 'layer3'
-channel_idx = 7
+channel_idx = 9
 batch_size=256
 
-activations_real, activations_imag = get_channel_activations(model, Xtest, Ytest,
-                                    labels_test,device,layer_name,
+activations_real, activations_imag = get_channel_activations(model, Xval, Yval,
+                                    labels_val,device,layer_name,
                                     channel_idx,batch_size)
 
 activations = activations_real + 1j*activations_imag
@@ -684,5 +696,50 @@ plt.plot(a)
 plt.figure()
 plt.stem(VAF)
 
+ol_day = np.where(labels_val==0)[0]
+cl_day = np.where(labels_val==1)[0]
+Z_ol = Z[ol_day,:]
+Z_cl = Z[cl_day,:]
+
+a = np.median(np.abs(Z_ol[:,:,pc_idx]),axis=1)
+b = np.median(np.abs(Z_cl[:,:,pc_idx]),axis=1)
+
+# condition specific variance described by a mode
+dataA = activations[ol_day,:]
+dataB = activations[cl_day,:]
 
 
+# looking at the strength of the activations of OL and CL on each day for PC1
+act_str_ol=[]
+act_str_cl=[]
+for day in np.arange(10)+1:
+    #day = 1
+    #labels_day = labels_test[np.where(labels_test_days==day)[0]]
+    ol_day = np.where(labels_day==0)[0]
+    cl_day = np.where(labels_day==1)[0]    
+    Z_ol = Z[ol_day,:]
+    Z_cl = Z[cl_day,:]
+    
+    # plt.figure()
+    # plt.plot(Z_ol[0,:,pc_idx].real)
+    # plt.plot(Z_ol[0,:,pc_idx].imag)
+    # plt.plot(np.abs(Z_ol[0,:,0]))
+    # plt.show()
+    
+    
+    a = np.mean(np.abs(Z_ol[:,:,pc_idx]),axis=1)
+    b = np.mean(np.abs(Z_cl[:,:,pc_idx]),axis=1)
+    #plt.boxplot((a,b))
+    statistic, p_value = stats.ks_2samp(a,b)
+    
+    act_str_ol.append(np.mean(a))
+    act_str_cl.append(np.mean(b))
+    
+plt.figure()
+plt.plot(act_str_ol)
+plt.plot(act_str_cl)
+plt.legend(('OL','CL'))
+plt.show()
+
+plt.figure()
+plt.boxplot((act_str_ol,act_str_cl))
