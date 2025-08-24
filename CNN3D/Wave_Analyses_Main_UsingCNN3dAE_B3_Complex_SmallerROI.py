@@ -324,6 +324,8 @@ plt.plot(tmp)
 plt.plot(tmp1)
 plt.show()
 
+print(stats.ttest_rel(tmp,tmp1))
+
 # now same but with regression line
 from sklearn.linear_model import LinearRegression
 days=np.arange(1,11)
