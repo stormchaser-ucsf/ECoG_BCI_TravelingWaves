@@ -276,7 +276,7 @@ for iterr in np.arange(iterations):
         
         del tmp_decodes, tmp_labels,classif_loss
     
-    del Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
+    #del Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
 
 # classif_loss = (classif_criterion(torch.from_numpy(tmp_labels[:1,:]).to(device),
 #                                    tmp_decodes[:1,:])).item()
