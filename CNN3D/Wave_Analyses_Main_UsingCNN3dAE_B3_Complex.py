@@ -216,6 +216,7 @@ for iterr in np.arange(iterations):
     # test the model on held out data 
     # recon acc
     recon_r,recon_i,decodes = test_model_complex(model,Xtest)
+    recon = recon_r + 1j*recon_i
     dec_output = np.array(convert_to_ClassNumbers_sigmoid_list(decodes))
     x=np.array(labels_test)[:,None]
     decoding_accuracy.append( (np.sum(dec_output==x)/dec_output.shape[0]*100).tolist())
