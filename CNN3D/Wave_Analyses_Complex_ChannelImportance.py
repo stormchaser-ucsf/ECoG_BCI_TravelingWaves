@@ -643,7 +643,7 @@ torch.cuda.ipc_collect()
 
 # get the CNN architecture model
 
-from iAE_utils_models import *
+
 
 if 'model' in locals():
     del model 
@@ -654,7 +654,7 @@ model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
 layer_name = 'layer3'
-channel_idx = 1
+channel_idx = 2
 batch_size=256
 
 activations_real, activations_imag = get_channel_activations(model, Xval, Yval,
@@ -679,7 +679,7 @@ plt.ylim(Y.min()-1,Y.max()+1)
 
 # plot phase map
 ph = np.angle(eigmaps[:,:,pc_idx])
-ph = np.cos(ph)
+ph = np.sin(ph)
 plt.figure()
 plt.imshow(ph,vmin=-1, vmax=1)
 plt.colorbar()
