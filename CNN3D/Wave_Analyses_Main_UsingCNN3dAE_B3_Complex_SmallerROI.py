@@ -268,14 +268,17 @@ for iterr in np.arange(iterations):
         recon_i_cl = tmp_recon_i[idx_cl,:]        
         Ytest_r_cl = tmp_ydata_r[idx_cl,:]
         Ytest_i_cl = tmp_ydata_i[idx_cl,:]        
-        #r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / Ytest_r_cl.shape[0]
-        #i_cl_error = (np.sum((recon_i_cl - Ytest_i_cl)**2)) / Ytest_i_cl.shape[0]
-        r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / np.sum((Ytest_r_cl**2))
-        i_cl_error = (np.sum((recon_i_cl - Ytest_i_cl)**2)) / np.sum((Ytest_i_cl**2))
+        r_cl_error = ((recon_r_cl - Ytest_r_cl)**2).sum()/Ytest_r_cl.shape[0]
+        i_cl_error = ((recon_i_cl - Ytest_i_cl)**2).sum()/Ytest_i_cl.shape[0]
+        r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / Ytest_r_cl.shape[0]
+        i_cl_error = (np.sum((recon_i_cl - Ytest_i_cl)**2)) / Ytest_i_cl.shape[0]
+        # r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / np.sum((Ytest_r_cl**2))
+        # i_cl_error = (np.sum((recon_i_cl - Ytest_i_cl)**2)) / np.sum((Ytest_i_cl**2))
         
-        cl_error = lin.norm((tmp_recon[idx_cl,:] - tmp_ydata[idx_cl,:]).ravel())/lin.norm(tmp_ydata[idx_cl,:].ravel())
-        #cl_mse_days[iterr,i] = r_cl_error + i_cl_error
-        cl_mse_days[iterr,i]  = cl_error
+        cl_mse_days[iterr,i] = r_cl_error + i_cl_error
+        
+        #cl_error = lin.norm((tmp_recon[idx_cl,:] - tmp_ydata[idx_cl,:]).ravel())/lin.norm(tmp_ydata[idx_cl,:].ravel())        
+        #cl_mse_days[iterr,i]  = cl_error
         #print(cl_error)
         #cl_mse.append(cl_error)
         
@@ -284,15 +287,15 @@ for iterr in np.arange(iterations):
         recon_i_ol = tmp_recon_i[idx_ol,:]        
         Ytest_r_ol = tmp_ydata_r[idx_ol,:]
         Ytest_i_ol = tmp_ydata_i[idx_ol,:]        
-        # r_ol_error = (np.sum((recon_r_ol - Ytest_r_ol)**2)) / Ytest_r_ol.shape[0]
-        # i_ol_error = (np.sum((recon_i_ol - Ytest_i_ol)**2)) / Ytest_i_ol.shape[0]
-        r_ol_error = (np.sum((recon_r_ol - Ytest_r_ol)**2)) / np.sum((Ytest_r_ol**2))
-        i_ol_error = (np.sum((recon_i_ol - Ytest_i_ol)**2)) / np.sum((Ytest_i_ol**2)) 
+        r_ol_error = (np.sum((recon_r_ol - Ytest_r_ol)**2)) / Ytest_r_ol.shape[0]
+        i_ol_error = (np.sum((recon_i_ol - Ytest_i_ol)**2)) / Ytest_i_ol.shape[0]
+        # r_ol_error = (np.sum((recon_r_ol - Ytest_r_ol)**2)) / np.sum((Ytest_r_ol**2))
+        # i_ol_error = (np.sum((recon_i_ol - Ytest_i_ol)**2)) / np.sum((Ytest_i_ol**2)) 
         
-        ol_error = lin.norm((tmp_recon[idx_ol,:] - tmp_ydata[idx_ol,:]).ravel())/lin.norm(tmp_ydata[idx_ol,:].ravel())
+        #ol_error = lin.norm((tmp_recon[idx_ol,:] - tmp_ydata[idx_ol,:]).ravel())/lin.norm(tmp_ydata[idx_ol,:].ravel())
         
-        #ol_mse_days[iterr,i] = r_ol_error + i_ol_error
-        ol_mse_days[iterr,i] = ol_error
+        ol_mse_days[iterr,i] = r_ol_error + i_ol_error
+        #ol_mse_days[iterr,i] = ol_error
         
                 
         # balanced accuracy
