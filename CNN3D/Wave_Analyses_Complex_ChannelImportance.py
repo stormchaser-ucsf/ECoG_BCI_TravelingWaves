@@ -729,6 +729,32 @@ plt.xticks((1,2),labels=('OL','CL'))
 res=stats.wilcoxon(var_ol,var_cl)
 print(res.pvalue)
 
+# look at variance in the activations themselves
+var_ol=[]
+act_ol = activations[ol_day,:]
+for i in np.arange(act_ol.shape[0]):
+    tmp = np.array(act_ol[i,:])
+    h,w,t=tmp.shape
+    tmp = (np.reshape(tmp,(h*w,t))).T
+    m = np.mean(tmp,axis=0)[None,:]
+    z = tmp-m
+    C = ((1/(t-1)) * (z.conj().T) @ z).real
+    var_ol.append(lin.diagonal(C))
+    
+var_cl=[]
+act_cl = activations[cl_day,:]
+for i in np.arange(act_cl.shape[0]):
+    tmp = np.array(act_cl[i,:])
+    h,w,t=tmp.shape
+    tmp = (np.reshape(tmp,(h*w,t))).T
+    m = np.mean(tmp,axis=0)[None,:]
+    z = tmp-m
+    C = ((1/(t-1)) * (z.conj().T) @ z).real
+    var_cl.append(lin.diagonal(C))
+    
+var_ol = np.array(var_ol)
+var_cl = np.array(var_cl)
+
 # condition specific variance described by a mode
 dataA = activations[ol_day,:]
 dataB = activations[cl_day,:]
