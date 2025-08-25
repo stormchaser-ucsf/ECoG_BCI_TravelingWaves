@@ -236,14 +236,17 @@ for iterr in np.arange(iterations):
     #     idx = (tmp_labels)
     #     idx_cl = np.where(idx==1)[0]
     #     idx_ol = np.where(idx==0)[0]
-    #     a.append(np.mean(np.abs(Xtest[idx_ol,:].ravel())))
-    #     b.append(np.mean(np.abs(Xtest[idx_cl,:].ravel())))
+    #     a.append(np.median(np.abs(Ytest[idx_ol,:].ravel())))
+    #     b.append(np.median(np.abs(Ytest[idx_cl,:].ravel())))
     
     # plt.figure()
     # plt.plot(a)
     # plt.plot(b)
     # plt.legend(('OL','CL'))
     # print(stats.ttest_rel(a,b))
+    # plt.figure()
+    # plt.boxplot((a,b))
+    # res=stats.wilcoxon(a,b)
         
     for i in np.arange(len(days)): # loop over the 10 days 
         idx_days = np.where(labels_test_days == days[i])[0]
