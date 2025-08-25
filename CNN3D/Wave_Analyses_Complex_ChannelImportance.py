@@ -654,7 +654,7 @@ model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
 layer_name = 'layer3'
-channel_idx = 9
+channel_idx = 1
 batch_size=256
 
 activations_real, activations_imag = get_channel_activations(model, Xval, Yval,
@@ -667,7 +667,7 @@ activations = activations_real + 1j*activations_imag
 eigvals, eigmaps, Z , VAF = complex_pca(activations,15)
 
 # plot phasors of the eigenmaps
-pc_idx=4;
+pc_idx=1;
 H,W = eigmaps.shape[:2]
 Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
 U = eigmaps[:,:,pc_idx].real
@@ -703,6 +703,31 @@ Z_cl = Z[cl_day,:]
 
 a = np.median(np.abs(Z_ol[:,:,pc_idx]),axis=1)
 b = np.median(np.abs(Z_cl[:,:,pc_idx]),axis=1)
+
+# looking ar variance within each trial to see if there are differences
+var_ol=[]
+for i in np.arange(Z_ol.shape[0]):
+    tmp = Z_ol[i,:,pc_idx][:,None]
+    u = np.mean(tmp,axis=0)
+    v = (tmp - u).conj().T @ (tmp-u)
+    d = v.real
+    var_ol.append(d)
+    
+var_cl=[]
+for i in np.arange(Z_cl.shape[0]):
+    tmp = Z_cl[i,:,pc_idx][:,None]
+    u = np.mean(tmp,axis=0)
+    v = (tmp - u).conj().T @ (tmp-u)
+    d = v.real
+    var_cl.append(d)
+
+var_ol = np.log(np.array(var_ol).squeeze())
+var_cl = np.log(np.array(var_cl).squeeze())
+plt.figure()
+plt.boxplot((var_ol,var_cl))
+plt.xticks((1,2),labels=('OL','CL'))
+res=stats.wilcoxon(var_ol,var_cl)
+print(res.pvalue)
 
 # condition specific variance described by a mode
 dataA = activations[ol_day,:]
