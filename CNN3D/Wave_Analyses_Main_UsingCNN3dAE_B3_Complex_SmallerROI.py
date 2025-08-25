@@ -268,8 +268,8 @@ for iterr in np.arange(iterations):
         recon_i_cl = tmp_recon_i[idx_cl,:]        
         Ytest_r_cl = tmp_ydata_r[idx_cl,:]
         Ytest_i_cl = tmp_ydata_i[idx_cl,:]        
-        r_cl_error = ((recon_r_cl - Ytest_r_cl)**2).sum()/Ytest_r_cl.shape[0]
-        i_cl_error = ((recon_i_cl - Ytest_i_cl)**2).sum()/Ytest_i_cl.shape[0]
+        # r_cl_error = ((recon_r_cl - Ytest_r_cl)**2).sum()/Ytest_r_cl.shape[0]
+        # i_cl_error = ((recon_i_cl - Ytest_i_cl)**2).sum()/Ytest_i_cl.shape[0]
         r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / Ytest_r_cl.shape[0]
         i_cl_error = (np.sum((recon_i_cl - Ytest_i_cl)**2)) / Ytest_i_cl.shape[0]
         # r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / np.sum((Ytest_r_cl**2))
