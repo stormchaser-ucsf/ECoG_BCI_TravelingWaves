@@ -20,6 +20,7 @@ if os.name=='nt':
     os.chdir('C:/Users/nikic/Documents/GitHub/ECoG_BCI_TravelingWaves/CNN3D')
 else:       
     #os.chdir('/home/reza/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
+    #os.chdir('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/')
     os.chdir('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/')
 
     
@@ -61,7 +62,8 @@ if os.name=='nt':
     filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3/'
     filename = filepath + filename
 else:
-    filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
+    #filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
+    filepath = '/media/user/New Volume/ECoG_BCI_TravelingWave_Data/'
     filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
     #filename = filepath + filename
     #filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'

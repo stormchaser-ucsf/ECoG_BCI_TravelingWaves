@@ -393,7 +393,7 @@ def get_hook(name):
     return hook
 
 # ===== User setting =====
-target_layer_base = "layer2"  # <-- base name, no _real/_imag needed
+target_layer_base = "layer3"  # <-- base name, no _real/_imag needed
 
 # ===== Register hooks =====
 hook_handles = []
@@ -654,7 +654,7 @@ model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
 layer_name = 'layer3'
-channel_idx = 2
+channel_idx = 9
 batch_size=256
 
 activations_real, activations_imag = get_channel_activations(model, Xval, Yval,
@@ -794,3 +794,4 @@ plt.show()
 
 plt.figure()
 plt.boxplot((act_str_ol,act_str_cl))
+
