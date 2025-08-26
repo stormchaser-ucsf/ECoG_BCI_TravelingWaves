@@ -2519,7 +2519,7 @@ def complex_pca(activations, n_components=5):
     # Reshape eigenvectors 
     eigmaps = eigvecs.reshape(W,H,n_components)    
 
-    return eigvals, eigmaps, Z, VAF
+    return eigvals, eigmaps, Z, VAF,eigvecs
 
 
 def complex_pca_PerCondition(activations, labels_tmp, n_components=5):
