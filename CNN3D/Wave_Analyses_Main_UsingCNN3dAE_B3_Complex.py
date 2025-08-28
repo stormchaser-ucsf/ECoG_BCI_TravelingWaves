@@ -63,7 +63,7 @@ if os.name=='nt':
     filename = filepath + filename
 else:
     #filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
-    filepath = '/home/user/Documents/ECoG_BCI_TravelingWave_Data/'
+    filepath = '/media/user/Data/ECoG_BCI_TravelingWave_Data/'
     filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
     #filename = filepath + filename
     #filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
