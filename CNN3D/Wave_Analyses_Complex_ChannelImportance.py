@@ -667,7 +667,7 @@ activations = activations_real + 1j*activations_imag
 eigvals, eigmaps, Z , VAF,eigvecs = complex_pca(activations,15)
 
 # plot phasors of the eigenmaps
-pc_idx=0;
+pc_idx=1;
 H,W = eigmaps.shape[:2]
 Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
 U = eigmaps[:,:,pc_idx].real
@@ -692,12 +692,18 @@ a = np.cos(a)
 plt.figure()
 plt.plot(a)
 
-# plot movie of activations as on the the grid
+#### TO plot movie of activations as on the the grid
 z =Z[:,:,pc_idx].T
 z = z[:,:,None]
 pc = eigvecs[:,pc_idx][:,None]
 pc = pc[:,:,None]
 Xhat = z @ pc.conj().T
+
+### reshape into grid
+
+### make movie per trial 
+
+
 
 # plot VAF
 plt.figure()
