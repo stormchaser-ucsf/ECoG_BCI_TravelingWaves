@@ -653,8 +653,8 @@ model.load_state_dict(torch.load(nn_filename))
 
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer3'
-channel_idx = 2
+layer_name = 'layer4'
+channel_idx = 6
 batch_size=256
 
 activations_real, activations_imag = get_channel_activations(model, Xval, Yval,
@@ -667,7 +667,7 @@ activations = activations_real + 1j*activations_imag
 eigvals, eigmaps, Z , VAF,eigvecs = complex_pca(activations,15)
 
 # plot phasors of the eigenmaps
-pc_idx=0;
+pc_idx=2;
 H,W = eigmaps.shape[:2]
 Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
 U = eigmaps[:,:,pc_idx].real
@@ -692,7 +692,67 @@ a = np.cos(a)
 plt.figure()
 plt.plot(a)
 
-#### TO plot movie of activations as on the the grid
+#### recon single trial
+pc_idx=2
+z = Z[100,:,pc_idx][:,None]
+pc = eigvecs[:,pc_idx][:,None]
+Xhat1 = z @ (pc.conj().T)
+Xhat1 = np.reshape(Xhat1,(Xhat1.shape[0],H,W))
+
+# filename = 'temp_recon_Layer'
+# make_movie(Xhat1,filename)
+
+#x1=Xhat1.real
+x1 = np.sin(np.angle(Xhat1))
+fig, ax = plt.subplots()
+im = ax.imshow(x1[0], cmap='jet', animated=True)
+title = ax.set_title("Time: 0", fontsize=12)
+#ax.set_title("Optimized Input Over Time")
+ax.axis('off')
+
+def update(frame):
+    im.set_array(x1[frame])    
+    title.set_text(f"Time: {frame}/{x1.shape[0]}")
+    return [im]
+
+ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, blit=False)
+
+# Show the animation
+plt.show()
+# save the animation
+filename = 'temp_recon_Layer.gif'
+ani.save(filename, writer="pillow", fps=6)
+
+#### plot phasor
+xreal = Xhat1.real
+ximag = Xhat1.imag
+
+# xreal = 2 * ((xreal - xreal.min()) / (xreal.max() - xreal.min())) - 1
+# ximag = 2 * ((ximag - ximag.min()) / (ximag.max() - ximag.min())) - 1
+fig, ax = plt.subplots(figsize=(6, 6))
+
+def update(t):
+    plot_phasor_frame_time(xreal, ximag, t, ax)
+    #plot_phasor_frame(xreal, ximag, t, ax)
+    return []
+
+#ani = animation.FuncAnimation(fig, update, frames=xreal.shape[0], blit=False)
+ani = animation.FuncAnimation(fig, update, frames=xreal.shape[0], blit=False)
+
+plt.show()
+
+# save the animation
+filename = 'temp_recon_Layer_phasor.gif'
+ani.save(filename, writer="pillow", fps=4)
+
+plt.plot(xreal[0,0,:])
+plt.plot(ximag[0,0,:])
+
+plt.show()
+
+
+
+#### TO plot movie of activations as on the the grid VECTORIZED
 z =Z[:,:,pc_idx].T
 z = z[:,:,None]
 pc = eigvecs[:,pc_idx][:,None]
@@ -702,9 +762,6 @@ Xhat = z @ pc.conj().T
 ### reshape into grid
 
 ### make movie per trial 
-
-
-
 # plot VAF
 plt.figure()
 plt.stem(VAF)
