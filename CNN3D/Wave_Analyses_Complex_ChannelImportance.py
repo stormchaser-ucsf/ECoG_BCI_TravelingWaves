@@ -654,7 +654,7 @@ model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
 layer_name = 'layer3'
-channel_idx = 4
+channel_idx = 2
 batch_size=256
 
 activations_real, activations_imag = get_channel_activations(model, Xval, Yval,
@@ -667,7 +667,7 @@ activations = activations_real + 1j*activations_imag
 eigvals, eigmaps, Z , VAF,eigvecs = complex_pca(activations,15)
 
 # plot phasors of the eigenmaps
-pc_idx=1;
+pc_idx=0;
 H,W = eigmaps.shape[:2]
 Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
 U = eigmaps[:,:,pc_idx].real

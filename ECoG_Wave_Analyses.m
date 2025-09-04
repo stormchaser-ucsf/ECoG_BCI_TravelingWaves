@@ -2,23 +2,49 @@
 
 clc;clear
 %close all
+if ispc
 
-root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
-cd(root_path)
-load('ECOG_Grid_8596_000067_B3.mat')
+    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
+    cd(root_path)
+    load('ECOG_Grid_8596_000067_B3.mat')
 
-% add the circ stats toolbox
-addpath('C:\Users\nikic\Documents\MATLAB')
-addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
-addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim\helpers')
-addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
-addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
-imaging_B3;close all
+    % add the circ stats toolbox
+    addpath('C:\Users\nikic\Documents\MATLAB')
+    addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
+    addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim\helpers')
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
+    addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
+    imaging_B3_waves;close all
+
+elseif isunix
+
+    root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3';
+    cd(root_path)
+    load('ECOG_Grid_8596_000067_B3.mat')
+
+    % add the circ stats toolbox
+    addpath('/home/user/Documents/MATLAB')
+    addpath('/home/user/Documents/MATLAB/CircStat2012a')
+    addpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/helpers')
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/wave-matlab-master/wave-matlab-master'))
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves'))
+    imaging_B3_waves;close all
+
+
+end
 
 %%  OSCILLATION CLUSTERS
 % get all the files from a particular day
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230511\HandImagined';
-filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
+
+if ispc
+    filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
+else isunix
+    filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230518/HandOnline';
+end
+ 
+
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230223\Robot3DArrow';
 
 files = findfiles('.mat',filepath,1)';
@@ -69,7 +95,9 @@ for ii=1:length(files)
         power_spect = Pxx(idx);
         power_spect = log2(power_spect);
         %[bhat p wh se ci t_stat]=robust_fit(F1,power_spect,1);
+        warning('off','all');  % Turns off all warnings
         tb=fitlm(F1,power_spect,'RobustOpts','on');
+        warning('on','all'); 
         stats_tmp = [stats_tmp tb.Coefficients.pValue(2)];
         bhat = tb.Coefficients.Estimate;
         x = [ones(length(F1),1) F1];
