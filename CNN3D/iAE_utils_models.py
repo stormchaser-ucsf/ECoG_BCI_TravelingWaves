@@ -36,6 +36,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from collections import defaultdict
 from sklearn.preprocessing import MaxAbsScaler
+import matplotlib.animation as animation
 
 # setting up GPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -1279,7 +1280,7 @@ class Encoder3D_Complex_deep(nn.Module):
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b) 
-        a#,b=self.bn3(a,b)
+        #a,b=self.bn3(a,b)
         a,b=self.elu3(a,b)
         
         a,b = self.conv4(a,b)        
@@ -1358,14 +1359,14 @@ class Decoder3D_Complex_deep(nn.Module):
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)  
-         # a,b=self.bn3(a,b)
+         #a,b=self.bn3(a,b)
          a,b=self.elu3(a,b)              
          
          a,b = self.deconv4(a,b)        
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)   
-         # a,b=self.bn4(a,b)
+         #a,b=self.bn4(a,b)
          a,b=self.elu4(a,b)               
          
          a,b = self.deconv5(a,b)         
@@ -1379,7 +1380,7 @@ class Decoder3D_Complex_deep(nn.Module):
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)  
-         # a,b=self.bn6(a,b)
+         #a,b=self.bn6(a,b)
          a,b=self.elu6(a,b)      
          
          a,b = self.deconv7(a,b)         
@@ -2261,8 +2262,10 @@ def complex_data_augmentation_torch(Xtrain, Ytrain, labels_train, sigma, iterati
 
         tmp = torch.gather(tmp, -1, idx)
         tmp1 = torch.gather(tmp1, -1, idx)
+        
+        # Add small amplitude fluctuations 
 
-        # Add complex Gaussian noise to input only
+        # Add complex Gaussian noise to input only, both real and imaginary part
         noise_real = torch.randn(n, c, h, w, t, device=device) * sigma
         noise_imag = torch.randn(n, c, h, w, t, device=device) * sigma
         noise = torch.complex(noise_real, noise_imag)
@@ -2434,6 +2437,8 @@ def plot_phasor_kernels_side_by_side_PCA(weights):
     plt.show()
 
 
+
+
 def plot_phasor_frame(x_real, x_imag, t, ax):
     H, W = x_real.shape[:2]
     
@@ -2471,6 +2476,59 @@ def plot_phasor_frame_time(x_real, x_imag, t, ax):
     ax.set_xlim(-0.5, W - 0.5)
     ax.set_ylim(-0.5, H - 0.5)
     #ax.invert_yaxis()
+
+
+# def plot_phasor_frame_time_1D(x_real, x_imag, t, ax):
+#     H, W = x_real.shape[1:]
+    
+#     # Grid positions
+#     X, Y = np.meshgrid(np.arange(W), np.arange(H))
+    
+#     # Get vectors
+#     U = x_real[t, :, :]
+#     V = x_imag[t, :, :]
+    
+#     # Plot arrows
+#     ax.clear()
+#     ax.quiver(X, Y, U, V, angles='xy')
+#     ax.set_title(f'Phasor Field at Time {t}')
+#     ax.set_aspect('equal')
+#     ax.set_xlim(-0.5, W - 0.5)
+#     ax.set_ylim(-0.5, H - 0.5)
+#     #ax.invert_yaxis()
+
+
+
+def plot_1D_phasor_movie(input_data,filename):
+    xreal = input_data.real
+    ximag = input_data.imag
+        
+    fig, ax = plt.subplots(figsize=(5,5))
+    ax.set_xlim(-1.5, 1.5)
+    ax.set_ylim(-1.5, 1.5)
+    ax.set_aspect('equal')
+    ax.set_title("Complex phasor through time")
+    
+    circle = plt.Circle((0,0), 1, color='gray', fill=False, linestyle='--')
+    ax.add_artist(circle)
+    
+    # init arrow    
+    quiver = ax.quiver(0, 0, xreal[0], ximag[0], angles='xy', scale_units='xy', scale=1, color='r')
+    
+    # --- Update function for animation ---
+    def update(frame,length = xreal.shape[0]):
+        x, y = xreal[frame], ximag[frame]
+        quiver.set_UVC(x, y)
+        ax.set_title(f'Phasor Field at Time {frame} of {length}')
+        return quiver
+    
+    #ani = animation.FuncAnimation(fig, update, frames=xreal.shape[0], blit=False)
+    ani = animation.FuncAnimation(fig, update, frames=xreal.shape[0],interval=100, blit=False)
+    
+    # save the animation    
+    ani.save(filename, writer="pillow", fps=4)
+
+
 
 #%% COMPLEX PCA/ICA
 

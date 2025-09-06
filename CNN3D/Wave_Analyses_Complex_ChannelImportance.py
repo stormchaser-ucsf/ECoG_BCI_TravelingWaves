@@ -653,8 +653,8 @@ model.load_state_dict(torch.load(nn_filename))
 
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer4'
-channel_idx = 6
+layer_name = 'layer1'
+channel_idx = 2
 batch_size=256
 
 activations_real, activations_imag = get_channel_activations(model, Xval, Yval,
@@ -666,8 +666,8 @@ activations = activations_real + 1j*activations_imag
 # RUN COMPLEX PCA
 eigvals, eigmaps, Z , VAF,eigvecs = complex_pca(activations,15)
 
-# plot phasors of the eigenmaps
-pc_idx=2;
+# PLOT EIGMAPS AS PHASORS
+pc_idx=0
 H,W = eigmaps.shape[:2]
 Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
 U = eigmaps[:,:,pc_idx].real
@@ -677,12 +677,22 @@ plt.quiver(X,Y,U,V,angles='xy')
 plt.xlim(X.min()-1,X.max()+1)
 plt.ylim(Y.min()-1,Y.max()+1)
 
-# plot phase map
+# PLOT EIGMAPS AS IMAGE
 ph = np.angle(eigmaps[:,:,pc_idx])
 ph = np.sin(ph)
 plt.figure()
 plt.imshow(ph,vmin=-1, vmax=1)
 plt.colorbar()
+
+# PLOT PC SINGLE TRIAL ACTIVATIONS AS PHASOR ANIMATION
+trial=9857;
+tmp = Z[trial,:,pc_idx][:,None]
+filename = 'trial0_PC_phasor.gif'
+ani = plot_1D_phasor_movie(tmp,filename)
+
+
+
+
 
 # plot raw activations
 scores = Z[0,:,pc_idx]
@@ -693,7 +703,7 @@ plt.figure()
 plt.plot(a)
 
 #### recon single trial
-pc_idx=2
+pc_idx=0
 z = Z[100,:,pc_idx][:,None]
 pc = eigvecs[:,pc_idx][:,None]
 Xhat1 = z @ (pc.conj().T)
