@@ -653,7 +653,7 @@ model.load_state_dict(torch.load(nn_filename))
 
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer1'
+layer_name = 'layer4'
 channel_idx = 2
 batch_size=256
 
@@ -667,7 +667,7 @@ activations = activations_real + 1j*activations_imag
 eigvals, eigmaps, Z , VAF,eigvecs = complex_pca(activations,15)
 
 # PLOT EIGMAPS AS PHASORS
-pc_idx=0
+pc_idx=2
 H,W = eigmaps.shape[:2]
 Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
 U = eigmaps[:,:,pc_idx].real
@@ -685,7 +685,7 @@ plt.imshow(ph,vmin=-1, vmax=1)
 plt.colorbar()
 
 # PLOT PC SINGLE TRIAL ACTIVATIONS AS PHASOR ANIMATION
-trial=9857;
+trial=2;
 tmp = Z[trial,:,pc_idx][:,None]
 filename = 'trial0_PC_phasor.gif'
 ani = plot_1D_phasor_movie(tmp,filename)
