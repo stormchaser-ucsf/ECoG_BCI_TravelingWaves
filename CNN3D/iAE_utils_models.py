@@ -1072,16 +1072,17 @@ class Autoencoder3D_B1(nn.Module):
 
 
 class ModELU(nn.Module):
-    def __init__(self, bias_init=0.0, alpha=1.0):
+    def __init__(self, bias_init=0.1, alpha=1.0,eps=1e-6):
         super(ModELU, self).__init__()
         self.bias = nn.Parameter(torch.tensor(bias_init))
         self.elu = nn.ELU(alpha=alpha)
+        self.eps=eps
         
     def forward(self, a,b):              
-        r = torch.sqrt(a**2 + b**2 + 1e-12) # avoid divide by zero in subsequent steps
+        r = torch.sqrt(a**2 + b**2 + self.eps) # avoid divide by zero in subsequent steps
         activated_r = self.elu(r + self.bias)
         a = (activated_r / r) * a
-        b = (activated_r / r) * b        
+        b = (activated_r /r) * b        
         return a,b
 
 
@@ -1252,13 +1253,13 @@ class Encoder3D_Complex_deep(nn.Module):
         self.elu6 = ModELU()
         self.elu7 = ModELU()
         
-        self.bn1 = MagnitudeBatchNorm(12)
-        self.bn2 = MagnitudeBatchNorm(12)
-        self.bn3 = MagnitudeBatchNorm(12)
-        self.bn4 = MagnitudeBatchNorm(16)
-        self.bn5 = MagnitudeBatchNorm(16)
-        self.bn6 = MagnitudeBatchNorm(16)
-        self.bn7 = MagnitudeBatchNorm(24)
+        # self.bn1 = MagnitudeBatchNorm(12)
+        # self.bn2 = MagnitudeBatchNorm(12)
+        # self.bn3 = MagnitudeBatchNorm(12)
+        # self.bn4 = MagnitudeBatchNorm(16)
+        # self.bn5 = MagnitudeBatchNorm(16)
+        # self.bn6 = MagnitudeBatchNorm(16)
+        # self.bn7 = MagnitudeBatchNorm(24)
         
         # self.bn1 = ComplexBatchNorm(12)
         # self.bn2 = ComplexBatchNorm(12)
@@ -1275,49 +1276,49 @@ class Encoder3D_Complex_deep(nn.Module):
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)    
-        a,b=self.bn1(a,b)
+        #a,b=self.bn1(a,b)
         a,b=self.elu1(a,b)
         
         a,b = self.conv2(a,b)        
         #z = ((a**2) + (b**2))**0.5
         #a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)    
-        a,b=self.bn2(a,b)
+        #a,b=self.bn2(a,b)
         a,b=self.elu2(a,b)
         
         a,b = self.conv3(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b) 
-        a,b=self.bn3(a,b)
+        #a,b=self.bn3(a,b)
         a,b=self.elu3(a,b)
         
         a,b = self.conv4(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)    
-        a,b=self.bn4(a,b)
+        #a,b=self.bn4(a,b)
         a,b=self.elu4(a,b)             
         
         a,b = self.conv5(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)  
-        a,b=self.bn5(a,b)
+        #a,b=self.bn5(a,b)
         a,b=self.elu5(a,b)      
 
         a,b = self.conv6(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)   
-        a,b=self.bn6(a,b)
+        #a,b=self.bn6(a,b)
         a,b=self.elu6(a,b)
 
         a,b = self.conv7(a,b)        
         # z = ((a**2) + (b**2))**0.5
         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
         #a,b = self.elu(a),self.elu(b)  
-        a,b=self.bn7(a,b)
+        #a,b=self.bn7(a,b)
         a,b=self.elu7(a,b)                    
         
         return a,b
@@ -1342,12 +1343,12 @@ class Decoder3D_Complex_deep(nn.Module):
         self.elu5 = ModELU()
         self.elu6 = ModELU()
         
-        self.bn1 = MagnitudeBatchNorm(16)
-        self.bn2 = MagnitudeBatchNorm(16)
-        self.bn3 = MagnitudeBatchNorm(16)
-        self.bn4 = MagnitudeBatchNorm(12)
-        self.bn5 = MagnitudeBatchNorm(12)
-        self.bn6 = MagnitudeBatchNorm(12)
+        # self.bn1 = MagnitudeBatchNorm(16)
+        # self.bn2 = MagnitudeBatchNorm(16)
+        # self.bn3 = MagnitudeBatchNorm(16)
+        # self.bn4 = MagnitudeBatchNorm(12)
+        # self.bn5 = MagnitudeBatchNorm(12)
+        # self.bn6 = MagnitudeBatchNorm(12)
         
         
         # self.bn1 = ComplexBatchNorm(16)
@@ -1363,42 +1364,42 @@ class Decoder3D_Complex_deep(nn.Module):
          #z = ((a**2) + (b**2))**0.5
          #a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)   
-         a,b=self.bn1(a,b)
+         #a,b=self.bn1(a,b)
          a,b=self.elu1(a,b)  
          
          a,b = self.deconv2(a,b)        
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)    
-         a,b=self.bn2(a,b)
+         #a,b=self.bn2(a,b)
          a,b=self.elu2(a,b)          
          
          a,b = self.deconv3(a,b)        
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)  
-         a,b=self.bn3(a,b)
+         #a,b=self.bn3(a,b)
          a,b=self.elu3(a,b)              
          
          a,b = self.deconv4(a,b)        
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)   
-         a,b=self.bn4(a,b)
+         #a,b=self.bn4(a,b)
          a,b=self.elu4(a,b)               
          
          a,b = self.deconv5(a,b)         
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b) 
-         a,b=self.bn5(a,b)
+         #a,b=self.bn5(a,b)
          a,b=self.elu5(a,b)        
          
          a,b = self.deconv6(a,b)         
          # z = ((a**2) + (b**2))**0.5
          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
          #a,b = self.elu(a),self.elu(b)  
-         a,b=self.bn6(a,b)
+         #a,b=self.bn6(a,b)
          a,b=self.elu6(a,b)      
          
          a,b = self.deconv7(a,b)         
@@ -2127,7 +2128,7 @@ class MagnitudeBatchNorm(nn.Module):
 
 
 class ComplexBatchNorm(nn.Module):
-    def __init__(self, num_features, eps=1e-6, momentum=0.9):
+    def __init__(self, num_features, eps=1e-6, momentum=0.1):
         super().__init__()
         self.num_features = num_features
         self.eps = eps
@@ -2554,8 +2555,8 @@ def plot_1D_phasor_movie(input_data,filename):
     ximag = input_data.imag
         
     fig, ax = plt.subplots(figsize=(5,5))
-    ax.set_xlim(-1.5, 1.5)
-    ax.set_ylim(-1.5, 1.5)
+    ax.set_xlim(-0.5, 0.5)
+    ax.set_ylim(-0.5, 0.5)
     ax.set_aspect('equal')
     ax.set_title("Complex phasor through time")
     

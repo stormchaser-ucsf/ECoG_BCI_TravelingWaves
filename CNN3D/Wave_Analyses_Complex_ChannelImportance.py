@@ -634,7 +634,7 @@ if gradcam_avg_imag is not None:
     print(per_channel_avg_imag)
 
 
-#%% DO PCA TO EXAMINE ACTIVATIONS OF INDIVIDUAL CHANNELS OF A LAYER
+#%% DO PCA TO EXAMINE ACTIVATIONS OF INDIVIDUAL CHANNELS OF A LAYER (v0)
 
 # PRELIMS
 from iAE_utils_models import *
@@ -653,8 +653,8 @@ model.load_state_dict(torch.load(nn_filename))
 
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer4'
-channel_idx = 2
+layer_name = 'layer3'
+channel_idx = 5
 batch_size=256
 
 activations_real, activations_imag = get_channel_activations(model, Xval, Yval,
@@ -667,7 +667,7 @@ activations = activations_real + 1j*activations_imag
 eigvals, eigmaps, Z , VAF,eigvecs = complex_pca(activations,15)
 
 # PLOT EIGMAPS AS PHASORS
-pc_idx=2
+pc_idx=0
 H,W = eigmaps.shape[:2]
 Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
 U = eigmaps[:,:,pc_idx].real
