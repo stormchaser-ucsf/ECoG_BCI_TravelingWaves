@@ -653,8 +653,8 @@ model.load_state_dict(torch.load(nn_filename))
 
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer3'
-channel_idx = 5
+layer_name = 'layer4'
+channel_idx = 4
 batch_size=256
 
 activations_real, activations_imag = get_channel_activations(model, Xval, Yval,
@@ -667,7 +667,7 @@ activations = activations_real + 1j*activations_imag
 eigvals, eigmaps, Z , VAF,eigvecs = complex_pca(activations,15)
 
 # PLOT EIGMAPS AS PHASORS
-pc_idx=0
+pc_idx=2
 H,W = eigmaps.shape[:2]
 Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
 U = eigmaps[:,:,pc_idx].real
@@ -684,14 +684,70 @@ plt.figure()
 plt.imshow(ph,vmin=-1, vmax=1)
 plt.colorbar()
 
+# EXAMINING THE PHASE VARIANCE BETWEEN OL AND CL
+# phase diffusion constant 
+var_ol=[]
+var_cl=[]
+for trial in np.arange(len(labels_val)):   
+    tmp = Z[trial,:,pc_idx]
+    ph = np.angle(tmp)
+    ph = np.unwrap(ph)
+    delta_ph = np.diff(ph)
+    if labels_val[trial]==0:
+        var_ol.append(np.var(delta_ph))
+        
+    if labels_val[trial]==1:
+        var_cl.append(np.var(delta_ph))
+
+var_ol = np.array(var_ol)      
+var_cl = np.array(var_cl)      
+plt.boxplot((var_ol,var_cl))
+
+# EXAMINING SLOPES
+slopes_ol=[]
+slopes_cl=[]
+var_ol=[]
+var_cl=[]
+for trial in np.arange(len(labels_val)):   
+    tmp = Z[trial,:,pc_idx]
+    ph = np.angle(tmp)
+    ph = np.unwrap(ph)
+    slope, intercept = np.polyfit(np.arange(len(ph)), ph, 1)
+    phat = intercept + slope*np.arange(len(ph))
+    err = (phat-ph)[:,None]
+    err = err.T @ err
+
+    if labels_val[trial]==0:
+        slopes_ol.append(slope)
+        var_ol.append(err)
+        
+    if labels_val[trial]==1:
+        slopes_cl.append(slope)
+        var_cl.append(err)
+
+slopes_ol = np.array(slopes_ol)      
+slopes_cl = np.array(slopes_cl)    
+
+var_ol = np.array(var_ol).squeeze()    
+var_cl = np.array(var_cl).squeeze()  
+
+plt.boxplot((var_ol,var_cl))  
+plt.figure()
+plt.boxplot((slopes_ol,slopes_cl))
+
+
+slope, intercept = np.polyfit(np.arange(len(ph)), ph, 1)
+phat = intercept + slope*np.arange(len(ph))
+plt.figure()
+plt.plot(ph)
+plt.plot(phat,'--')
+plt.show
+
 # PLOT PC SINGLE TRIAL ACTIVATIONS AS PHASOR ANIMATION
 trial=2;
 tmp = Z[trial,:,pc_idx][:,None]
 filename = 'trial0_PC_phasor.gif'
 ani = plot_1D_phasor_movie(tmp,filename)
-
-
-
 
 
 # plot raw activations

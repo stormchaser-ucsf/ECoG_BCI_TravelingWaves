@@ -388,6 +388,21 @@ np.savez('WaveAnalyses_Sept0920205',
          model=model,
          nn_filename=nn_filename)
 
+#%% LOADING DATA BACK FROM ABOVE
+
+data = np.load('/media/user/Data/ecog_data/ECoG BCI/Spyder_Data/WaveAnalyses_Sept0920205.npz',
+               allow_pickle=True)
+
+Xval = data.get('Xval')
+Yval = data.get('Yval')
+Xtest = data.get('Xtest')
+Ytest = data.get('Ytest')
+labels_test_days = data.get('labels_test_days')
+model = data.get('model')
+labels_test = data.get('labels_test')
+labels_val = data.get('labels_val')
+nn_filename = data.get('nn_filename')
+
 
 
 #%% LOADING DATA BACK
