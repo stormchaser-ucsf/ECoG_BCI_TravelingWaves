@@ -374,6 +374,20 @@ np.savez('Alpha_200Hz_AllDays_B3_Complex_DataAug_15Iter',
           decoding_accuracy=decoding_accuracy
           )
 
+#%% saving variables to reload and do analyses
+
+os.chdir('/media/user/Data/ecog_data/ECoG BCI/Spyder_Data/')
+np.savez('WaveAnalyses_Sept0920205',
+         Xval=Xval,
+         Yval=Yval,
+         labels_val=labels_val,
+         Xtest=Xtest,
+         Ytest=Ytest,
+         labels_test=labels_test,
+         labels_test_days=labels_test_days,
+         model=model,
+         nn_filename=nn_filename)
+
 
 
 #%% LOADING DATA BACK
