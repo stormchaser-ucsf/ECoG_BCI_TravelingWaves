@@ -653,8 +653,8 @@ model.load_state_dict(torch.load(nn_filename))
 
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer4'
-channel_idx = 4
+layer_name = 'layer3'
+channel_idx = 11
 batch_size=256
 
 activations_real, activations_imag = get_channel_activations(model, Xval, Yval,
@@ -667,7 +667,7 @@ activations = activations_real + 1j*activations_imag
 eigvals, eigmaps, Z , VAF,eigvecs = complex_pca(activations,15)
 
 # PLOT EIGMAPS AS PHASORS
-pc_idx=2
+pc_idx=1
 H,W = eigmaps.shape[:2]
 Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
 U = eigmaps[:,:,pc_idx].real
@@ -703,33 +703,47 @@ var_ol = np.array(var_ol)
 var_cl = np.array(var_cl)      
 plt.boxplot((var_ol,var_cl))
 
-# EXAMINING SLOPES
+# EXAMINING SLOPES, VARIANCE AND ACTIVATIONS
 slopes_ol=[]
 slopes_cl=[]
 var_ol=[]
 var_cl=[]
+act_ol=[]
+act_cl=[]
 for trial in np.arange(len(labels_val)):   
     tmp = Z[trial,:,pc_idx]
+    amp = np.mean(np.abs(tmp))    
     ph = np.angle(tmp)
+    
+    #ph = np.mod(ph, 2*np.pi)  # shift to [0, 2π]
     ph = np.unwrap(ph)
     slope, intercept = np.polyfit(np.arange(len(ph)), ph, 1)
     phat = intercept + slope*np.arange(len(ph))
     err = (phat-ph)[:,None]
     err = err.T @ err
+    err = np.var(np.diff(ph))
 
     if labels_val[trial]==0:
         slopes_ol.append(slope)
         var_ol.append(err)
+        act_ol.append(amp)
         
     if labels_val[trial]==1:
         slopes_cl.append(slope)
         var_cl.append(err)
+        act_cl.append(amp)
 
 slopes_ol = np.array(slopes_ol)      
 slopes_cl = np.array(slopes_cl)    
+act_ol = np.array(act_ol)      
+act_cl = np.array(act_cl)    
 
 var_ol = np.array(var_ol).squeeze()    
 var_cl = np.array(var_cl).squeeze()  
+
+print(var_cl.mean())
+print(var_ol.mean())
+
 
 plt.boxplot((var_ol,var_cl))  
 plt.figure()
