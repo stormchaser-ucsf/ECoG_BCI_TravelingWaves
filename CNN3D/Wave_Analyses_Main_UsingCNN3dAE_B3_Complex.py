@@ -377,7 +377,7 @@ np.savez('Alpha_200Hz_AllDays_B3_Complex_DataAug_15Iter',
 #%% saving variables to reload and do analyses
 
 os.chdir('/media/user/Data/ecog_data/ECoG BCI/Spyder_Data/')
-np.savez('WaveAnalyses_Sept0920205',
+np.savez('WaveAnalyses_Sept1120205',
          Xval=Xval,
          Yval=Yval,
          labels_val=labels_val,
@@ -402,6 +402,7 @@ model = data.get('model')
 labels_test = data.get('labels_test')
 labels_val = data.get('labels_val')
 nn_filename = data.get('nn_filename')
+
 
 
 

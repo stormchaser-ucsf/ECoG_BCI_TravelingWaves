@@ -243,8 +243,11 @@ recon_criterion = nn.MSELoss(reduction='mean')
 
 # Xtest_real,Xtest_imag = Xtest.real,Xtest.imag
 # Ytest_real,Ytest_imag = Ytest.real,Ytest.imag
-Xtest_real,Xtest_imag = Xval.real,Xval.imag
-Ytest_real,Ytest_imag = Yval.real,Yval.imag
+idx = np.where(labels_val==0)[0]
+Xtest_real,Xtest_imag = Xval[idx,:].real,Xval[idx,:].imag
+Ytest_real,Ytest_imag = Yval[idx,:].real,Yval[idx,:].imag
+
+
 num_batches = math.ceil(Xtest_real.shape[0]/256)
 idx = (np.arange(Xtest_real.shape[0]))
 idx_split = np.array_split(idx,num_batches)
@@ -419,7 +422,7 @@ model.encoder.eval()
 model.decoder.eval()
 model.classifier.train()
 
-idx = np.where(labels_test==0)[0]
+idx = np.where(labels_test==1)[0]
 Xtest_real, Xtest_imag = Xtest.real, Xtest.imag
 Ytest_real, Ytest_imag = Ytest.real, Ytest.imag
 Xr = Xtest_real[idx,:]
@@ -444,11 +447,11 @@ for batch_idx in range(num_batches):
 
     # Forward
     r, i, logits = model(X_real_batch, X_imag_batch)
-    #score = logits.mean()
-    s1 = torch.square(Y_real_batch - r)
-    s2 = torch.square(Y_imag_batch - i)
-    s = torch.sqrt(s1+s2)
-    score = s.mean()
+    score = logits.mean()
+    #s1 = torch.square(Y_real_batch - r)
+    #s2 = torch.square(Y_imag_batch - i)
+    #s = torch.sqrt(s1+s2)
+    #score = s.mean()
 
     # Backward
     model.zero_grad()
@@ -463,6 +466,11 @@ for batch_idx in range(num_batches):
         
         act_real = activations[real_name]
         grad_real = activations[real_name].grad
+        
+        #get only the channel you care about
+        act_real = act_real[:,11,:,:,:][:,None,:,:,:]
+        grad_real = grad_real[:,11,:,:,:][:,None,:,:,:]
+        
         w_real = grad_real.mean(dim=(2, 3, 4), keepdim=True)
         cam_real = (w_real * act_real).sum(dim=1)  # sum over channels
         ch_mag_real = (w_real * act_real).abs().mean(dim=(2, 3, 4))  # per-channel
@@ -478,6 +486,11 @@ for batch_idx in range(num_batches):
         # ----- IMAG -----
         act_imag = activations[imag_name]
         grad_imag = act_imag.grad
+        
+        #get only the channel you care about
+        act_imag = act_imag[:,11,:,:,:][:,None,:,:,:]
+        grad_imag = grad_imag[:,11,:,:,:][:,None,:,:,:]
+        
         w_imag = grad_imag.mean(dim=(2, 3, 4), keepdim=True)
         cam_imag = (w_imag * act_imag).sum(dim=1)
         ch_mag_imag = (w_imag * act_imag).abs().mean(dim=(2, 3, 4))
@@ -526,7 +539,7 @@ for batch_idx in range(num_batches):
 
 # cleaning up
 del score,r,i,logits,activations,X_real_batch,X_imag_batch, Y_real_batch,Y_imag_batch
-del s1,s2,s
+#del s1,s2,s
 torch.cuda.empty_cache()
 torch.cuda.ipc_collect()
 
@@ -559,7 +572,7 @@ ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, bli
 # Show the animation
 plt.show()
 # save the animation
-filename = 'Grad_CAM_'  + target_layer_base + 'OL_Mag_Recon_v2_ROI.gif'
+filename = 'Grad_CAM_'  + target_layer_base + 'CL_Mag_Class_v2_ROI.gif'
 ani.save(filename, writer="pillow", fps=6)
 
 
@@ -588,7 +601,7 @@ ani = animation.FuncAnimation(fig, update, frames=xreal.shape[2], blit=False)
 plt.show()
 
 # save the animation
-filename = 'Grad_CAM_'  + target_layer_base + 'OL_Phasor_Recon_v2_ROI.gif'
+filename = 'Grad_CAM_'  + target_layer_base + 'CL_Phasor_Class_v2_ROI.gif'
 ani.save(filename, writer="pillow", fps=4)
 
 plt.plot(xreal[0,0,:])
@@ -633,6 +646,113 @@ if gradcam_avg_imag is not None:
     print(f"Per-channel IMAG Grad-CAM magnitudes for {target_layer_base}:")
     print(per_channel_avg_imag)
 
+#%% LOOK AT DIFFERENCES BETWEEN OL AND CL SEPARATELY AFTER PROJECTING ONTO THE LAYER
+# PCA, DAY BY DAY
+
+
+# PRELIMS
+from iAE_utils_models import *
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect() 
+
+if 'model' in locals():
+    del model 
+
+num_classes=1    
+input_size=384*2
+lstm_size=32
+ksize=2;
+model_class = Autoencoder3D_Complex_deep
+nn_filename = 'i3DAE_B3_Complex_New.pth' 
+model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
+model.load_state_dict(torch.load(nn_filename))
+
+# GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
+layer_name = 'layer3'
+channel_idx = 11
+batch_size=256
+
+day_idx=3
+idx_days = np.where(labels_test_days == day_idx)[0]
+tmp_labels = labels_test[idx_days]
+tmp_ydata = Ytest[idx_days,:]
+tmp_xdata = Xtest[idx_days,:]
+
+activations_real, activations_imag = get_channel_activations(model, tmp_xdata, tmp_ydata,
+                                    tmp_labels,device,layer_name,
+                                    channel_idx,batch_size)
+activations = activations_real + 1j*activations_imag
+
+# RUN COMPLEX PCA on OL
+idx = np.where(tmp_labels==0)[0]
+activations_ol = activations[idx,:]
+eigvals, eigmaps, Z , VAF,eigvecs = complex_pca(activations_ol,15)
+#plt.stem(VAF)
+
+# RUN COMPLEX PCA on CL
+idx = np.where(tmp_labels==1)[0]
+activations_cl = activations[idx,:]
+eigvals1, eigmaps1, Z1 , VAF1,eigvecs1 = complex_pca(activations_cl,15)
+#plt.stem(VAF1)
+
+
+# PLOT EIGMAPS AS PHASORS
+pc_idx=2
+H,W = eigmaps.shape[:2]
+Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+U = eigmaps[:,:,pc_idx].real
+V = eigmaps[:,:,pc_idx].imag
+plt.figure()
+plt.quiver(X,Y,U,V,angles='xy')
+plt.xlim(X.min()-1,X.max()+1)
+plt.ylim(Y.min()-1,Y.max()+1)
+
+
+pc_idx=2
+H,W = eigmaps1.shape[:2]
+Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+U = eigmaps1[:,:,pc_idx].real
+V = eigmaps1[:,:,pc_idx].imag
+plt.figure()
+plt.quiver(X,Y,U,V,angles='xy')
+plt.xlim(X.min()-1,X.max()+1)
+plt.ylim(Y.min()-1,Y.max()+1)
+
+#%% COMMON PCA ON ALL
+
+
+# PRELIMS
+from iAE_utils_models import *
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect() 
+
+if 'model' in locals():
+    del model 
+
+model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
+model.load_state_dict(torch.load(nn_filename))
+
+# GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
+layer_name = 'layer3'
+channel_idx = 11
+batch_size=256
+activations_real, activations_imag = get_channel_activations(model, Xval, Yval,
+                                    labels_val,device,layer_name,
+                                    channel_idx,batch_size)
+activations = activations_real + 1j*activations_imag
+
+eigvals, eigmaps, Z , VAF,eigvecs = complex_pca(activations,15)
+
+# PLOT EIGMAPS AS PHASORS
+pc_idx=5
+H,W = eigmaps.shape[:2]
+Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+U = eigmaps[:,:,pc_idx].real
+V = eigmaps[:,:,pc_idx].imag
+plt.figure()
+plt.quiver(X,Y,U,V,angles='xy')
+plt.xlim(X.min()-1,X.max()+1)
+plt.ylim(Y.min()-1,Y.max()+1)
 
 #%% DO PCA TO EXAMINE ACTIVATIONS OF INDIVIDUAL CHANNELS OF A LAYER (v0)
 
