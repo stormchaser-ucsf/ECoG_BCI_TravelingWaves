@@ -41,8 +41,8 @@ elseif ( plot_option == 1 )
 end
 
 % plot curl also (or divergence)
-% %[d,c]= curl(XX,YY,M,N);
+%[d,c]= curl(XX,YY,M,N);
 % [d]= divergence(XX,YY,M,N);
 % hold on
 % contour(XX,YY,d,'ShowText','on','LineWidth',1)
-
+% figure;imagesc(d)

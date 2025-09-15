@@ -668,55 +668,86 @@ model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer3'
-channel_idx = 11
+layer_name = 'layer4'
+channel_idx = 14
 batch_size=256
 
-day_idx=3
-idx_days = np.where(labels_test_days == day_idx)[0]
-tmp_labels = labels_test[idx_days]
-tmp_ydata = Ytest[idx_days,:]
-tmp_xdata = Xtest[idx_days,:]
+for day_idx in np.arange(10)+1:
+    
+    
+    idx_days = np.where(labels_test_days == day_idx)[0]
+    tmp_labels = labels_test[idx_days]
+    tmp_ydata = Ytest[idx_days,:]
+    tmp_xdata = Xtest[idx_days,:]
+    
+    activations_real, activations_imag = get_channel_activations(model, tmp_xdata, tmp_ydata,
+                                        tmp_labels,device,layer_name,
+                                        channel_idx,batch_size)
+    activations = activations_real + 1j*activations_imag
+    
+    # RUN COMPLEX PCA on OL
+    idx = np.where(tmp_labels==0)[0]
+    activations_ol = activations[idx,:]
+    eigvals, eigmaps, Z , VAF,eigvecs = complex_pca(activations_ol,15)
+    #plt.stem(VAF)
+    
+    # RUN COMPLEX PCA on CL
+    idx = np.where(tmp_labels==1)[0]
+    activations_cl = activations[idx,:]
+    eigvals1, eigmaps1, Z1 , VAF1,eigvecs1 = complex_pca(activations_cl,15)
+    #plt.stem(VAF1)
+    
+    
+    # PLOT EIGMAPS AS PHASORS
+    pc_idx=2
+    H,W = eigmaps.shape[:2]
+    Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+    U = eigmaps[:,:,pc_idx].real
+    V = eigmaps[:,:,pc_idx].imag
+    Z1 = U+1j*V
+    plt.figure()
+    plt.quiver(X,Y,U,V,angles='xy')
+    plt.gca().invert_yaxis()
+    # plt.xlim(X.min()-1,X.max()+1)
+    # plt.ylim(Y.min()-1,Y.max()+1)
+    
+    
+    #pc_idx=1
+    H,W = eigmaps1.shape[:2]
+    Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+    U = eigmaps1[:,:,pc_idx].real
+    V = eigmaps1[:,:,pc_idx].imag
+    Z2 = U+1j*V
+    plt.figure()
+    plt.quiver(X,Y,U,V,angles='xy')
+    plt.gca().invert_yaxis()
+    # plt.xlim(X.min()-1,X.max()+1)
+    # plt.ylim(Y.min()-1,Y.max()+1)
+    
+    # get the phase gradients 
+    pm,pd = phase_gradient_complex_multiplication(Z2)
 
-activations_real, activations_imag = get_channel_activations(model, tmp_xdata, tmp_ydata,
-                                    tmp_labels,device,layer_name,
-                                    channel_idx,batch_size)
-activations = activations_real + 1j*activations_imag
-
-# RUN COMPLEX PCA on OL
-idx = np.where(tmp_labels==0)[0]
-activations_ol = activations[idx,:]
-eigvals, eigmaps, Z , VAF,eigvecs = complex_pca(activations_ol,15)
-#plt.stem(VAF)
-
-# RUN COMPLEX PCA on CL
-idx = np.where(tmp_labels==1)[0]
-activations_cl = activations[idx,:]
-eigvals1, eigmaps1, Z1 , VAF1,eigvecs1 = complex_pca(activations_cl,15)
-#plt.stem(VAF1)
+# plot smoothed vector fields
 
 
-# PLOT EIGMAPS AS PHASORS
-pc_idx=2
-H,W = eigmaps.shape[:2]
-Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
-U = eigmaps[:,:,pc_idx].real
-V = eigmaps[:,:,pc_idx].imag
-plt.figure()
-plt.quiver(X,Y,U,V,angles='xy')
-plt.xlim(X.min()-1,X.max()+1)
-plt.ylim(Y.min()-1,Y.max()+1)
+# # compute the curl of the phasor field
+# Z = np.angle(Z2)
+# dphi_dy, dphi_dx = np.gradient(Z,edge_order=2)
+# plt.figure()
+# plt.quiver(X,Y,dphi_dx,dphi_dy,angles='xy')
+# plt.gca().invert_yaxis()
+# plt.xlim(X.min()-1,X.max()+1)
+# plt.ylim(Y.min()-1,Y.max()+1)
 
+#%% IMPLEMENTING SOME TRAVELING WAVES MULLER FUNCTIONS
 
-pc_idx=2
-H,W = eigmaps1.shape[:2]
-Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
-U = eigmaps1[:,:,pc_idx].real
-V = eigmaps1[:,:,pc_idx].imag
-plt.figure()
-plt.quiver(X,Y,U,V,angles='xy')
-plt.xlim(X.min()-1,X.max()+1)
-plt.ylim(Y.min()-1,Y.max()+1)
+    
+    
+    
+    
+    
+    
+
 
 #%% COMMON PCA ON ALL
 

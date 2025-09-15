@@ -401,9 +401,15 @@ labels_test_days = data.get('labels_test_days')
 model = data.get('model')
 labels_test = data.get('labels_test')
 labels_val = data.get('labels_val')
-nn_filename = data.get('nn_filename')
+nn_filename = 'i3DAE_B3_Complex_New.pth' 
 
 
+# get the CNN architecture model
+num_classes=1    
+input_size=384*2
+lstm_size=32
+ksize=2;
+model_class = Autoencoder3D_Complex_deep
 
 
 #%% LOADING DATA BACK

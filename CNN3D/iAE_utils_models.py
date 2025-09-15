@@ -37,6 +37,7 @@ from sklearn.model_selection import train_test_split
 from collections import defaultdict
 from sklearn.preprocessing import MaxAbsScaler
 import matplotlib.animation as animation
+from scipy.io import savemat
 
 # setting up GPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -2711,6 +2712,45 @@ def complex_pca_PerCondition(activations, labels_tmp, n_components=5):
     eigmaps = eigvecs.reshape(W,H,n_components)    
 
     return eigvals, eigmaps, Z, VAF, reconA, reconB
+
+#%% PHASE GRADIENTS
+
+
+def phase_gradient_complex_multiplication(xph,sign_IF=1):
+    
+    dim = xph.shape
+    
+    #### dx
+    tmp_dx = np.zeros(dim)    
+    
+    # forward differences on left and right edges
+    tmp_dx[:,0]= np.angle( xph[:,1] *  xph[:,0].conj() )
+    tmp_dx[:,-1] = np.angle( xph[:,-1] * xph[:,-2].conj() )
+    
+    # centered difference on interior points
+    tmp_dx[:,1:(dim[1]-1)] = np.angle( xph[:,2:dim[1]] * xph[:,0:(dim[1]-2)].conj() ) /2
+    
+    # save
+    dx = tmp_dx*sign_IF
+    
+    ##### dy
+    tmp_dy = np.zeros(dim)
+    
+    #forward differences on top and bottom edges
+    tmp_dy[0,:]= np.angle( xph[1,:] *  xph[0,:].conj() )
+    tmp_dy[-1,:] = np.angle( xph[-1,:] * xph[-2,:].conj() )
+    
+    # centered difference on interior points
+    tmp_dy[1:(dim[0]-1),:] = np.angle( xph[2:dim[0],:] * xph[0:(dim[0]-2),:].conj() ) /2
+    
+    # save
+    dy = tmp_dy*sign_IF
+    
+    # modulation
+    pm = np.sqrt(dx**2 + dy**2) / (2*np.pi)
+    pd = np.atan2(dy,dx)
+    
+    return pm, pd
 
 #%% UNIVERSAL CODE TO GET THE ACTIVATIONS AT ANY CHANNEL AND LAYER USING HOOKS
 

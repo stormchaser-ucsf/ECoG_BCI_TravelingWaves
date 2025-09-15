@@ -599,6 +599,21 @@ vline(cumsum(len_states),'--r')
 
 
 
+%% COMPUTING GRADIENT AND PLOTTING VECTOR FIELDS 
+% NN edits
+
+
+% calculate phase gradient
+pixel_spacing = 1; %a.u.
+sign_IF=-1;
+[pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xph, pixel_spacing,...
+    sign_IF);
+
+% plot vector field scaled by the magnitude 
+% send in preferred direction and gradient magnitude
+plot_vector_field_NN(pd,pm,1); 
+
+
 %% LOOKING AT ROTATING WAVES
 
 % continuing work on the trial loaded from above
@@ -653,7 +668,8 @@ pixel_spacing = 1; %a.u.
 
 
 % plot resulting vector field
-plot_vector_field( exp( 1i .* pd(:,:,97) ), 1 );
+%plot_vector_field( exp( 1i .* pd(:,:,1) ), 1 );
+plot_vector_field(   exp( 1i .* pd ), 1 );
 
 [XX,YY] = meshgrid( 1:size(pd,2), 1:size(pd,1) );
 
@@ -662,17 +678,23 @@ res=[];
 for i=1:size(pd,3)
     %disp(i)
     %plot_vector_field( exp( 1i .* pd(:,:,i) ), 1 );
-    tmp=exp( 1i .* pd(:,:,i) );
+    %tmp=exp( 1i .* pd(:,:,i) );
+    tmp=exp( 1i .* pd );
     M = real( exp( 1i * angle(tmp) ) ); N = imag( exp( 1i * angle(tmp) ) );
     M = smoothn(M);
     N = smoothn(N);
     [cl,c]= curl(XX,YY,M,N);
-    pl = squeeze(angle(xph(:,:,i)));
-    %[cc,pv,center_point] = phase_correlation_rotation( pl, cl,[],signIF);
-    [cc,pv] = phase_correlation_distance( pl, source, spacing );
+    pl=angle(xph);
+    %pl = squeeze(angle(xph(:,:,i)));
+    [cc,pv,center_point] = phase_correlation_rotation( pl, cl,[],signIF);
+    %[cc,pv] = phase_correlation_distance( pl, source, spacing );
     res(i)=cc;
     %title(['Correlation of ' num2str(cc)]);
 end
+
+
+figure;
+
 
 tt=linspace(0,size(data,1)*10,size(data,1));
 figure;plot(tt,smooth(res))
