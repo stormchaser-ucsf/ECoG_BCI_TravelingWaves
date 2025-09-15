@@ -672,6 +672,10 @@ layer_name = 'layer4'
 channel_idx = 14
 batch_size=256
 
+# init variables
+OL=[]
+CL=[]
+
 for day_idx in np.arange(10)+1:
     
     
@@ -705,9 +709,10 @@ for day_idx in np.arange(10)+1:
     U = eigmaps[:,:,pc_idx].real
     V = eigmaps[:,:,pc_idx].imag
     Z1 = U+1j*V
-    plt.figure()
-    plt.quiver(X,Y,U,V,angles='xy')
-    plt.gca().invert_yaxis()
+    # plt.figure()
+    # plt.quiver(X,Y,U,V,angles='xy')
+    # plt.gca().invert_yaxis()
+    OL.append(Z1)
     # plt.xlim(X.min()-1,X.max()+1)
     # plt.ylim(Y.min()-1,Y.max()+1)
     
@@ -721,14 +726,24 @@ for day_idx in np.arange(10)+1:
     plt.figure()
     plt.quiver(X,Y,U,V,angles='xy')
     plt.gca().invert_yaxis()
+    CL.append(Z2)
     # plt.xlim(X.min()-1,X.max()+1)
     # plt.ylim(Y.min()-1,Y.max()+1)
     
     # get the phase gradients 
-    pm,pd = phase_gradient_complex_multiplication(Z2)
-
-# plot smoothed vector fields
-
+    # pm,pd = phase_gradient_complex_multiplication(Z2)
+    
+    # # plot the phase gradients
+    # U = np.cos(pd)
+    # V =  np.sin(pd)    
+    # plt.figure()
+    # plt.quiver(X,Y,U,V,angles='xy')
+    # plt.gca().invert_yaxis()
+    
+    
+CL = np.array(CL)
+OL = np.array(OL)
+savemat("EigMaps.mat", {"OL": OL, "CL": CL})
 
 # # compute the curl of the phasor field
 # Z = np.angle(Z2)

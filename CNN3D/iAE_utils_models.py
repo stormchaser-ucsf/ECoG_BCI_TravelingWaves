@@ -38,6 +38,7 @@ from collections import defaultdict
 from sklearn.preprocessing import MaxAbsScaler
 import matplotlib.animation as animation
 from scipy.io import savemat
+from csaps import csaps
 
 # setting up GPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'

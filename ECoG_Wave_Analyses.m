@@ -614,6 +614,114 @@ sign_IF=-1;
 plot_vector_field_NN(pd,pm,1); 
 
 
+%% SAME AS ABOVE BUT NOW AS A LOOP
+
+clc
+clear
+close all
+load('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/EigMaps.mat')
+
+pixel_spacing = 1; %a.u.
+sign_IF=-1;
+ha=tight_subplot(5,2);
+curl_cl=[];
+for i=1:size(CL,1)
+    axes(ha(i))
+    xph = squeeze(CL(i,:,:));
+    [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xph, ...
+        pixel_spacing,sign_IF);
+
+    [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+    
+    ph=pd;
+    % M =  pm.*cos(ph);
+    % N =  pm.*sin(ph);
+    % %
+    M =  1.*cos(ph);
+    N =  1.*sin(ph);
+    % %
+    %M = pm .* smoothn(M,'robust');
+    %N = pm .* smoothn(N,'robust');
+
+    M = smoothn(M,'robust');
+    N = smoothn(N,'robust');    
+    
+    quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+    set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' ); 
+    axis tight
+
+    [d,c]= curl(XX,YY,M,N);
+    % [d]= divergence(XX,YY,M,N);
+    hold on
+    contour(XX,YY,d,'ShowText','on','LineWidth',1)
+    %axis off
+    title(['CL Day ' num2str(i)])
+    xticks ''
+    yticks ''
+    curl_cl(i)=max(abs(d(:)));
+end
+% 
+
+figure
+ha=tight_subplot(5,2);
+curl_ol=[];
+for i=1:size(OL,1)
+    axes(ha(i))
+    xph = squeeze(OL(i,:,:));
+    [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xph, ...
+        pixel_spacing,sign_IF);
+
+    [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+    
+    ph=pd;
+    % M =  pm.*cos(ph);
+    % N =  pm.*sin(ph);
+    %
+    M =  1.*cos(ph);
+    N =  1.*sin(ph);
+
+    % M = pm .* smoothn(M,'robust');
+    % N = pm .* smoothn(N,'robust');
+
+    M = smoothn(M,'robust');
+    N = smoothn(N,'robust');    
+    
+    quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+    set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' ); 
+    axis tight
+
+    [d,c]= curl(XX,YY,M,N);
+    % [d]= divergence(XX,YY,M,N);
+    hold on
+    contour(XX,YY,d,'ShowText','on','LineWidth',1)
+    %axis off
+    title(['OL Day ' num2str(i)])
+    xticks ''
+    yticks ''
+    curl_ol(i)=max(abs(d(:)));
+end
+
+figure;boxplot([curl_ol' curl_cl'],'Notch','off');
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Max Rotational curl')
+plot_beautify
+
+
+figure;boxplot([curl_cl-curl_ol],'Notch','off');
+hline(0,'r')
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Difference in rot. wave strength')
+title('CL-OL')
+plot_beautify
+
+
+[h p tb st]=ttest(curl_cl,curl_ol)
+[p,h]=signrank(curl_ol,curl_cl)
+
+figure;plot((curl_ol),'.','MarkerSize',20)
+
 %% LOOKING AT ROTATING WAVES
 
 % continuing work on the trial loaded from above
