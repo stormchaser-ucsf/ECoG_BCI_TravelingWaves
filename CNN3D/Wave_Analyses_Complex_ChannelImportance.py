@@ -692,13 +692,13 @@ for day_idx in np.arange(10)+1:
     # RUN COMPLEX PCA on OL
     idx = np.where(tmp_labels==0)[0]
     activations_ol = activations[idx,:]
-    eigvals, eigmaps, Z , VAF,eigvecs = complex_pca(activations_ol,15)
+    eigvals, eigmaps, Z , VAF,eigvecs,_ = complex_pca(activations_ol,15)
     #plt.stem(VAF)
     
     # RUN COMPLEX PCA on CL
     idx = np.where(tmp_labels==1)[0]
     activations_cl = activations[idx,:]
-    eigvals1, eigmaps1, Z1 , VAF1,eigvecs1 = complex_pca(activations_cl,15)
+    eigvals1, eigmaps1, Z1 , VAF1,eigvecs1 ,_= complex_pca(activations_cl,15)
     #plt.stem(VAF1)
     
     
@@ -754,14 +754,41 @@ savemat("EigMaps.mat", {"OL": OL, "CL": CL})
 # plt.xlim(X.min()-1,X.max()+1)
 # plt.ylim(Y.min()-1,Y.max()+1)
 
-#%% IMPLEMENTING SOME TRAVELING WAVES MULLER FUNCTIONS
+#%% CONTINUATION FROM ABOVE, CONTRASTIVE COMPLEX VALUED PCA
 
+from scipy.linalg import eigh
+A = activations_ol
+B = activations_cl
+# compute covariance matrix
+eigvals, eigmaps, Z , VAF,eigvecs,Ca = complex_pca(A,15)
+eigvals, eigmaps, Z , VAF,eigvecs,Cb = complex_pca(B,15)
+
+alp = 1e-1
+M = Cb + alp * np.eye(Cb.shape[0])
+
+eigvals, eigvecs = eigh(Ca, M)
     
-    
-    
-    
-    
-    
+# Sort descending by eigenvalue
+idx = np.argsort(eigvals)[::-1]
+eigvals = eigvals[idx]
+eigvecs = eigvecs[:, idx]
+
+B, W, H, T = A.shape
+n_components=eigvecs.shape[0]
+eigmaps = eigvecs.reshape(W,H,n_components)    
+
+# plot phasor maps
+for pc_idx in np.arange(10):
+        
+    H,W = eigmaps.shape[:2]
+    Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+    U = eigmaps[:,:,pc_idx].real
+    V = eigmaps[:,:,pc_idx].imag
+    Z2 = U+1j*V
+    plt.figure()
+    plt.quiver(X,Y,U,V,angles='xy')
+    plt.gca().invert_yaxis()
+        
 
 
 #%% COMMON PCA ON ALL

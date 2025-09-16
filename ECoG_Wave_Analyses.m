@@ -28,7 +28,7 @@ elseif isunix
     addpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/helpers')
     addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/wave-matlab-master/wave-matlab-master'))
     addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves'))
-    imaging_B3_waves;close all
+    imaging_B3_waves;%close all
 
 
 end
@@ -651,7 +651,7 @@ for i=1:size(CL,1)
     axis tight
 
     [d,c]= curl(XX,YY,M,N);
-    % [d]= divergence(XX,YY,M,N);
+    [div]= divergence(XX,YY,M,N);
     hold on
     contour(XX,YY,d,'ShowText','on','LineWidth',1)
     %axis off
@@ -721,6 +721,55 @@ plot_beautify
 [p,h]=signrank(curl_ol,curl_cl)
 
 figure;plot((curl_ol),'.','MarkerSize',20)
+
+%% CONTINUATION FROM ABOVE BUT SEGMENTING INTO ROTATIONAL AND PLANAR REGIONS
+
+i=6;
+xph = squeeze(CL(i,:,:));
+[pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xph, ...
+    pixel_spacing,sign_IF);
+
+M =  1.*cos(pd);
+N =  1.*sin(pd);
+M = smoothn(M,'robust'); %dx
+N = smoothn(N,'robust'); %dy
+mag = smoothn(pm,'robust');
+[XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+
+
+[curl_val] = curl(XX,YY,M,N);
+[div_val] = divergence(XX,YY,M,N);
+
+figure
+quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
+axis tight
+
+% plot and segment by thresholds
+figure;plot(div_val(:),curl_val(:),'.','MarkerSize',20)
+hline(0)
+vline(0)
+xlabel('Divergence')
+ylabel('Curl')
+
+com = [curl_val(:) ;div_val(:)];
+m = mean(com);
+s = std(com);
+
+curl_val_zscore = (curl_val - m) ./ (s);
+curl_val_mask = abs(curl_val_zscore)>1.0;
+curl_val_thresh = curl_val.*curl_val_mask;
+figure;imagesc(curl_val_thresh)
+set(gca,'ydir','reverse')
+
+div_val_zscore = (div_val - m) ./ (s);
+div_val_mask = abs(div_val_zscore)>1.0;
+div_val_thresh = div_val.*div_val_mask;
+figure;imagesc(div_val_thresh)
+set(gca,'ydir','reverse')
+
+% everywhere else is going to be planar
+
 
 %% LOOKING AT ROTATING WAVES
 
