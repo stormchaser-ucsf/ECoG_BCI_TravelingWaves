@@ -182,7 +182,7 @@ plt.title("Channel-wise: Activation Difference vs Classification Importance")
 plt.grid(True)
 plt.show()
 
-#%% EXAMINING GRADIENTS WRT TEST LOSS AT INDIVIDUAL CHANNELS/LAYERS
+#%% (MAIN) EXAMINING GRADIENTS WRT TEST LOSS AT INDIVIDUAL CHANNELS/LAYERS
 
 
 from iAE_utils_models import *
@@ -609,44 +609,7 @@ plt.plot(ximag[0,0,:])
 
 plt.show();
 
-
-
-#%%
-fig, ax = plt.subplots()
-
-im = ax.imshow(x1[0, :, :], cmap='magma', origin='lower')
-
-def update(frame):
-    im.set_array(gradcam_avg_real[frame, :, :])
-    ax.set_title(f"REAL - Slice {frame}")
-    return [im]
-
-ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, blit=True)
-plt.show()
-# save the animation
-ani.save("Grad_CAM_Layer4_OL.gif", writer="pillow", fps=6)
-
-# ===== Visualize IMAG Grad-CAM (if exists) =====
-if gradcam_avg_imag is not None:
-    fig, ax = plt.subplots()
-    im = ax.imshow(gradcam_avg_imag[0, :, :], cmap='jet', origin='lower')
-
-    def update_imag(frame):
-        im.set_array(gradcam_avg_imag[frame, :, :])
-        ax.set_title(f"IMAG - Slice {frame}")
-        return [im]
-
-    ani = animation.FuncAnimation(fig, update_imag, frames=gradcam_avg_imag.shape[0], interval=100, blit=True)
-    plt.show()
-
-# ===== Print per-channel importance =====
-print(f"Per-channel REAL Grad-CAM magnitudes for {target_layer_base}:")
-print(per_channel_avg_real)
-if gradcam_avg_imag is not None:
-    print(f"Per-channel IMAG Grad-CAM magnitudes for {target_layer_base}:")
-    print(per_channel_avg_imag)
-
-#%% LOOK AT DIFFERENCES BETWEEN OL AND CL SEPARATELY AFTER PROJECTING ONTO THE LAYER
+#%% (MAIN) LOOK AT DIFFERENCES BETWEEN OL AND CL SEPARATELY AFTER PROJECTING ONTO THE LAYER
 # PCA, DAY BY DAY
 
 
@@ -668,8 +631,8 @@ model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer4'
-channel_idx = 14
+layer_name = 'layer2'
+channel_idx = 3
 batch_size=256
 
 # init variables
@@ -709,12 +672,13 @@ for day_idx in np.arange(10)+1:
     U = eigmaps[:,:,pc_idx].real
     V = eigmaps[:,:,pc_idx].imag
     Z1 = U+1j*V
-    # plt.figure()
-    # plt.quiver(X,Y,U,V,angles='xy')
-    # plt.gca().invert_yaxis()
+    plt.figure()
+    plt.quiver(X,Y,U,V,angles='xy')
+    plt.gca().invert_yaxis()
     OL.append(Z1)
-    # plt.xlim(X.min()-1,X.max()+1)
-    # plt.ylim(Y.min()-1,Y.max()+1)
+    plt.xlim(X.min()-1,X.max()+1)
+    plt.ylim(Y.min()-1,Y.max()+1)
+    plt.title('OL Day ' + str(day_idx))
     
     
     #pc_idx=1
@@ -727,8 +691,9 @@ for day_idx in np.arange(10)+1:
     plt.quiver(X,Y,U,V,angles='xy')
     plt.gca().invert_yaxis()
     CL.append(Z2)
-    # plt.xlim(X.min()-1,X.max()+1)
-    # plt.ylim(Y.min()-1,Y.max()+1)
+    plt.xlim(X.min()-1,X.max()+1)
+    plt.ylim(Y.min()-1,Y.max()+1)
+    plt.title('CL Day ' + str(day_idx))
     
     # get the phase gradients 
     # pm,pd = phase_gradient_complex_multiplication(Z2)
@@ -743,7 +708,44 @@ for day_idx in np.arange(10)+1:
     
 CL = np.array(CL)
 OL = np.array(OL)
-savemat("EigMaps.mat", {"OL": OL, "CL": CL})
+savemat("EigMaps_Layer2Ch3.mat", {"OL": OL, "CL": CL})
+
+
+#%%
+fig, ax = plt.subplots()
+
+im = ax.imshow(x1[0, :, :], cmap='magma', origin='lower')
+
+def update(frame):
+    im.set_array(gradcam_avg_real[frame, :, :])
+    ax.set_title(f"REAL - Slice {frame}")
+    return [im]
+
+ani = animation.FuncAnimation(fig, update, frames=x1.shape[0], interval=100, blit=True)
+plt.show()
+# save the animation
+ani.save("Grad_CAM_Layer4_OL.gif", writer="pillow", fps=6)
+
+# ===== Visualize IMAG Grad-CAM (if exists) =====
+if gradcam_avg_imag is not None:
+    fig, ax = plt.subplots()
+    im = ax.imshow(gradcam_avg_imag[0, :, :], cmap='jet', origin='lower')
+
+    def update_imag(frame):
+        im.set_array(gradcam_avg_imag[frame, :, :])
+        ax.set_title(f"IMAG - Slice {frame}")
+        return [im]
+
+    ani = animation.FuncAnimation(fig, update_imag, frames=gradcam_avg_imag.shape[0], interval=100, blit=True)
+    plt.show()
+
+# ===== Print per-channel importance =====
+print(f"Per-channel REAL Grad-CAM magnitudes for {target_layer_base}:")
+print(per_channel_avg_real)
+if gradcam_avg_imag is not None:
+    print(f"Per-channel IMAG Grad-CAM magnitudes for {target_layer_base}:")
+    print(per_channel_avg_imag)
+
 
 # # compute the curl of the phasor field
 # Z = np.angle(Z2)

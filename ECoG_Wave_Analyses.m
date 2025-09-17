@@ -619,7 +619,10 @@ plot_vector_field_NN(pd,pm,1);
 clc
 clear
 close all
-load('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/EigMaps.mat')
+filename='EigMaps_Layer2Ch3.mat';
+foldername = '/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D';
+filepath = fullfile(foldername,filename);
+load(filepath)
 
 pixel_spacing = 1; %a.u.
 sign_IF=-1;
@@ -653,7 +656,7 @@ for i=1:size(CL,1)
     [d,c]= curl(XX,YY,M,N);
     [div]= divergence(XX,YY,M,N);
     hold on
-    contour(XX,YY,d,'ShowText','on','LineWidth',1)
+    contour(XX,YY,div,'ShowText','on','LineWidth',1)
     %axis off
     title(['CL Day ' num2str(i)])
     xticks ''
@@ -724,52 +727,271 @@ figure;plot((curl_ol),'.','MarkerSize',20)
 
 %% CONTINUATION FROM ABOVE BUT SEGMENTING INTO ROTATIONAL AND PLANAR REGIONS
 
-i=6;
-xph = squeeze(CL(i,:,:));
-[pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xph, ...
-    pixel_spacing,sign_IF);
 
-M =  1.*cos(pd);
-N =  1.*sin(pd);
-M = smoothn(M,'robust'); %dx
-N = smoothn(N,'robust'); %dy
-mag = smoothn(pm,'robust');
-[XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+corr_cl=[];
+plot_true = false;
+for i=1:10
+
+    % phasor of eigmaps
+    xph = squeeze(CL(i,:,:));
+    [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+    % smooth phasors to get smoothed estimates of phase
+    M = real(xph);
+    N = imag(xph);
+    if plot_true
+        figure
+        quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+        set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
+        title('Phasor eigmap')
+    end
+    M = smoothn(M,'robust'); %dx
+    N = smoothn(N,'robust'); %dy
+    if plot_true
+        figure
+        quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+        set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
+        title('Smoothed Phasor eigmap')
+    end
+    xphs = M + 1j*N; % smoothed phasor field: gets smoothed estimates of phase
+
+    % compute gradient
+    [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphs, ...
+        pixel_spacing,sign_IF);
+
+    M =  1.*cos(pd);
+    N =  1.*sin(pd);
+
+    if plot_true
+
+        figure
+        quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+        set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
+        axis tight
+        title('Gradient Vector field of smoothed phasor')
+    end
+
+    % M = smoothn(M,'robust'); %dx
+    % N = smoothn(N,'robust'); %dy
+    % mag = smoothn(pm,'robust');
+    % [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+
+    [curl_val] = curl(XX,YY,M,N);
+    [div_val] = divergence(XX,YY,M,N);
 
 
-[curl_val] = curl(XX,YY,M,N);
-[div_val] = divergence(XX,YY,M,N);
+    % plot and segment by thresholds
+    if plot_true
+        figure;plot(div_val(:),curl_val(:),'.','MarkerSize',20)
+        xlabel('Divergence')
+        ylabel('Curl')
+        xlim([min([div_val(:); curl_val(:)]) ,max([div_val(:); curl_val(:)])])
+        ylim([min([div_val(:); curl_val(:)]) ,max([div_val(:); curl_val(:)])])
+        hline(0)
+        vline(0)
+        title('Div vs Curl to segment eigmap')
+        plot_beautify
+    end
 
-figure
-quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
-set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
-axis tight
+    com = [curl_val(:) ;div_val(:)];
+    m = mean(com);
+    s = std(com);
 
-% plot and segment by thresholds
-figure;plot(div_val(:),curl_val(:),'.','MarkerSize',20)
-hline(0)
-vline(0)
-xlabel('Divergence')
-ylabel('Curl')
+    curl_val_zscore = (curl_val - m) ./ (s);
+    curl_val_mask = abs(curl_val_zscore)>0.5;
+    curl_val_thresh = curl_val.*curl_val_mask;
+    if plot_true
+        figure;imagesc(curl_val_thresh)
+        set(gca,'ydir','reverse')
+        plot_beautify
+        title('Curl of gradient vector field to detect rotational wave patterns')
+        colorbar
+    end
 
-com = [curl_val(:) ;div_val(:)];
-m = mean(com);
-s = std(com);
+    div_val_zscore = (div_val - m) ./ (s);
+    div_val_mask = abs(div_val_zscore)>0.5;
+    div_val_thresh = div_val.*div_val_mask;
+    % figure;imagesc(div_val_thresh)
+    % set(gca,'ydir','reverse')
 
-curl_val_zscore = (curl_val - m) ./ (s);
-curl_val_mask = abs(curl_val_zscore)>1.0;
-curl_val_thresh = curl_val.*curl_val_mask;
-figure;imagesc(curl_val_thresh)
-set(gca,'ydir','reverse')
+    % everywhere else is going to be planar
+    planar_thresh =( 1-curl_val_thresh) .*(1- div_val_thresh);
+    planar_thresh(planar_thresh~=1)=0;
+    if plot_true
+        figure;
+        imagesc(planar_thresh)
+        plot_beautify
+        title('Planar wave regions')
+    end
 
-div_val_zscore = (div_val - m) ./ (s);
-div_val_mask = abs(div_val_zscore)>1.0;
-div_val_thresh = div_val.*div_val_mask;
-figure;imagesc(div_val_thresh)
-set(gca,'ydir','reverse')
+    
+    % circular linear correlation to get rotation strength
+    idx = 1:7;
+    idy=1:6;    
+    XX1=XX(idx,idy);
+    YY1=YY(idx,idy);
+    M1 = M(idx,idy);
+    N1 = N(idx,idy);
+    cl = curl_val(idx,idy);
+    pl = angle(xph(idx,idy));
+    [cc1,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
 
-% everywhere else is going to be planar
+    idx = 1:7;    
+    idy=11:16;
+    XX1=XX(idx,idy);
+    YY1=YY(idx,idy);
+    M1 = M(idx,idy);
+    N1 = N(idx,idy);
+    cl = curl_val(idx,idy);
+    pl = angle(xph(idx,idy));
+    [cc2,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
 
+    corr_cl(i)=(abs(cc1)+abs(cc2))/2;
+end
+
+
+corr_ol=[];
+plot_true = false;
+for i=1:10
+
+    % phasor of eigmaps
+    xph = squeeze(OL(i,:,:));
+    [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+    % smooth phasors to get smoothed estimates of phase
+    M = real(xph);
+    N = imag(xph);
+    if plot_true
+        figure
+        quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+        set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
+        title('Phasor eigmap')
+    end
+    M = smoothn(M,'robust'); %dx
+    N = smoothn(N,'robust'); %dy
+    if plot_true
+        figure
+        quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+        set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
+        title('Smoothed Phasor eigmap')
+    end
+    xphs = M + 1j*N; % smoothed phasor field: gets smoothed estimates of phase
+
+    % compute gradient
+    [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphs, ...
+        pixel_spacing,sign_IF);
+
+    M =  1.*cos(pd);
+    N =  1.*sin(pd);
+
+    if plot_true
+
+        figure
+        quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+        set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
+        axis tight
+        title('Gradient Vector field of smoothed phasor')
+    end
+
+    % M = smoothn(M,'robust'); %dx
+    % N = smoothn(N,'robust'); %dy
+    % mag = smoothn(pm,'robust');
+    % [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+
+    [curl_val] = curl(XX,YY,M,N);
+    [div_val] = divergence(XX,YY,M,N);
+
+
+    % plot and segment by thresholds
+    if plot_true
+        figure;plot(div_val(:),curl_val(:),'.','MarkerSize',20)
+        xlabel('Divergence')
+        ylabel('Curl')
+        xlim([min([div_val(:); curl_val(:)]) ,max([div_val(:); curl_val(:)])])
+        ylim([min([div_val(:); curl_val(:)]) ,max([div_val(:); curl_val(:)])])
+        hline(0)
+        vline(0)
+        title('Div vs Curl to segment eigmap')
+        plot_beautify
+    end
+
+    com = [curl_val(:) ;div_val(:)];
+    m = mean(com);
+    s = std(com);
+
+    curl_val_zscore = (curl_val - m) ./ (s);
+    curl_val_mask = abs(curl_val_zscore)>0.5;
+    curl_val_thresh = curl_val.*curl_val_mask;
+    if plot_true
+        figure;imagesc(curl_val_thresh)
+        set(gca,'ydir','reverse')
+        plot_beautify
+        title('Curl of gradient vector field to detect rotational wave patterns')
+        colorbar
+    end
+
+    div_val_zscore = (div_val - m) ./ (s);
+    div_val_mask = abs(div_val_zscore)>0.5;
+    div_val_thresh = div_val.*div_val_mask;
+    % figure;imagesc(div_val_thresh)
+    % set(gca,'ydir','reverse')
+
+    % everywhere else is going to be planar
+    planar_thresh =( 1-curl_val_thresh) .*(1- div_val_thresh);
+    planar_thresh(planar_thresh~=1)=0;
+    if plot_true
+        figure;
+        imagesc(planar_thresh)
+        plot_beautify
+        title('Planar wave regions')
+    end
+
+    % circular linear correlation to get rotation strength
+    idx = 1:7;
+    idy=1:6;    
+    XX1=XX(idx,idy);
+    YY1=YY(idx,idy);
+    M1 = M(idx,idy);
+    N1 = N(idx,idy);
+    cl = curl_val(idx,idy);
+    pl = angle(xph(idx,idy));
+    [cc1,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
+
+    idx = 1:7;    
+    idy=11:16;
+    XX1=XX(idx,idy);
+    YY1=YY(idx,idy);
+    M1 = M(idx,idy);
+    N1 = N(idx,idy);
+    cl = curl_val(idx,idy);
+    pl = angle(xph(idx,idy));
+    [cc2,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
+
+    corr_ol(i)=(abs(cc1)+abs(cc2))/2;
+end
+
+
+
+[h p tb st]=ttest(abs(corr_cl),abs(corr_ol))
+[p,h]=signrank(abs(corr_ol),abs(corr_cl))
+figure;boxplot(abs([corr_ol' corr_cl']))
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Rotational strength')
+title(['Pval of ' num2str(p)])
+plot_beautify
+
+figure;
+hold on
+for i=1:length(corr_ol)
+    plot(1,corr_ol(i),'.b','MarkerSize',20)
+    plot(2,corr_cl(i),'.r','MarkerSize',20)
+    plot([1 2 ],[corr_ol(i) corr_cl(i)],'LineWidth',2,'Color',[.5 .5 .5 .5])
+end
+xlim([0.5 2.5])
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Rotational strength')
+title(['Pval of ' num2str(p)])
+plot_beautify
 
 %% LOOKING AT ROTATING WAVES
 
