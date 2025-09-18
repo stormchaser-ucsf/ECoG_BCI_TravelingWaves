@@ -42,7 +42,7 @@ if ispc
 else isunix
     filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230518/HandOnline';
 end
- 
+
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230223\Robot3DArrow';
@@ -80,7 +80,7 @@ for ii=1:length(files)
     l2 = find(task_state==2);
     kinax = find(task_state==3);
     data = cell2mat(data_trial(kinax));
-    
+
     % extract freq alone
     %data=abs(hilbert(filtfilt(bpFilt,data)));
 
@@ -97,7 +97,7 @@ for ii=1:length(files)
         %[bhat p wh se ci t_stat]=robust_fit(F1,power_spect,1);
         warning('off','all');  % Turns off all warnings
         tb=fitlm(F1,power_spect,'RobustOpts','on');
-        warning('on','all'); 
+        warning('on','all');
         stats_tmp = [stats_tmp tb.Coefficients.pValue(2)];
         bhat = tb.Coefficients.Estimate;
         x = [ones(length(F1),1) F1];
@@ -191,21 +191,21 @@ figure;imagesc(I(ecog_grid))
 
 
 %% ON TRIAL AVERAGED POWER SPECTRUM
-% 
-% 
+%
+%
 % clc;clear
 % %close all
-% 
+%
 % root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
 % cd(root_path)
 % load('ECOG_Grid_8596_000067_B3.mat')
-% 
+%
 % % get all the files from a particular day
 % %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230511\HandImagined';
 % filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230511\HandOnline';
-% 
+%
 % files = findfiles('.mat',filepath,1)';
-% 
+%
 % files1=[];
 % for i=1:length(files)
 %     if isempty(regexp(files{i},'kf_params'))
@@ -213,7 +213,7 @@ figure;imagesc(I(ecog_grid))
 %     end
 % end
 % files=files1;
-% 
+%
 % bad_ch=[108 113 118];
 % osc_clus=[];
 % pow_spec = [];
@@ -221,7 +221,7 @@ figure;imagesc(I(ecog_grid))
 %     disp(ii/length(files)*100)
 %     load(files{ii})
 %     data_trial = (TrialData.BroadbandData');
-% 
+%
 %     % run power spectrum and 1/f stats on a single trial basis
 %     task_state = TrialData.TaskState;
 %     kinax = find(task_state==3);
@@ -236,7 +236,7 @@ figure;imagesc(I(ecog_grid))
 %     end
 %     pow_spec(ii,:,:) = tmp;
 % end
-% 
+%
 % spectral_peaks=[];
 % F = ff(:,end);
 % for i=1:size(pow_spec,3)
@@ -251,25 +251,25 @@ figure;imagesc(I(ecog_grid))
 %     bhat = tb.Coefficients.Estimate;
 %     x = [ones(length(F1),1) F1];
 %     yhat = x*bhat;
-% 
+%
 %     %plot
 %     %     figure;
 %     %     plot(F1,power_spect);
 %     %     hold on
 %     %     plot(F1,yhat);
-% 
+%
 %     % get peaks in power spectrum at specific frequencies
 %     power_spect = zscore(power_spect - yhat);
 %     [aa bb]=findpeaks(power_spect);
 %     peak_loc = bb(find(power_spect(bb)>1.0));
 %     freqs = 2.^F1(peak_loc);
 %     pow = power_spect(peak_loc);
-% 
+%
 %     %store
 %     spectral_peaks(i).freqs = freqs;
 %     spectral_peaks(i).pow = pow;
 % end
-% 
+%
 % % getting oscillation clusters
 % osc_clus=[];
 % for f=2:40
@@ -288,8 +288,8 @@ figure;imagesc(I(ecog_grid))
 %     end
 %     osc_clus = [osc_clus tmp];
 % end
-% 
-% 
+%
+%
 % % plot oscillation clusters
 % f=2:40;
 % figure;
@@ -328,7 +328,7 @@ data_ang = angle(hilbert(data));
 
 
 
-% extract wave at specific time points 
+% extract wave at specific time points
 len_states1 = cumsum(len_states);
 len_states1 = round(len_states1/10)
 %data = data(len_states1(2):len_states1(end),:);
@@ -382,15 +382,8 @@ end
 channel_layout = fliplr(channel_layout);
 
 
-[c,s,l]=pca(elecmatrix);
-locs = s(:,1:2);
-X = locs(:,1);
-Y = locs(:,2);
-pred = locs;
-pred(:,1) = pred(:,1)./max(pred(:,1));
-pred(:,2) = pred(:,2)./max(pred(:,2));
 
-% 
+%
 % % using old school method
 % pred = [];
 % for i=1:11
@@ -400,16 +393,25 @@ pred(:,2) = pred(:,2)./max(pred(:,2));
 % pred(:,2) = pred(:,2)./max(pred(:,2));
 
 
+[c,s,l]=pca(elecmatrix);
+locs = s(:,1:2);
+X = locs(:,1);
+Y = locs(:,2);
+pred = locs;
+pred(:,1) = pred(:,1)./max(pred(:,1));
+pred(:,2) = pred(:,2)./max(pred(:,2));
+
+
 % doing circular linear analyses at each time point
 corr_val=[];
-alp_range = 0:0.5:360;
-r_range = (0.01:0.25:25)';
+alp_range = 0:0.25:360;
+r_range = (0.01:0.01:25)';
 angles = [];
 for i=1:size(data,1)
 
 
     disp(i*100/size(data,1))
-    
+
     tmp = data_ang(i,:);
     tmp = tmp(ecog_grid);
 
@@ -418,14 +420,13 @@ for i=1:size(data,1)
     tmp = flipud(tmp');
     tmp = tmp(:);
 
-    
+
 
     theta = tmp;
     theta = wrapTo2Pi(theta);
     rval=[];
 
-    % vectorizing   
-
+    % vectorizing
     as = r_range * cosd(alp_range);
     len = size(as);
     as=as(:);
@@ -461,26 +462,26 @@ for i=1:size(data,1)
     % final reconstruction
     theta_hat = wrapTo2Pi(theta_hat + phi);
 
-     % get circular correlation
+    % get circular correlation
     [rho pval] = circ_corrcc(theta_hat(:), theta(:));
     %disp(rho)
 
     % store results
     corr_val(i)=rho;
     angles(i) = alp_hat;
-    
 
-%     % rearranging as a 2D array
-%     theta_hat = reshape(theta_hat,[size(theta_orig)]);
-%     figure;
-%     subplot(1,2,1)
-%     imagesc(theta_orig)
-%     axis tight
-%     title('Simulated Original')
-%     subplot(1,2,2)
-%     imagesc(theta_hat)
-%     title('Recon from circular linear regression')
-%     axis tight 
+
+    %     % rearranging as a 2D array
+    %     theta_hat = reshape(theta_hat,[size(theta_orig)]);
+    %     figure;
+    %     subplot(1,2,1)
+    %     imagesc(theta_orig)
+    %     axis tight
+    %     title('Simulated Original')
+    %     subplot(1,2,2)
+    %     imagesc(theta_hat)
+    %     title('Recon from circular linear regression')
+    %     axis tight
 
 
 
@@ -507,16 +508,16 @@ vline(len_states1*10,'--r')
 ylabel('Wave Angle')
 
 
-% plotting stability of traveling wave epochs 
+% plotting stability of traveling wave epochs
 stab=[];
 for i=2:length(corr_val)
     tmp = cosd(angles(i)) + 1i*sind(angles(i));
-    tmpm1 = cosd(angles(i-1)) + 1i*sind(angles(i-1));    
+    tmpm1 = cosd(angles(i-1)) + 1i*sind(angles(i-1));
     stab(i) = abs((corr_val(i)*tmp) - (corr_val(i-1)*tmpm1));
 end
 figure;plot(zscore(stab))
 
-% plotting stability of phase angles 
+% plotting stability of phase angles
 
 %% LOOKING AT EXPANDING AND CONTRACTING WAVES
 
@@ -562,7 +563,7 @@ xf = zscore_independent( dc );
 % form analytic signal
 xph = analytic_signal( xf );
 
-% calculate instantaneous frequency 
+% calculate instantaneous frequency
 [wt,signIF] = instantaneous_frequency( xph, Fs );
 
 
@@ -599,7 +600,7 @@ vline(cumsum(len_states),'--r')
 
 
 
-%% COMPUTING GRADIENT AND PLOTTING VECTOR FIELDS 
+%% COMPUTING GRADIENT AND PLOTTING VECTOR FIELDS
 % NN edits
 
 
@@ -609,17 +610,19 @@ sign_IF=-1;
 [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xph, pixel_spacing,...
     sign_IF);
 
-% plot vector field scaled by the magnitude 
+% plot vector field scaled by the magnitude
 % send in preferred direction and gradient magnitude
-plot_vector_field_NN(pd,pm,1); 
+plot_vector_field_NN(pd,pm,1);
 
 
 %% SAME AS ABOVE BUT NOW AS A LOOP
 
+%EigMaps_Layer7Ch0_PC1 -> planar traveling waves
+
 clc
 clear
 close all
-filename='EigMaps_Layer2Ch3.mat';
+filename='EigMaps_Layer7Ch0_PC1.mat';
 foldername = '/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D';
 filepath = fullfile(foldername,filename);
 load(filepath)
@@ -635,7 +638,7 @@ for i=1:size(CL,1)
         pixel_spacing,sign_IF);
 
     [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
-    
+
     ph=pd;
     % M =  pm.*cos(ph);
     % N =  pm.*sin(ph);
@@ -647,10 +650,10 @@ for i=1:size(CL,1)
     %N = pm .* smoothn(N,'robust');
 
     M = smoothn(M,'robust');
-    N = smoothn(N,'robust');    
-    
+    N = smoothn(N,'robust');
+
     quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
-    set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' ); 
+    set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
     axis tight
 
     [d,c]= curl(XX,YY,M,N);
@@ -663,7 +666,7 @@ for i=1:size(CL,1)
     yticks ''
     curl_cl(i)=max(abs(d(:)));
 end
-% 
+%
 
 figure
 ha=tight_subplot(5,2);
@@ -675,7 +678,7 @@ for i=1:size(OL,1)
         pixel_spacing,sign_IF);
 
     [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
-    
+
     ph=pd;
     % M =  pm.*cos(ph);
     % N =  pm.*sin(ph);
@@ -687,21 +690,21 @@ for i=1:size(OL,1)
     % N = pm .* smoothn(N,'robust');
 
     M = smoothn(M,'robust');
-    N = smoothn(N,'robust');    
-    
+    N = smoothn(N,'robust');
+
     quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
-    set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' ); 
+    set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
     axis tight
 
     [d,c]= curl(XX,YY,M,N);
-    % [d]= divergence(XX,YY,M,N);
+    [div]= divergence(XX,YY,M,N);
     hold on
     contour(XX,YY,d,'ShowText','on','LineWidth',1)
     %axis off
     title(['OL Day ' num2str(i)])
     xticks ''
     yticks ''
-    curl_ol(i)=max(abs(d(:)));
+    curl_ol(i)=max(abs(div(:)));
 end
 
 figure;boxplot([curl_ol' curl_cl'],'Notch','off');
@@ -823,10 +826,10 @@ for i=1:10
         title('Planar wave regions')
     end
 
-    
+
     % circular linear correlation to get rotation strength
     idx = 1:7;
-    idy=1:6;    
+    idy=1:6;
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
@@ -835,7 +838,7 @@ for i=1:10
     pl = angle(xph(idx,idy));
     [cc1,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
 
-    idx = 1:7;    
+    idx = 1:7;
     idy=11:16;
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
@@ -946,7 +949,7 @@ for i=1:10
 
     % circular linear correlation to get rotation strength
     idx = 1:7;
-    idy=1:6;    
+    idy=1:6;
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
@@ -955,7 +958,7 @@ for i=1:10
     pl = angle(xph(idx,idy));
     [cc1,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
 
-    idx = 1:7;    
+    idx = 1:7;
     idy=11:16;
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
@@ -992,6 +995,61 @@ xticklabels({'OL','CL'})
 ylabel('Rotational strength')
 title(['Pval of ' num2str(p)])
 plot_beautify
+
+%% EXAMINIGN LINEAR TRAVELING WAVES
+
+alp_range = 0:0.25:360;
+r_range = (0.01:0.01:25)';
+
+pred(:,1)= XX(:);
+pred(:,2) = YY(:);
+
+tmp = tmp(:);
+
+
+
+theta = tmp;
+theta = wrapTo2Pi(theta);
+rval=[];
+
+% vectorizing
+as = r_range * cosd(alp_range);
+len = size(as);
+as=as(:);
+bs = r_range * sind(alp_range);
+bs = bs(:);
+
+theta_hat = pred * ([as';bs']);
+y = repmat(theta,1,size(theta_hat,2)) - theta_hat;
+r1 = mean(cos(y));
+r2 = mean(sin(y));
+rtmp = (r1.^2 + r2.^2).^(0.5);
+rval = reshape(rtmp,[len]);
+
+% get the best regression parameters
+[aa bb]=find(rval==max(rval(:)));
+if length(aa)>1
+    aa=aa(1);
+    bb=bb(1);
+end
+alp_hat=alp_range;
+r_hat=  r_range;
+alp_hat = alp_hat(bb);
+r_hat = r_hat(aa);
+a = r_hat*cosd(alp_hat);
+b = r_hat*sind(alp_hat);
+
+% get the phase offset
+theta_hat = wrapTo2Pi(pred*([a;b]));
+y1 = sum(sin(theta-theta_hat));
+y2 = sum(cos(theta-theta_hat));
+phi = atan2(y1,y2);
+
+% final reconstruction
+theta_hat = wrapTo2Pi(theta_hat + phi);
+
+% get circular correlation
+[rho pval] = circ_corrcc(theta_hat(:), theta(:));
 
 %% LOOKING AT ROTATING WAVES
 
@@ -1037,7 +1095,7 @@ xf = zscore_independent( dc );
 % form analytic signal
 xph = analytic_signal( xf );
 
-% calculate instantaneous frequency 
+% calculate instantaneous frequency
 [wt,signIF] = instantaneous_frequency( xph, Fs );
 
 

@@ -631,8 +631,8 @@ model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer2'
-channel_idx = 3
+layer_name = 'layer7'
+channel_idx = 0
 batch_size=256
 
 # init variables
@@ -666,7 +666,7 @@ for day_idx in np.arange(10)+1:
     
     
     # PLOT EIGMAPS AS PHASORS
-    pc_idx=2
+    pc_idx=1
     H,W = eigmaps.shape[:2]
     Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
     U = eigmaps[:,:,pc_idx].real
@@ -708,8 +708,12 @@ for day_idx in np.arange(10)+1:
     
 CL = np.array(CL)
 OL = np.array(OL)
-savemat("EigMaps_Layer2Ch3.mat", {"OL": OL, "CL": CL})
+savemat("EigMaps_Layer7Ch0_PC1.mat", {"OL": OL, "CL": CL})
 
+# have to examine the activations of the PCs
+# unwrap phase and look at variability in slope
+# amplitude modulation
+# wave speed
 
 #%%
 fig, ax = plt.subplots()
