@@ -617,12 +617,12 @@ plot_vector_field_NN(pd,pm,1);
 
 %% SAME AS ABOVE BUT NOW AS A LOOP (MAIN)
 
+%EigMaps_Layer7Ch0_PC1 -> planar traveling waves
 
-%Eigmaps_layer3Ch11PC2 -> important
 clc
 clear
 close all
-filename='Eigmaps_layer3Ch11PC2.mat';
+filename='Eigmaps_layer4Ch14PC2.mat';
 foldername = "/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D";
 filepath = fullfile(foldername,filename);
 cd(foldername)
@@ -641,11 +641,11 @@ for i=1:size(CL,1)
     [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
 
     ph=pd;
+    % M =  pm.*cos(ph);
+    % N =  pm.*sin(ph);
+    % %
     M =  1.*cos(ph);
     N =  1.*sin(ph);
-    % %
-    %M =  1.*cos(ph);
-    %N =  1.*sin(ph);
     % %
     %M = pm .* smoothn(M,'robust');
     %N = pm .* smoothn(N,'robust');
@@ -660,7 +660,7 @@ for i=1:size(CL,1)
     [d,c]= curl(XX,YY,M,N);
     [div]= divergence(XX,YY,M,N);
     hold on
-    contour(XX,YY,d,'ShowText','on','LineWidth',1)
+    contour(XX,YY,div,'ShowText','on','LineWidth',1)
     %axis off
     title(['CL Day ' num2str(i)])
     xticks ''
@@ -681,11 +681,11 @@ for i=1:size(OL,1)
     [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
 
     ph=pd;
+    % M =  pm.*cos(ph);
+    % N =  pm.*sin(ph);
+    %
     M =  1.*cos(ph);
     N =  1.*sin(ph);
-    %
-    % M =  1.*cos(ph);
-    % N =  1.*sin(ph);
 
     % M = pm .* smoothn(M,'robust');
     % N = pm .* smoothn(N,'robust');
@@ -705,7 +705,7 @@ for i=1:size(OL,1)
     title(['OL Day ' num2str(i)])
     xticks ''
     yticks ''
-    curl_ol(i)=max(abs(d(:)));
+    curl_ol(i)=max(abs(div(:)));
 end
 
 figure;boxplot([curl_ol' curl_cl'],'Notch','off');
@@ -732,11 +732,7 @@ figure;plot((curl_ol),'.','MarkerSize',20)
 %% (MAIN) CONTINUATION FROM ABOVE BUT SEGMENTING INTO ROTATIONAL AND PLANAR REGIONS
 
 
-% main result to show is from Eigmaps_layer4Ch14PC2 on rotational wave
-% strength
-
 corr_cl=[];
-planar_cl=[];
 plot_true = false;
 for i=1:10
 
@@ -765,9 +761,6 @@ for i=1:10
     % compute gradient
     [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphs, ...
         pixel_spacing,sign_IF);
-
-    % M =  1.*cos(pd);
-    % N =  1.*sin(pd);
 
     M =  1.*cos(pd);
     N =  1.*sin(pd);
@@ -836,10 +829,8 @@ for i=1:10
 
 
     % circular linear correlation to get rotation strength
-    % idx = 1:7;
-    % idy=1:6;
-    idx = 1:6;
-    idy = 2:8;    
+    idx = 1:7;
+    idy=1:6;
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
@@ -848,10 +839,8 @@ for i=1:10
     pl = angle(xph(idx,idy));
     [cc1,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
 
-    % idx = 1:7;
-    % idy=11:16;
-    idx = 1:6;
-    idy = 2:8;    
+    idx = 1:7;
+    idy=11:16;
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
@@ -860,20 +849,20 @@ for i=1:10
     pl = angle(xph(idx,idy));
     [cc2,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
 
-    %corr_cl(i)=(abs(cc1)+abs(cc2))/2;
-    corr_cl(i)=(abs(cc2));
+    corr_cl(i)=(abs(cc1)+abs(cc2))/2;
 
     %look at planar wave strength in the middle
-    idx = 1:6;
-    idy = 2:8;       
-    [rho,pval] = compute_planar_wave(xphs,idx,idy,XX,YY);
-    planar_cl(i) = rho;
-    
+    idx = 2:6
+    idy = 7:10;
+    XX1=XX(idx,idy);
+    YY1=YY(idx,idy);
+    M1 = M(idx,idy);
+    N1 = N(idx,idy);
 
 
 end
 
-planar_ol=[];
+
 corr_ol=[];
 plot_true = false;
 for i=1:10
@@ -904,9 +893,6 @@ for i=1:10
     [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphs, ...
         pixel_spacing,sign_IF);
 
-    % M =  1.*cos(pd);
-    % N =  1.*sin(pd);
-
     M =  1.*cos(pd);
     N =  1.*sin(pd);
 
@@ -973,10 +959,8 @@ for i=1:10
     end
 
     % circular linear correlation to get rotation strength
-     % idx = 1:7;
-    % idy=1:6;
-    idx = 1:6;
-    idy = 2:8;      
+    idx = 1:7;
+    idy=1:6;
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
@@ -985,10 +969,8 @@ for i=1:10
     pl = angle(xph(idx,idy));
     [cc1,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
 
-     % idx = 1:7;
-    % idy=1:6;
-    idx = 1:6;
-    idy = 2:8;       
+    idx = 1:7;
+    idy=11:16;
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
@@ -997,15 +979,7 @@ for i=1:10
     pl = angle(xph(idx,idy));
     [cc2,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
 
-    %corr_ol(i)=(abs(cc1)+abs(cc2))/2;
-    corr_ol(i)=(abs(cc2));
-
-    %look at planar wave strength in the middle
-    idx = 1:6;
-    idy = 2:8;      
-    [rho,pval] = compute_planar_wave(xphs,idx,idy,XX,YY);
-    planar_ol(i) = rho;
-
+    corr_ol(i)=(abs(cc1)+abs(cc2))/2;
 end
 
 
@@ -1033,18 +1007,6 @@ ylabel('Rotational strength')
 title(['Pval of ' num2str(p)])
 plot_beautify
 
-
-% planar waves
-[h p tb st]=ttest((planar_ol),(planar_cl))
-[p,h]=signrank((planar_ol),(planar_cl));
-figure;
-boxplot([planar_ol(:) planar_cl(:)])
-xticks(1:2)
-xticklabels({'OL','CL'})
-ylabel('Planar wave strength')
-title(['Pval of ' num2str(p)])
-plot_beautify
-
 %% EXAMINIGN LINEAR TRAVELING WAVES
 
 
@@ -1053,14 +1015,23 @@ idx = 2:6;
 idy = 7:10;
 XX1=XX(idx,idy);
 YY1=YY(idx,idy);
-pred(:,1)= XX1(:);
-pred(:,2) = YY1(:);
-pred = (pred - min(pred)) + 1;
-tmp = angle(xph(idx,idy));
-tmp = tmp(:);
+M1 = M(idx,idy);
+N1 = N(idx,idy);
+
 
 alp_range = 0:0.25:360;
 r_range = (0.01:0.01:25)';
+
+pred(:,1)= XX1(:);
+pred(:,2) = YY1(:);
+
+pred = (pred - min(pred)) + 1
+
+tmp = xphs(XX1,YY1)
+
+tmp = tmp(:);
+
+
 
 theta = tmp;
 theta = wrapTo2Pi(theta);

@@ -2714,7 +2714,58 @@ def complex_pca_PerCondition(activations, labels_tmp, n_components=5):
 
     return eigvals, eigmaps, Z, VAF, reconA, reconB
 
-#%% PHASE GRADIENTS
+#%% STATSISTICS FROM COMPLEX PCA STEP
+
+def get_phase_statistics(A,B):
+        
+    ampA=[]
+    ampB=[]
+    noiseA = []
+    noiseB = []
+    freqA=[]
+    freqB=[]
+    for i in np.arange(A.shape[0]):
+        tmp_data = A[i,:]
+        tmp = np.abs(tmp_data)
+        ampA.append(np.mean(tmp))
+        
+        # phase noise noise
+        tmp = np.angle(tmp_data)
+        tmp = np.unwrap(tmp)
+        t = np.arange(len(tmp))
+        p = np.polyfit(t,tmp,1)
+        ph_hat = np.polyval(p,t)
+        err = tmp - ph_hat
+        noiseA.append(np.std(err))
+        freqA.append(p[0])
+        #noiseA.append(stats.circvar(tmp))
+    
+    for i in np.arange(B.shape[0]):
+        tmp_data = B[i,:]
+        tmp = np.abs(tmp_data)
+        ampB.append(np.mean(tmp))
+        
+        # phase noise noise
+        tmp = np.angle(tmp_data)
+        tmp = np.unwrap(tmp)
+        t = np.arange(len(tmp))
+        p = np.polyfit(t,tmp,1)
+        ph_hat = np.polyval(p,t)
+        err = tmp - ph_hat
+        noiseB.append(np.std(err))
+        freqB.append(p[0])
+        #noiseB.append(stats.circvar(tmp))
+    
+    ampA = np.array(ampA)
+    ampB = np.array(ampB)
+    noiseA = np.array(noiseA)
+    noiseB = np.array(noiseB)
+    freqA = np.array(freqA)
+    freqB = np.array(freqB)
+    
+    return ampA,ampB,noiseA,noiseB
+
+#%% PHASE GRADIENTS 
 
 
 def phase_gradient_complex_multiplication(xph,sign_IF=1):
@@ -4638,7 +4689,33 @@ def fdr_threshold(pval,q,fdrType):
     return pid,pval_thresholded
     
         
+# one sample bootstrap test
+def bootstrap_test(a,test_type):
+    if test_type == 'median':
+        stat1 = np.median(a)        
+        a1 = a-np.median(a)
+    if test_type ==  'mean':
+        stat1 = np.mean(a)
+        a1 = a-np.mean(a)
+    
+    stat = stat1    
+    boot_stat = []
+    for i in np.arange(1e4):
+        atemp = rnd.choice(a1,len(a1),replace=True)        
+        if test_type =='median':
+            boot_stat.append(np.median(atemp) )            
+        if test_type =='mean':
+            boot_stat.append(np.mean(atemp) )
+    
+    plt.figure();
+    plt.hist(np.abs(boot_stat))
+    plt.axvline(np.abs(stat),color='r')
+    pvalue = np.sum(np.abs(boot_stat) >= np.abs(stat))/len(boot_stat)
+    plt.title('pvalue is ' + str(pvalue))
+    return pvalue,boot_stat
+
         
+    
 
 #bootstrapped test for difference in medians or means etc.
 def bootstrap_difference_test(a,b,test_type):    

@@ -613,6 +613,9 @@ plt.show();
 # PCA, DAY BY DAY
 
 
+#PC0: much more trial to trial variability, phase noise, but higher activation levels
+# higher amplitude and more variability in activation, less precise
+
 # PRELIMS
 from iAE_utils_models import *
 torch.cuda.empty_cache()
@@ -631,13 +634,14 @@ model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer7'
-channel_idx = 0
+layer_name = 'layer3'
+channel_idx = 11
 batch_size=256
 
 # init variables
 OL=[]
 CL=[]
+noise_stats=[]
 
 for day_idx in np.arange(10)+1:
     
@@ -655,13 +659,13 @@ for day_idx in np.arange(10)+1:
     # RUN COMPLEX PCA on OL
     idx = np.where(tmp_labels==0)[0]
     activations_ol = activations[idx,:]
-    eigvals, eigmaps, Z , VAF,eigvecs,_ = complex_pca(activations_ol,15)
+    eigvals, eigmaps, Zproj , VAF,eigvecs,_ = complex_pca(activations_ol,15)
     #plt.stem(VAF)
     
     # RUN COMPLEX PCA on CL
     idx = np.where(tmp_labels==1)[0]
     activations_cl = activations[idx,:]
-    eigvals1, eigmaps1, Z1 , VAF1,eigvecs1 ,_= complex_pca(activations_cl,15)
+    eigvals1, eigmaps1, Zproj1 , VAF1,eigvecs1 ,_= complex_pca(activations_cl,15)
     #plt.stem(VAF1)
     
     
@@ -705,15 +709,47 @@ for day_idx in np.arange(10)+1:
     # plt.quiver(X,Y,U,V,angles='xy')
     # plt.gca().invert_yaxis()
     
+    #### LOOK AT PHASE NOISE 
+    A = Zproj[:,:,pc_idx]
+    B = Zproj1[:,:,pc_idx]
+    ampA,ampB,noiseA,noiseB = get_phase_statistics(A,B)
+    noise_diff = (np.mean(noiseA)-np.mean(noiseB))/np.mean(noiseA) * 100
+    noise_stats.append(noise_diff)
     
+noise_stats = np.array(noise_stats)
+plt.figure()
+plt.boxplot(noise_stats);plt.hlines(0,0.5,1.5)
+print(stats.wilcoxon(noise_stats))
+print(stats.ttest_1samp(noise_stats,0))
+pvalue,boot_stat = bootstrap_test(noise_stats,'mean')
+
 CL = np.array(CL)
 OL = np.array(OL)
-savemat("EigMaps_Layer7Ch0_PC1.mat", {"OL": OL, "CL": CL})
+#filename = 'Eigmaps_layer4Ch14PC2.mat'
+filename = 'Eigmaps_' +  str(layer_name) + 'Ch' + str(channel_idx)+ 'PC'+str(pc_idx) + '.mat'
+savemat(filename, {"OL": OL, "CL": CL}, long_field_names=True)
+
+#Eigmaps_layer3Ch11PC2 is good
 
 # have to examine the activations of the PCs
 # unwrap phase and look at variability in slope
 # amplitude modulation
 # wave speed
+
+
+# KEY STEPS
+# AMPLITUDE DIFFERENCES BETWEEN THE TWO CONDITIONS IN PC ACTIVITY
+# FREQ OF AMPLITUDE FLUCTUATIONS (PAC)
+# PHASE NOISE IE VARIABILITY IN PHASE IN PROJECTED ACTIVITY
+
+
+print((np.mean(ampA)-np.mean(ampB))/np.mean(ampA) * 100)
+
+print(stats.mannwhitneyu(ampA,ampB))
+
+print((np.mean(noiseA)-np.mean(noiseB))/np.mean(noiseA) * 100)
+
+print(stats.mannwhitneyu(noiseA,noiseB))
 
 #%%
 fig, ax = plt.subplots()
