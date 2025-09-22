@@ -616,6 +616,10 @@ plt.show();
 #PC0: much more trial to trial variability, phase noise, but higher activation levels
 # higher amplitude and more variability in activation, less precise
 
+# NOTES: Layer 3, Ch 11:
+    # PC0: higher trial to trial variability in OL than CL, but also greater amplitude modulation
+           #this also tends to characterize a standing wave pattern 
+
 # PRELIMS
 from iAE_utils_models import *
 torch.cuda.empty_cache()
@@ -642,7 +646,12 @@ batch_size=256
 OL=[]
 CL=[]
 noise_stats=[]
-
+var_stats=[]
+mean_stats = []
+mean_statsA=[]
+mean_statsB=[]
+var_statsA=[]
+var_statsB=[]
 for day_idx in np.arange(10)+1:
     
     
@@ -714,14 +723,40 @@ for day_idx in np.arange(10)+1:
     B = Zproj1[:,:,pc_idx]
     ampA,ampB,noiseA,noiseB = get_phase_statistics(A,B)
     noise_diff = (np.mean(noiseA)-np.mean(noiseB))/np.mean(noiseA) * 100
+    var_stats.append((np.std(ampA)-np.std(ampB))/np.std(ampA) * 100)
+    mean_stats.append((np.mean(ampA)-np.mean(ampB))/np.mean(ampA) * 100)
     noise_stats.append(noise_diff)
     
+    mean_statsA.append(np.mean(ampA))
+    mean_statsB.append(np.mean(ampB))
+    var_statsA.append(np.std(ampA))
+    var_statsB.append(np.std(ampB))
+
+var_stats = np.array(var_stats)
 noise_stats = np.array(noise_stats)
 plt.figure()
 plt.boxplot(noise_stats);plt.hlines(0,0.5,1.5)
 print(stats.wilcoxon(noise_stats))
 print(stats.ttest_1samp(noise_stats,0))
 pvalue,boot_stat = bootstrap_test(noise_stats,'mean')
+pvalue,boot_stat = bootstrap_test(var_stats,'mean')
+print(stats.wilcoxon(var_stats))
+plt.boxplot(var_stats);plt.hlines(0,0.5,1.5)
+
+# plotting
+mean_statsA = np.array(mean_statsA)
+mean_statsB = np.array(mean_statsB)
+var_statsA = np.array(var_statsA)
+var_statsB = np.array(var_statsB)
+plt.figure()
+plt.plot(mean_statsA,var_statsA,'.b')
+plt.plot(mean_statsB,var_statsB,'.r')
+plt.show()
+
+plt.figure()
+plt.plot(mean_stats,var_stats,'.b')
+plt.show()
+
 
 CL = np.array(CL)
 OL = np.array(OL)
