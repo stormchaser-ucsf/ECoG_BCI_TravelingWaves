@@ -622,7 +622,7 @@ plot_vector_field_NN(pd,pm,1);
 clc
 clear
 close all
-filename='Eigmaps_layer3Ch11PC2.mat';
+filename='Eigmaps_layer7Ch13PC2.mat';
 foldername = "/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D";
 filepath = fullfile(foldername,filename);
 cd(foldername)
@@ -737,6 +737,7 @@ figure;plot((curl_ol),'.','MarkerSize',20)
 
 corr_cl=[];
 planar_cl=[];
+corr_div_cl=[];
 plot_true = false;
 for i=1:10
 
@@ -838,34 +839,39 @@ for i=1:10
     % circular linear correlation to get rotation strength
     % idx = 1:7;
     % idy=1:6;
-    idx = 1:6;
-    idy = 2:8;    
+    idx = 1:4;
+    idy = 1:4;       
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
     N1 = N(idx,idy);
     cl = curl_val(idx,idy);
     pl = angle(xph(idx,idy));
+    d = div_val(idx,idy);    
     [cc1,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
+    [cc1d,pv,source] = phase_correlation_distance( pl, [],d, 1);
 
     % idx = 1:7;
     % idy=11:16;
-    idx = 1:6;
-    idy = 2:8;    
+    idx = 1:4;
+    idy = 1:4;       
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
     N1 = N(idx,idy);
     cl = curl_val(idx,idy);
     pl = angle(xph(idx,idy));
+    d = div_val(idx,idy);
     [cc2,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
+    [cc2d,pv,source] = phase_correlation_distance( pl, [],d, 1);
 
     %corr_cl(i)=(abs(cc1)+abs(cc2))/2;
     corr_cl(i)=(abs(cc2));
+    corr_div_cl(i) = cc2d;
 
     %look at planar wave strength in the middle
-    idx = 1:6;
-    idy = 2:8;       
+    idx = 1:4;
+    idy = 1:4;       
     [rho,pval] = compute_planar_wave(xphs,idx,idy,XX,YY);
     planar_cl(i) = rho;
     
@@ -875,6 +881,7 @@ end
 
 planar_ol=[];
 corr_ol=[];
+corr_div_ol=[];
 plot_true = false;
 for i=1:10
 
@@ -975,34 +982,37 @@ for i=1:10
     % circular linear correlation to get rotation strength
      % idx = 1:7;
     % idy=1:6;
-    idx = 1:6;
-    idy = 2:8;      
+    idx = 1:4;
+    idy = 1:4;             
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
     N1 = N(idx,idy);
     cl = curl_val(idx,idy);
+    d = div_val(idx,idy);
     pl = angle(xph(idx,idy));
     [cc1,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
+    [cc1d,pv,source] = phase_correlation_distance( pl, [],d, 1);
 
-     % idx = 1:7;
-    % idy=1:6;
-    idx = 1:6;
-    idy = 2:8;       
+    idx = 1:4;
+    idy = 1:4;       
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
     N1 = N(idx,idy);
     cl = curl_val(idx,idy);
+    d = div_val(idx,idy);
     pl = angle(xph(idx,idy));
     [cc2,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
+    [cc2d,pv,source] = phase_correlation_distance( pl, [],d, 1);
 
     %corr_ol(i)=(abs(cc1)+abs(cc2))/2;
     corr_ol(i)=(abs(cc2));
+    corr_div_ol(i) = cc2d;
 
     %look at planar wave strength in the middle
-    idx = 1:6;
-    idy = 2:8;      
+    idx = 1:4;
+    idy = 1:4;        
     [rho,pval] = compute_planar_wave(xphs,idx,idy,XX,YY);
     planar_ol(i) = rho;
 
@@ -1042,6 +1052,18 @@ boxplot([planar_ol(:) planar_cl(:)])
 xticks(1:2)
 xticklabels({'OL','CL'})
 ylabel('Planar wave strength')
+title(['Pval of ' num2str(p)])
+plot_beautify
+
+
+% divergence
+[h p tb st]=ttest((corr_div_ol),(corr_div_cl))
+[p,h]=signrank((corr_div_ol),(corr_div_cl));
+figure;
+boxplot([corr_div_ol(:) corr_div_cl(:)])
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Divergence strength')
 title(['Pval of ' num2str(p)])
 plot_beautify
 

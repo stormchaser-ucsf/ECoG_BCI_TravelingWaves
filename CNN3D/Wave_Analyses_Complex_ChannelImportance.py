@@ -638,8 +638,8 @@ model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer3'
-channel_idx = 11
+layer_name = 'layer7'
+channel_idx = 13
 batch_size=256
 
 # init variables
@@ -679,7 +679,7 @@ for day_idx in np.arange(10)+1:
     
     
     # PLOT EIGMAPS AS PHASORS
-    pc_idx=0
+    pc_idx=2
     H,W = eigmaps.shape[:2]
     Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
     U = eigmaps[:,:,pc_idx].real
@@ -736,23 +736,42 @@ var_stats = np.array(var_stats)
 noise_stats = np.array(noise_stats)
 mean_stats = np.array(mean_stats)
 
+
+# plot example activation
+tmp = Zproj[112,:,pc_idx]
+plt.figure()
+plt.plot(tmp.real)
+plt.plot(tmp.imag)
+plt.plot(abs(tmp))
+plt.legend(('Real','Imag','Abs'))
+plt.ylabel('mu wave')
+plt.xlabel('Time')
+plt.title('Single Trial PC 1 Projection')
+
 plt.figure()
 plt.boxplot(noise_stats);plt.hlines(0,0.5,1.5)
 plt.title('Phase noise')
+plt.ylabel('Open Loop minus Closed loop (%)')
+plt.xticks([])
+
 plt.figure()
 plt.boxplot(var_stats);plt.hlines(0,0.5,1.5)
 plt.title('Trial to Trial Variance')
-plt.ylabel('Open Loop vs. Closed loop (%)')
+plt.ylabel('Open Loop minus Closed loop (%)')
+plt.xticks([])
 
 plt.figure()
 plt.boxplot(mean_stats);plt.hlines(0,0.5,1.5)
 plt.title('Mean amplitude')
+plt.ylabel('Open Loop minus Closed loop (%)')
+plt.xticks([])
 
 
-print(stats.wilcoxon(noise_stats))
 print(stats.ttest_1samp(noise_stats,0))
 pvalue,boot_stat = bootstrap_test(noise_stats,'mean')
 pvalue,boot_stat = bootstrap_test(var_stats,'mean')
+pvalue,boot_stat = bootstrap_test(mean_stats,'mean')
+print(stats.wilcoxon(noise_stats))
 print(stats.wilcoxon(var_stats))
 print(stats.wilcoxon(mean_stats))
 
@@ -800,14 +819,14 @@ print((np.mean(noiseA)-np.mean(noiseB))/np.mean(noiseA) * 100)
 print(stats.mannwhitneyu(noiseA,noiseB))
 
 # make a movie of the PC through time
-pc_idx=0
+pc_idx=2
 recon = Zproj[10,:,pc_idx][:,None] @ eigvecs[:,pc_idx].T.conj()[None,:]
 recon = recon.T
 recon = recon.reshape(H,W,-1)
 
 # Transpose so shape = (time, height, width)
 frames = np.moveaxis(recon, -1, 0)  # (28, 8, 20)
-frames=np.imag(frames)
+frames=np.real(frames)
 fig,ax = plt.subplots()
 im = ax.imshow(frames[0],cmap='viridis',aspect='auto')
 
@@ -817,13 +836,19 @@ def update(i):
     return [im]
 
 ani = animation.FuncAnimation(fig, update, frames=frames.shape[0],interval=100,blit=True)
-filename1 = 'Eigmaps_layer3Ch11PC0_imag' + '_trialExample.mp4'
+filename1 = 'Eigmaps_'+str(layer_name)+'Ch'+str(channel_idx)+'PC'+str(pc_idx)+'TrialExample_real.gif'
+ani.save(filename1, writer="pillow", fps=5)
 
-from matplotlib.animation import FFMpegWriter
+
+#filename1 = 'Eigmaps_layer3Ch11PC2_imag' + '_trialExample.mp4'
+
+
+#from matplotlib.animation import FFMpegWriter
 
 # Define writer with codec 'libx264'
-writer = FFMpegWriter(fps=5, codec='libx264', extra_args=['-pix_fmt', 'yuv420p'])
-ani.save("matrix_movie.mp4", writer=writer)
+#writer = FFMpegWriter(fps=5, codec='libx264', extra_args=['-pix_fmt', 'yuv420p'])
+#ani.save("matrix_movie.mp4", writer=writer)
+
 
 #%%
 fig, ax = plt.subplots()

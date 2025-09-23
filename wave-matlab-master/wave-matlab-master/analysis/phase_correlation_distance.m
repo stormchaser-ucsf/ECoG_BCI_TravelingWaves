@@ -1,4 +1,4 @@
-function [cc,pv] = phase_correlation_distance( pl, source, spacing )
+function [cc,pv,source] = phase_correlation_distance( pl, source,cl, spacing )
 % *WAVE*
 %
 % PHASE CORRELATION DISTANCE    correlation of phase with distance
@@ -8,6 +8,7 @@ function [cc,pv] = phase_correlation_distance( pl, source, spacing )
 % INPUT
 % pl - phase map (r,c)
 % source - source point (sc)
+% cl -> divergence field 
 % spacing - pixel spacing (sc)
 %
 % OUTPUT
