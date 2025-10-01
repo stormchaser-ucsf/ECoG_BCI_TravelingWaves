@@ -638,8 +638,8 @@ model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer7'
-channel_idx = 13
+layer_name = 'layer4'
+channel_idx = 14
 batch_size=256
 
 # init variables
@@ -826,7 +826,7 @@ recon = recon.reshape(H,W,-1)
 
 # Transpose so shape = (time, height, width)
 frames = np.moveaxis(recon, -1, 0)  # (28, 8, 20)
-frames=np.real(frames)
+frames=np.imag(frames)
 fig,ax = plt.subplots()
 im = ax.imshow(frames[0],cmap='viridis',aspect='auto')
 
@@ -836,7 +836,7 @@ def update(i):
     return [im]
 
 ani = animation.FuncAnimation(fig, update, frames=frames.shape[0],interval=100,blit=True)
-filename1 = 'Eigmaps_'+str(layer_name)+'Ch'+str(channel_idx)+'PC'+str(pc_idx)+'TrialExample_real.gif'
+filename1 = 'Eigmaps_'+str(layer_name)+'Ch'+str(channel_idx)+'PC'+str(pc_idx)+'TrialExample_imag.gif'
 ani.save(filename1, writer="pillow", fps=5)
 
 

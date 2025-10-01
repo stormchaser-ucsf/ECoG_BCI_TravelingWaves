@@ -622,7 +622,8 @@ plot_vector_field_NN(pd,pm,1);
 clc
 clear
 close all
-filename='Eigmaps_layer7Ch13PC2.mat';
+filename='EigMaps.mat';
+%filename='Eigmaps_layer7Ch13PC2.mat';
 foldername = "/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D";
 filepath = fullfile(foldername,filename);
 cd(foldername)
@@ -715,19 +716,37 @@ ylabel('Max Rotational curl')
 plot_beautify
 
 
+[p,h]=signrank(curl_ol,curl_cl)
 figure;boxplot([curl_cl-curl_ol],'Notch','off');
 hline(0,'r')
 xticks(1:2)
 xticklabels({'OL','CL'})
-ylabel('Difference in rot. wave strength')
-title('CL-OL')
+ylabel(['Difference in rot. wave strength' ])
+title(['CL-OL' ' Pval of ' num2str(p)])
 plot_beautify
+
+
+
 
 
 [h p tb st]=ttest(curl_cl,curl_ol)
 [p,h]=signrank(curl_ol,curl_cl)
 
 figure;plot((curl_ol),'.','MarkerSize',20)
+
+figure;
+hold on
+for i=1:length(curl_cl)
+    plot(1,curl_ol(i),'.b','MarkerSize',20)
+    plot(2,curl_cl(i),'.r','MarkerSize',20)
+    plot([1 2 ],[curl_ol(i) curl_cl(i)],'LineWidth',2,'Color',[.5 .5 .5 .5])
+end
+xlim([0.5 2.5])
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Rotational strength')
+title(['Pval of ' num2str(p)])
+plot_beautify
 
 %% (MAIN) CONTINUATION FROM ABOVE BUT SEGMENTING INTO ROTATIONAL AND PLANAR REGIONS
 
@@ -837,10 +856,10 @@ for i=1:10
 
 
     % circular linear correlation to get rotation strength
-    % idx = 1:7;
-    % idy=1:6;
-    idx = 1:4;
-    idy = 1:4;       
+    idx = 1:7;
+    idy=1:6;
+    % idx = 1:4;
+    % idy = 1:4;       
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
@@ -851,10 +870,10 @@ for i=1:10
     [cc1,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
     [cc1d,pv,source] = phase_correlation_distance( pl, [],d, 1);
 
-    % idx = 1:7;
-    % idy=11:16;
-    idx = 1:4;
-    idy = 1:4;       
+    idx = 1:7;
+    idy=11:16;
+    % idx = 1:4;
+    % idy = 1:4;       
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
@@ -865,13 +884,13 @@ for i=1:10
     [cc2,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
     [cc2d,pv,source] = phase_correlation_distance( pl, [],d, 1);
 
-    %corr_cl(i)=(abs(cc1)+abs(cc2))/2;
-    corr_cl(i)=(abs(cc2));
+    corr_cl(i)=(abs(cc1)+abs(cc2))/2;
+    %corr_cl(i)=(abs(cc2));
     corr_div_cl(i) = cc2d;
 
     %look at planar wave strength in the middle
-    idx = 1:4;
-    idy = 1:4;       
+    idx = 1:7;
+    idy = 7:11;       
     [rho,pval] = compute_planar_wave(xphs,idx,idy,XX,YY);
     planar_cl(i) = rho;
     
@@ -980,10 +999,10 @@ for i=1:10
     end
 
     % circular linear correlation to get rotation strength
-     % idx = 1:7;
-    % idy=1:6;
-    idx = 1:4;
-    idy = 1:4;             
+    idx = 1:7;
+    idy=1:6;
+    % idx = 1:4;
+    % idy = 1:4;             
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
@@ -994,8 +1013,10 @@ for i=1:10
     [cc1,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
     [cc1d,pv,source] = phase_correlation_distance( pl, [],d, 1);
 
-    idx = 1:4;
-    idy = 1:4;       
+    idx = 1:7;
+    idy=11:16;
+    % idx = 1:4;
+    % idy = 1:4;             
     XX1=XX(idx,idy);
     YY1=YY(idx,idy);
     M1 = M(idx,idy);
@@ -1006,13 +1027,13 @@ for i=1:10
     [cc2,pv,center_point] = phase_correlation_rotation( pl, cl,[],sign_IF);
     [cc2d,pv,source] = phase_correlation_distance( pl, [],d, 1);
 
-    %corr_ol(i)=(abs(cc1)+abs(cc2))/2;
-    corr_ol(i)=(abs(cc2));
+    corr_ol(i)=(abs(cc1)+abs(cc2))/2;
+    %corr_ol(i)=(abs(cc2));
     corr_div_ol(i) = cc2d;
 
     %look at planar wave strength in the middle
-    idx = 1:4;
-    idy = 1:4;        
+    idx = 1:7;
+    idy = 7:11;             
     [rho,pval] = compute_planar_wave(xphs,idx,idy,XX,YY);
     planar_ol(i) = rho;
 
@@ -1064,6 +1085,20 @@ boxplot([corr_div_ol(:) corr_div_cl(:)])
 xticks(1:2)
 xticklabels({'OL','CL'})
 ylabel('Divergence strength')
+title(['Pval of ' num2str(p)])
+plot_beautify
+
+figure;
+hold on
+for i=1:length(corr_ol)
+    plot(1,corr_div_ol(i),'.b','MarkerSize',20)
+    plot(2,corr_div_cl(i),'.r','MarkerSize',20)
+    plot([1 2 ],[corr_div_ol(i) corr_div_cl(i)],'LineWidth',2,'Color',[.5 .5 .5 .5])
+end
+xlim([0.5 2.5])
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Rotational strength')
 title(['Pval of ' num2str(p)])
 plot_beautify
 
