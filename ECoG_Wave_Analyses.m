@@ -622,8 +622,8 @@ plot_vector_field_NN(pd,pm,1);
 clc
 clear
 close all
-filename='EigMaps.mat';
-%filename='Eigmaps_layer7Ch13PC2.mat';
+%filename='EigMaps.mat';
+filename='Eigmaps_layer1Ch2PC3.mat';
 foldername = "/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D";
 filepath = fullfile(foldername,filename);
 cd(foldername)
@@ -828,7 +828,7 @@ for i=1:10
     s = std(com);
 
     curl_val_zscore = (curl_val - m) ./ (s);
-    curl_val_mask = abs(curl_val_zscore)>0.5;
+    curl_val_mask = abs(curl_val_zscore)>1;
     curl_val_thresh = curl_val.*curl_val_mask;
     if plot_true
         figure;imagesc(curl_val_thresh)
@@ -839,20 +839,43 @@ for i=1:10
     end
 
     div_val_zscore = (div_val - m) ./ (s);
-    div_val_mask = abs(div_val_zscore)>0.5;
+    div_val_mask = abs(div_val_zscore)>1;
     div_val_thresh = div_val.*div_val_mask;
-    % figure;imagesc(div_val_thresh)
-    % set(gca,'ydir','reverse')
+    if plot_true
+        figure;imagesc(div_val_thresh)
+        set(gca,'ydir','reverse')
+        plot_beautify
+        title('Divergence of gradient vector field to detect expanding wave patterns')
+        colorbar
+    end
 
-    % everywhere else is going to be planar
-    planar_thresh =( 1-curl_val_thresh) .*(1- div_val_thresh);
-    planar_thresh(planar_thresh~=1)=0;
+
+    % everywhere where curl and div < 0.2 are planar regions
+    %planar_thresh =( 1-curl_val_thresh) .*(1- div_val_thresh);
+    %planar_thresh(planar_thresh~=1)=0;
+
+    planar_thresh = (abs(div_val_zscore)<0.5) .* (abs(curl_val_zscore)<0.5);
     if plot_true
         figure;
         imagesc(planar_thresh)
         plot_beautify
         title('Planar wave regions')
     end
+
+    CC = bwconncomp(planar_thresh, 8); % 8-connectivity for diagonal neighbors too
+
+
+    planar_regions = cell(CC.NumObjects,1);
+    for ii = 1:CC.NumObjects
+        mask_i = false(CC.ImageSize);
+        mask_i(CC.PixelIdxList{ii}) = true;
+        planar_regions{ii} = mask_i;
+    end
+
+
+    
+    % identifying rotation, expansions and planar regions
+
 
 
     % circular linear correlation to get rotation strength
@@ -889,8 +912,8 @@ for i=1:10
     corr_div_cl(i) = cc2d;
 
     %look at planar wave strength in the middle
-    idx = 1:7;
-    idy = 7:11;       
+    idx = 1:4;
+    idy = 1:10;       
     [rho,pval] = compute_planar_wave(xphs,idx,idy,XX,YY);
     planar_cl(i) = rho;
     
@@ -1102,6 +1125,98 @@ ylabel('Rotational strength')
 title(['Pval of ' num2str(p)])
 plot_beautify
 
+
+%% (MAIN2) MORE GENERAL STATS FOR ANY TYPE OF PHASOR REPRESENTATION
+
+
+% main result to show is from Eigmaps_layer4Ch14PC2 on rotational wave
+% strength
+
+corr_cl=[];
+planar_cl=[];
+corr_div_cl=[];
+planar_ol=[];
+corr_ol=[];
+corr_div_ol=[];
+plot_true = false;
+for i=1:10
+    % stats for CL
+    xph = squeeze(CL(i,:,:));
+    [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );    
+    [out] = compute_wave_stats(xph,XX,YY,plot_true);
+    planar_cl(i) = out.corr_planar;
+
+    % stats for OL
+    xph = squeeze(OL(i,:,:));
+    [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );    
+    [out] = compute_wave_stats(xph,XX,YY,plot_true);
+    planar_ol(i) = out.corr_planar;
+end
+
+
+
+% planar waves
+[h p tb st]=ttest((planar_ol),(planar_cl))
+[p,h]=signrank((planar_ol),(planar_cl));
+figure;
+boxplot([planar_ol(:) planar_cl(:)])
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Planar wave strength')
+title(['Pval of ' num2str(p)])
+plot_beautify
+
+
+[h p tb st]=ttest(abs(corr_cl),abs(corr_ol))
+[p,h]=signrank(abs(corr_ol),abs(corr_cl))
+figure;boxplot(abs([corr_ol' corr_cl']))
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Rotational strength')
+title(['Pval of ' num2str(p)])
+plot_beautify
+
+figure;
+hold on
+for i=1:length(corr_ol)
+    plot(1,corr_ol(i),'.b','MarkerSize',20)
+    plot(2,corr_cl(i),'.r','MarkerSize',20)
+    plot([1 2 ],[corr_ol(i) corr_cl(i)],'LineWidth',2,'Color',[.5 .5 .5 .5])
+end
+xlim([0.5 2.5])
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Rotational strength')
+title(['Pval of ' num2str(p)])
+plot_beautify
+
+
+
+
+% divergence
+[h p tb st]=ttest((corr_div_ol),(corr_div_cl))
+[p,h]=signrank((corr_div_ol),(corr_div_cl));
+figure;
+boxplot([corr_div_ol(:) corr_div_cl(:)])
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Divergence strength')
+title(['Pval of ' num2str(p)])
+plot_beautify
+
+figure;
+hold on
+for i=1:length(corr_ol)
+    plot(1,corr_div_ol(i),'.b','MarkerSize',20)
+    plot(2,corr_div_cl(i),'.r','MarkerSize',20)
+    plot([1 2 ],[corr_div_ol(i) corr_div_cl(i)],'LineWidth',2,'Color',[.5 .5 .5 .5])
+end
+xlim([0.5 2.5])
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Rotational strength')
+title(['Pval of ' num2str(p)])
+plot_beautify
 %% EXAMINIGN LINEAR TRAVELING WAVES
 
 
