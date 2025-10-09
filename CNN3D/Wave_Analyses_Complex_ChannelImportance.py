@@ -608,6 +608,158 @@ plt.plot(xreal[0,0,:])
 plt.plot(ximag[0,0,:])
 
 plt.show();
+#%% (MAIN) EXTRACT STATS FROM COMPLEX VALUED PCA ON TOP 2 CHANNELS IN EACH LAYER
+
+# for layer_name, ch_vals in combined_importance.items():
+#     ch_vals = np.array(ch_vals)
+#     all_channels.extend(range(offset, offset + len(ch_vals)))
+#     all_values.extend(ch_vals)
+#     offset += len(ch_vals)
+#     layer_boundaries.append(offset)  # store where layers end
+
+# # Create one figure
+# plt.figure(figsize=(14, 4))
+# plt.bar(all_channels, all_values, color='steelblue')
+
+
+
+rows = []
+
+for lname, ch_vals in combined_importance.items():    
+    if len(ch_vals) >0:        
+        tmp = np.array(ch_vals) # get gradients
+        a=np.argsort(ch_vals)[::-1] #descending order indices
+        
+        # process the top three channels
+        ch_idx=a[:3]
+        for i in range(len(ch_idx)):
+            channel_idx = ch_idx[i]
+            layer_name = lname
+            
+            print('Processing channel ' + str(channel_idx) + ' in ' + layer_name)
+            
+            # PRELIMS
+            from iAE_utils_models import *
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect() 
+
+            if 'model' in locals():
+                del model 
+
+            num_classes=1    
+            input_size=384*2
+            lstm_size=32
+            ksize=2;
+            model_class = Autoencoder3D_Complex_deep
+            nn_filename = 'i3DAE_B3_Complex_New.pth' 
+            model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
+            model.load_state_dict(torch.load(nn_filename))
+            batch_size=256
+
+            # print(layer_name)
+            # print(channel_idx)
+            
+            # OL=[]
+            # CL=[]
+            # noise_stats=[]
+            # var_stats=[]
+            # mean_stats = []
+            # mean_statsA=[]
+            # mean_statsB=[]
+            # var_statsA=[]
+            # var_statsB=[]
+            
+            OL=[]
+            CL=[]
+            
+            for day_idx in np.arange(10)+1:
+                
+                print('Processing day ' + str(day_idx))
+                
+                idx_days = np.where(labels_test_days == day_idx)[0]
+                tmp_labels = labels_test[idx_days]
+                tmp_ydata = Ytest[idx_days,:]
+                tmp_xdata = Xtest[idx_days,:]
+
+            
+                activations_real, activations_imag = get_channel_activations(model, tmp_xdata, tmp_ydata,
+                                                tmp_labels,device,layer_name,
+                                                channel_idx,batch_size)
+                activations = activations_real + 1j*activations_imag
+                #print(activations_real.shape)
+                
+                # RUN COMPLEX PCA on OL
+                idx = np.where(tmp_labels==0)[0]
+                activations_ol = activations[idx,:]
+                eigvals, eigmaps, Zproj , VAF,eigvecs,_ = complex_pca(activations_ol,15)
+                #plt.stem(VAF)
+                
+                # RUN COMPLEX PCA on CL
+                idx = np.where(tmp_labels==1)[0]
+                activations_cl = activations[idx,:]
+                eigvals1, eigmaps1, Zproj1 , VAF1,eigvecs1 ,_= complex_pca(activations_cl,15)                                
+                #plt.stem(VAF1)
+                
+                # EXTRACT THE EIGMAPS FOR THE TOP 5 PCs
+                
+                for pc_idx in np.arange(5):
+                    
+                    
+                    # SAVE PHASOR OF CL PCs
+                    U = eigmaps1[:,:,pc_idx].real
+                    V = eigmaps1[:,:,pc_idx].imag
+                    Z2 = U+1j*V                    
+                    CL.append(Z2)
+                    
+                    # SAVE PHASOR OF OL PCs
+                    U = eigmaps[:,:,pc_idx].real
+                    V = eigmaps[:,:,pc_idx].imag
+                    Z1 = U+1j*V                    
+                    OL.append(Z1)
+                    
+                    
+                    
+                    #### EXTRACT STATISTICS
+                    A = Zproj[:,:,pc_idx]
+                    B = Zproj1[:,:,pc_idx]
+                    ampA,ampB,noiseA,noiseB = get_phase_statistics(A,B)
+                    noise_diff = (np.mean(noiseA)-np.mean(noiseB))/np.mean(noiseA) * 100
+                    #var_stats.append((np.std(ampA)-np.std(ampB))/np.std(ampA) * 100)
+                    #mean_stats.append((np.mean(ampA)-np.mean(ampB))/np.mean(ampA) * 100)
+                    var_stats = ((np.std(ampA)-np.std(ampB))/np.std(ampA) * 100)
+                    mean_stats = ((np.mean(ampA)-np.mean(ampB))/np.mean(ampA) * 100)
+                    
+                    stat_val = {
+                    "phase_noise_OLvsCL": noise_diff,
+                    "Amplitude_Diff_OLvsCL": mean_stats,
+                    "Trial_To_Trial_Variance_OLvsCL": var_stats,
+                    "VAF_OL": VAF[pc_idx],
+                    "VAF_CL": VAF1[pc_idx],
+                       }
+                    
+                    for stat_name,stat_value in stat_val.items():
+                        rows.append({
+                      "layer": layer_name,
+                      "channel": i,
+                      "pc": pc_idx,
+                      "day": day_idx,                      
+                      "stat": stat_name,
+                      "value": stat_value
+                          })
+                        
+            CL = np.array(CL)
+            OL = np.array(OL)
+            #filename = 'Eigmaps_layer4Ch14PC2.mat'
+            filename = 'Eigmaps_' +  str(layer_name) + 'Ch' + str(channel_idx)+ 'PC'+str(pc_idx) + '.mat'
+            savemat(filename, {"OL": OL, "CL": CL}, long_field_names=True)
+
+
+            
+df = pd.DataFrame(rows)
+print(df.head())          
+            
+    
+
 
 #%% (MAIN) LOOK AT DIFFERENCES BETWEEN OL AND CL SEPARATELY AFTER PROJECTING ONTO THE LAYER
 # PCA, DAY BY DAY
@@ -679,7 +831,7 @@ for day_idx in np.arange(10)+1:
     
     
     # PLOT EIGMAPS AS PHASORS
-    pc_idx=3
+    pc_idx=4
     H,W = eigmaps.shape[:2]
     Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
     U = eigmaps[:,:,pc_idx].real

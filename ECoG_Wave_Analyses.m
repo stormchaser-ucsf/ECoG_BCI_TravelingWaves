@@ -623,7 +623,7 @@ clc
 clear
 close all
 %filename='EigMaps.mat';
-filename='Eigmaps_layer1Ch2PC3.mat';
+filename='Eigmaps_layer1Ch2PC4.mat';
 foldername = "/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D";
 filepath = fullfile(foldername,filename);
 cd(foldername)
