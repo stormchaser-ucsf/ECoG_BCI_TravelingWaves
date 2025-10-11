@@ -750,14 +750,15 @@ for lname, ch_vals in combined_importance.items():
             CL = np.array(CL)
             OL = np.array(OL)
             #filename = 'Eigmaps_layer4Ch14PC2.mat'
-            filename = 'Eigmaps_' +  str(layer_name) + 'Ch' + str(channel_idx)+ 'PC'+str(pc_idx) + '.mat'
+            filename = 'Eigmaps_' +  str(layer_name) + 'Ch' + str(channel_idx) + 'PCs' + '.mat'
             savemat(filename, {"OL": OL, "CL": CL}, long_field_names=True)
 
 
             
 df = pd.DataFrame(rows)
 print(df.head())          
-            
+# save
+df.to_pickle("ChannelStats_CNNAE_Model.pkl")        
     
 
 

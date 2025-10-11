@@ -1217,6 +1217,110 @@ xticklabels({'OL','CL'})
 ylabel('Rotational strength')
 title(['Pval of ' num2str(p)])
 plot_beautify
+
+%% (MAIN) EXAMINING FOCI OF ROTATIONAL CENTERS ACROSS ALL EIGMAPS
+% interpolate it to the grid size and see where rotations most likely
+% happen
+
+clc;clear
+close all
+
+folderpath='/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/Eigmaps';
+files = findfiles('',folderpath)'; % go by Layer ->  Channels
+
+
+pc1_abs=[];
+plot_true=false;
+res=[];
+for i=1:length(files)
+    load(files{i})     
+    for j=1:1:size(CL,1) % the maps are stored as day 1: pcs1-5, day 2, pcs1-5 etc. 
+        xph = squeeze(CL(j,:,:));
+
+        [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+        % smooth phasors to get smoothed estimates of phase
+        M = real(xph);
+        N = imag(xph);
+        if plot_true
+            figure
+            quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+            set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
+            title('Phasor eigmap')
+        end
+        M = smoothn(M,'robust'); %dx
+        N = smoothn(N,'robust'); %dy
+        if plot_true
+            figure
+            quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+            set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
+            title('Smoothed Phasor eigmap')
+        end
+        xphs = M + 1j*N; % smoothed phasor field: gets smoothed estimates of phase
+
+        % compute gradient
+        [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphs, ...
+            1,-1);
+
+        % Mckh =  pm.*cos(pd);
+        % Ncnk =  pm.*sin(pd);
+        lidx = floor(i/3);
+        if rem(i,3) ~=0
+            lidx=lidx+1;
+            ch_idx=3;
+        end
+        if rem(i,3)==1
+            ch_idx=1;
+        elseif rem(i,3)==2
+            ch_idx=2;
+        end
+
+        day_idx = floor(j/5);
+        if rem(j,5)~=0
+            day_idx = day_idx+1;            
+        end        
+        
+        pc_idx = mod(j,5);
+        if pc_idx==0
+            pc_idx=5;
+        end
+
+        A = pm.*cos(pd) + 1i * pm.*sin(pd);
+        if median(abs(A(:))) > 0.01
+            M = cos(pd);
+            N = sin(pd);
+        else
+            M = real(A);
+            N = imag(A);
+            if plot_true
+                figure
+                quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+                set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
+                axis tight
+            end
+            % titlename = [files{i}(end-23:end-7) ' Day' num2str(day_idx) ...
+            %     ' PC' num2str(pc_idx)];
+            % title(titlename)
+            res=[res;[lidx ch_idx day_idx pc_idx median(abs(A(:)))]];
+        end
+
+
+        if plot_true
+
+            figure
+            quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+            set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
+            axis tight
+            title('Gradient Vector field of smoothed phasor')
+        end
+
+
+
+
+        %pc1_abs = cat(3,pc1_abs,abs(tmp));
+    end
+end
+
+
 %% EXAMINIGN LINEAR TRAVELING WAVES
 
 
