@@ -22,7 +22,7 @@ elseif isunix
     cd(root_path)
     load('ECOG_Grid_8596_000067_B3.mat')
 
-    % add the circ stats toolbox
+    % add the circ stats toolbox    
     addpath('/home/user/Documents/MATLAB')
     addpath('/home/user/Documents/MATLAB/CircStat2012a')
     addpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/helpers')
@@ -1002,14 +1002,19 @@ for i=1:10
         set(gca,'ydir','reverse')
         plot_beautify
         title('Curl of gradient vector field to detect rotational wave patterns')
-        colorbar
+        colorbar        
     end
 
     div_val_zscore = (div_val - m) ./ (s);
     div_val_mask = abs(div_val_zscore)>0.5;
     div_val_thresh = div_val.*div_val_mask;
-    % figure;imagesc(div_val_thresh)
-    % set(gca,'ydir','reverse')
+    if plot_true
+        figure;imagesc(div_val_thresh)
+        set(gca,'ydir','reverse')
+        plot_beautify
+        title('Divergence of gradient vector field to detect expanding wave patterns')
+        colorbar
+    end
 
     % everywhere else is going to be planar
     planar_thresh =( 1-curl_val_thresh) .*(1- div_val_thresh);
@@ -1224,7 +1229,9 @@ plot_beautify
 
 clc;clear
 close all
-
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/')
+load('ECOG_Grid_8596_000067_B3.mat')
+imaging_B3_waves;close all
 folderpath='/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/Eigmaps';
 files = findfiles('',folderpath)'; % go by Layer ->  Channels
 
@@ -1232,9 +1239,10 @@ files = findfiles('',folderpath)'; % go by Layer ->  Channels
 pc1_abs=[];
 plot_true=false;
 res=[];
-for i=1:length(files)
-    load(files{i})     
-    for j=1:1:size(CL,1) % the maps are stored as day 1: pcs1-5, day 2, pcs1-5 etc. 
+res_rot_centers=[];
+for i=1:10%length(files)
+    load(files{i})
+    for j=1:1:size(CL,1) % the maps are stored as day 1: pcs1-5, day 2, pcs1-5 etc.
         xph = squeeze(CL(j,:,:));
 
         [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
@@ -1276,18 +1284,37 @@ for i=1:length(files)
 
         day_idx = floor(j/5);
         if rem(j,5)~=0
-            day_idx = day_idx+1;            
-        end        
-        
+            day_idx = day_idx+1;
+        end
+
         pc_idx = mod(j,5);
         if pc_idx==0
             pc_idx=5;
         end
 
         A = pm.*cos(pd) + 1i * pm.*sin(pd);
-        if median(abs(A(:))) > 0.01
+        if median(abs(A(:))) > 0.01 % not standing waves
             M = cos(pd);
             N = sin(pd);
+
+            % get curl
+            [curl_val] = curl(XX,YY,M,N);
+            %[div_val] = divergence(XX,YY,M,N);
+
+            % interpolate to grid size
+            curl_val = imresize(curl_val,[11 23],'bilinear');
+
+            % find regions where curl is greater than 0.75
+            rot_centers = (abs(curl_val)>0.7);
+            % interpolate to grid size
+            %rot_centers = imresize(rot_centers,[11 23],'bilinear');
+
+            % store
+            if sum(rot_centers(:))>0
+                res_rot_centers = cat(3,res_rot_centers,rot_centers);
+            end
+
+
         else
             M = real(A);
             N = imag(A);
@@ -1300,7 +1327,7 @@ for i=1:length(files)
             % titlename = [files{i}(end-23:end-7) ' Day' num2str(day_idx) ...
             %     ' PC' num2str(pc_idx)];
             % title(titlename)
-            res=[res;[lidx ch_idx day_idx pc_idx median(abs(A(:)))]];
+            res=[res;[lidx ch_idx day_idx pc_idx median(abs(A(:))) i j] ];
         end
 
 
@@ -1316,10 +1343,37 @@ for i=1:length(files)
 
 
 
-        %pc1_abs = cat(3,pc1_abs,abs(tmp));
+        %pc1_abs = cat(3,pc1_abs,abs(xph));
     end
 end
+figure;imagesc(squeeze(nanmean(res_rot_centers,3)))
 
+grid_layout=[];
+for i=1:23:253
+    grid_layout = [grid_layout (i:i+22)'];
+end
+grid_layout = fliplr(grid_layout');
+
+
+tmp = squeeze(nanmean(res_rot_centers,3));
+wts=zeros(253,1);
+for i=1:253
+    if i<=107
+        j=i;        
+    elseif i>=108 && i<=111
+        j=i+1;        
+    elseif i>=112 && i<=115
+        j=i+2;
+    elseif i>=116
+        j=i+3;
+    end
+    [aa bb] = find(ecog_grid==j);
+    idx = grid_layout(aa,bb);
+    wts(idx) = tmp(aa,bb);
+end
+figure
+c_h = ctmr_gauss_plot(cortex,elecmatrix,wts,'lh');
+e_h = el_add(elecmatrix,'color','b', 'msize',2);
 
 %% EXAMINIGN LINEAR TRAVELING WAVES
 

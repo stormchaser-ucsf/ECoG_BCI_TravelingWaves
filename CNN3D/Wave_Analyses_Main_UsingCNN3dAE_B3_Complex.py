@@ -412,6 +412,13 @@ ksize=2;
 model_class = Autoencoder3D_Complex_deep
 
 
+data = {
+    'Xtest': Xtest,
+    'labels_test': labels_test,
+    'labels_test_days':labels_test_days
+    }
+scipy.io.savemat('xtest_data.mat',data)
+
 #%% LOADING DATA BACK
 
 data=np.load('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2.npz')

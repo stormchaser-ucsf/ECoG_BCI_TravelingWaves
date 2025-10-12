@@ -77,7 +77,7 @@ end
 
 %gaussian "cortical" spreading parameter - in mm, so if set at 10, its 1 cm
 %- distance between adjacent electrodes
-gsp=10; 
+gsp=5; 
 
 c=zeros(length(cortex(:,1)),1);
 for i=1:length(electrodes(:,1))
