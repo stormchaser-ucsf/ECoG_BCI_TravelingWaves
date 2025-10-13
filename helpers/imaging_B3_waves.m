@@ -75,3 +75,11 @@ for j=1:length(val)
     c=ChColorMap(bb,:);
     e_h = el_add(elecmatrix(j,:), 'color', c,'msize',ms);
 end
+
+
+grid_layout=[];
+for i=1:23:253
+    grid_layout = [grid_layout (i:i+22)'];
+end
+grid_layout = fliplr(grid_layout');
+

@@ -1354,8 +1354,8 @@ for i=1:23:253
 end
 grid_layout = fliplr(grid_layout');
 
-
-tmp = squeeze(nanmean(res_rot_centers,3));
+tmp = curl_val;
+%tmp = squeeze(nanmean(res_rot_centers,3));
 wts=zeros(253,1);
 for i=1:253
     if i<=107
@@ -1371,9 +1371,164 @@ for i=1:253
     idx = grid_layout(aa,bb);
     wts(idx) = tmp(aa,bb);
 end
+% plot on brain 
+wts=abs(wts);
 figure
 c_h = ctmr_gauss_plot(cortex,elecmatrix,wts,'lh');
 e_h = el_add(elecmatrix,'color','b', 'msize',2);
+
+% plot electrode sizes on brain 
+figure
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh');
+wts1=wts./max(wts(:));
+for i=1:length(wts1)
+    m = wts1(i)*10;
+    e_h = el_add(elecmatrix(i,:),'color','b', 'msize',m);
+end
+
+
+% plotting the curl maps of OL/CL over days for the PC that shows
+% rotational wave patters
+%OL
+figure;ii=1;
+ha=tight_subplot(2,5);
+tmp_data=[];
+scale_factor=0.91; % max curl
+for j=2:5:50
+    xph = squeeze(CL(j,:,:));
+    [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+    % smooth phasors to get smoothed estimates of phase
+    M = real(xph);
+    N = imag(xph);    
+    M = smoothn(M,'robust'); %dx
+    N = smoothn(N,'robust'); %dy    
+    xphs = M + 1j*N; % smoothed phasor field: gets smoothed estimates of phase
+    % compute gradient
+    [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphs, ...
+        1,-1);
+    M = cos(pd);
+    N = sin(pd);
+    % get curl
+    [curl_val] = curl(XX,YY,M,N);
+    % interpolate to grid size
+    curl_val = imresize(curl_val,[11 23],'bilinear');
+    % map onto electrodes
+    wts = map_onto_elec_B3(abs(curl_val),ecog_grid,grid_layout);   
+    % plot on brain
+    %subplot(5,2,ii)
+    axes(ha(ii))
+
+    c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh');
+    wts1=wts./scale_factor;
+    for i=1:length(wts1)
+        m = wts1(i)*10;
+        e_h = el_add(elecmatrix(i,:),'color','b', 'msize',m);
+    end
+    
+    ii=ii+1;
+    tmp_data=[tmp_data wts];
+end
+
+
+% different method plotting
+
+% plotting the curl maps of OL/CL over days for the PC that shows
+% rotational wave patters
+%OL
+figure;ii=1;
+ha=tight_subplot(2,5);
+tmp_data=[];
+scale_factor=0.6; % max curl
+for j=3:5:50
+    xph = squeeze(OL(j,:,:));
+    [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+    [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xph, ...
+        1,-1);
+    % smooth phasors to get smoothed estimates of phase
+    M = cos(pd);
+    N = sin(pd);
+    M = smoothn(M,'robust'); %dx
+    N = smoothn(N,'robust'); %dy        
+    % get curl
+    [curl_val] = curl(XX,YY,M,N);
+    % interpolate to grid size
+    curl_val = imresize(curl_val,[11 23],'bilinear');
+    % map onto electrodes
+    wts = map_onto_elec_B3(abs(curl_val),ecog_grid,grid_layout);   
+    % plot on brain
+    %subplot(5,2,ii)
+    axes(ha(ii))
+
+    c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh');
+    wts1=wts./scale_factor;
+    for i=1:length(wts1)
+        m = wts1(i)*10;
+        e_h = el_add(elecmatrix(i,:),'color','b', 'msize',m);
+    end
+    title(['Day ' num2str(ii)])
+    
+    ii=ii+1;
+    tmp_data=[tmp_data wts];
+end
+sgtitle('OL')
+
+
+% get across all layers
+for iter = 1:length(files)
+    load(files{iter})
+    tmp_data=[];
+    for j=4:5:50
+        xph = squeeze(CL(j,:,:));
+        [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+        [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xph, ...
+            1,-1);
+        % smooth phasors to get smoothed estimates of phase
+        M = cos(pd);
+        N = sin(pd);
+        M = smoothn(M,'robust'); %dx
+        N = smoothn(N,'robust'); %dy
+        % get curl
+        [curl_val0] = curl(XX,YY,M,N);
+        % interpolate to grid size
+        curl_val = imresize(curl_val0,[11 23],'bilinear');
+        curl_val = abs(curl_val);
+        if max(abs(curl_val0(:)))>=0.5
+            tmp_data=cat(3,tmp_data,curl_val);
+        end
+        % map onto electrodes
+        %wts = map_onto_elec_B3(abs(curl_val),ecog_grid,grid_layout);
+        % plot on brain
+        %subplot(5,2,ii)
+        %axes(ha(ii))
+
+        %c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh');
+        %wts1=wts./scale_factor;
+        %for i=1:length(wts1)
+        %    m = wts1(i)*10;
+        %    e_h = el_add(elecmatrix(i,:),'color','b', 'msize',m);
+        %end
+        %title(['Day ' num2str(ii)])
+
+        %ii=ii+1;
+        %tmp_data=[tmp_data wts];
+    end
+
+    wts = nanmean(tmp_data,3);
+    if isempty(wts)
+        wts=1e-6*ones(11,23);
+    end
+    wts = map_onto_elec_B3(abs(wts),ecog_grid,grid_layout);
+    figure
+    c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh');
+    scale_factor = max(wts(:));
+    wts1=wts./scale_factor;
+    for i=1:length(wts1)
+        m = wts1(i)*10;
+        e_h = el_add(elecmatrix(i,:),'color','b', 'msize',m);
+    end
+    title(files{iter}(end-15:end-7));
+end
+
 
 %% EXAMINIGN LINEAR TRAVELING WAVES
 
