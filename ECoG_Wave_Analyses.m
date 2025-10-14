@@ -1442,13 +1442,16 @@ scale_factor=0.6; % max curl
 for j=3:5:50
     xph = squeeze(OL(j,:,:));
     [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
-    [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xph, ...
+    M = real(xph);
+    N = imag(xph);
+    M = smoothn(M,'robust'); %dx
+    N = smoothn(N,'robust'); %dy
+    xphs = M + 1j*N; % smoothed phasor field: gets smoothed estimates of phase
+    [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphd, ...
         1,-1);
     % smooth phasors to get smoothed estimates of phase
     M = cos(pd);
     N = sin(pd);
-    M = smoothn(M,'robust'); %dx
-    N = smoothn(N,'robust'); %dy        
     % get curl
     [curl_val] = curl(XX,YY,M,N);
     % interpolate to grid size
@@ -1477,24 +1480,22 @@ sgtitle('OL')
 for iter = 1:length(files)
     load(files{iter})
     tmp_data=[];
-    for j=4:5:50
-        xph = squeeze(CL(j,:,:));
-        [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
-        [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xph, ...
-            1,-1);
-        % smooth phasors to get smoothed estimates of phase
-        M = cos(pd);
-        N = sin(pd);
-        M = smoothn(M,'robust'); %dx
-        N = smoothn(N,'robust'); %dy
-        % get curl
-        [curl_val0] = curl(XX,YY,M,N);
-        % interpolate to grid size
-        curl_val = imresize(curl_val0,[11 23],'bilinear');
-        curl_val = abs(curl_val);
-        if max(abs(curl_val0(:)))>=0.5
-            tmp_data=cat(3,tmp_data,curl_val);
-        end
+    max_curl_OL=[];
+    max_curl_CL=[];
+    for j=5:5:50
+        xph_CL = squeeze(CL(j,:,:));
+        xph_OL = squeeze(OL(j,:,:));
+        out_OL=curl_stats(xph_OL);
+        out_CL=curl_stats(xph_CL);
+
+        max_curl_OL = [max_curl_OL out_OL.cc1];
+        max_curl_CL = [max_curl_CL out_CL.cc1];
+                      
+        % if max(abs(curl_val0(:)))>=0.75
+        %     tmp_data=cat(3,tmp_data,curl_val);
+        % end
+
+      
         % map onto electrodes
         %wts = map_onto_elec_B3(abs(curl_val),ecog_grid,grid_layout);
         % plot on brain
@@ -1512,6 +1513,11 @@ for iter = 1:length(files)
         %ii=ii+1;
         %tmp_data=[tmp_data wts];
     end
+    figure;boxplot(abs(max_curl_CL)-abs(max_curl_OL))
+    hline(0)
+    [p,h]=signrank(abs(max_curl_CL),abs(max_curl_OL));
+    title(['pval of ' num2str(p)])
+
 
     wts = nanmean(tmp_data,3);
     if isempty(wts)
