@@ -1,4 +1,5 @@
-function vortices = detect_nonoverlapping_vortices(curlMap, thresh, localFrac, minSize)
+function vortices = detect_nonoverlapping_vortices(curlMap, Thresh, localFrac,...
+    minSize)
 % DETECT_NONOVERLAPPING_VORTICES
 % Detect strong curl peaks and assign non-overlapping symmetric masks.
 %
@@ -16,7 +17,7 @@ function vortices = detect_nonoverlapping_vortices(curlMap, thresh, localFrac, m
 %              .symMask
 %              .bbox [xmin xmax ymin ymax]
 
-if nargin < 2, strongFrac = 0.75; end
+if nargin < 2, Thresh = 0.75; end
 if nargin < 3, localFrac = 0.3; end
 if nargin < 4, minSize = 5; end
 
@@ -26,16 +27,17 @@ vortices = struct('center', {}, 'Cpeak', {}, 'componentMask', {}, ...
 
 %% Step 1: Find strong curl peaks
 
-strongMask = abs(curlMap) >= thresh;
+strongMask = abs(curlMap) >= Thresh;
 
 localMaxMask = imregionalmax(abs(curlMap));
 peakMask = strongMask & localMaxMask;
 [yPeaks, xPeaks] = find(peakMask);
 
-fprintf('Found %d strong curl peaks above %.2f.\n', numel(xPeaks), thresh);
+fprintf('Found %d strong curl peaks above %.2f.\n', numel(xPeaks), Thresh);
 
 %% Step 2: Sort peaks by descending curl magnitude
-Cpeaks = abs(curlMap(sub2ind(size(curlMap), yPeaks, xPeaks)));
+%Cpeaks = abs(curlMap(sub2ind(size(curlMap), yPeaks, xPeaks)));
+Cpeaks = (curlMap(sub2ind(size(curlMap), yPeaks, xPeaks)));
 [~, order] = sort(Cpeaks, 'descend');
 xPeaks = xPeaks(order);
 yPeaks = yPeaks(order);
@@ -52,7 +54,11 @@ for k = 1:numel(xPeaks)
 
 
     % Local threshold
-    maskThresh = abs(curlMap) >= thresh;
+    if Cpeak>0
+    maskThresh = (curlMap) >= thresh;
+    else
+        maskThresh = (curlMap) <= thresh;
+    end
 
     % Connected component containing this peak
     CC = bwconncomp(maskThresh, 8);
@@ -78,18 +84,18 @@ for k = 1:numel(xPeaks)
     [X, Y] = meshgrid(1:cols, 1:rows);
     symMask = abs(X - x0) <= x_half & abs(Y - y0) <= y_half;
 
-    %  Remove any rows/columns containing other vortex centers
-    otherCenters = [yPeaks, xPeaks];
-    for j = 1:numel(xPeaks)
-        if j == k, continue; end
-        yc = otherCenters(j,1);
-        xc = otherCenters(j,2);
-        if symMask(yc, xc)
-            % Remove entire row and column of that center
-            symMask(yc, :) = false;
-            symMask(:, xc) = false;
-        end
-    end
+    % %  Remove any rows/columns containing other vortex centers
+    % otherCenters = [yPeaks, xPeaks];
+    % for j = 1:numel(xPeaks)
+    %     if j == k, continue; end
+    %     yc = otherCenters(j,1);
+    %     xc = otherCenters(j,2);
+    %     if symMask(yc, xc)
+    %         % Remove entire row and column of that center
+    %         symMask(yc, :) = false;
+    %         symMask(:, xc) = false;
+    %     end
+    % end
 
     % Enforce non-overlap with stronger vortices
     symMask = symMask & ~assignedMask;
