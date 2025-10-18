@@ -1,4 +1,4 @@
-function vortices = detect_curlVortices_dataDriven(curlMap, xph,Thresh)
+function vortices = detect_curlVortices_dataDriven_any(curlMap, xph,Thresh)
 % DETECT_NONOVERLAPPING_VORTICES
 % Detect strong curl peaks and assign non-overlapping symmetric masks.
 %
@@ -72,84 +72,118 @@ for k=1:numel(xPeaks)
     corr_val=corr_val_init;
     pval=1;
 
-    row_flag=false;col_flag=false;symm_flag=false;
-    bbox={};
+    
+   
     corr_val_update=[corr_val_init];
     pval_update=[pval_init];
+    bbox_update={};kk=1;
+    bbox_update(kk).r = [rmin rmax];
+    bbox_update(kk).c = [cmin cmax];
     while loop_stay
 
-        % expand bounding box       
-        [bbox] = expand_bound_box(bbox,cmin,cmax,rmin,rmax,...
-            row_flag,col_flag,symm_flag,rows,cols);
+        % expand bounding box  
+        bbox={};
+        [bbox] = expand_bound_box_all(bbox,cmin,cmax,rmin,rmax,...
+            rows,cols);
 
         % compute correlation for bbox
-        symm_corr=0;pv_symm=1;
-        row_corr=0;pv_row=1;
-        col_corr=0;pv_col=1;
-        if bbox.symm.flag
-            c = bbox.symm.cols;
-            r = bbox.symm.rows;
+        %lt
+        collt_corr=0;pv_collt=1;
+        if bbox.collt.flag
+            c = bbox.collt.cols;
+            r = bbox.collt.rows;
             pl = angle(double(xph(r(1):r(2),c(1):c(2))));
-            [cc1,pv_symm,center_point] = phase_correlation_rotation( pl,...
+            [cc1,pv_collt,center_point] = phase_correlation_rotation( pl,...
                 double(curlMap(r(1):r(2),c(1):c(2))),[],-1);
-            symm_corr = abs(cc1);
+            collt_corr = (cc1);
         end
-        if bbox.row.flag
-            c = bbox.row.cols;
-            r = bbox.row.rows;
+        
+        %rt
+        colrt_corr=0;pv_colrt=1;
+        if bbox.colrt.flag
+            c = bbox.colrt.cols;
+            r = bbox.colrt.rows;
             pl = angle(double(xph(r(1):r(2),c(1):c(2))));
-            [cc1,pv_row,center_point] = phase_correlation_rotation( pl,...
+            [cc1,pv_colrt,center_point] = phase_correlation_rotation( pl,...
                 double(curlMap(r(1):r(2),c(1):c(2))),[],-1);
-            row_corr = abs(cc1);
+            colrt_corr = (cc1);
         end
-        if bbox.col.flag
-            c = bbox.col.cols;
-            r = bbox.col.rows;
+
+        %up
+        rowu_corr=0;pv_rowu=1;
+        if bbox.rowu.flag
+            c = bbox.rowu.cols;
+            r = bbox.rowu.rows;
             pl = angle(double(xph(r(1):r(2),c(1):c(2))));
-            [cc1,pv_col,center_point] = phase_correlation_rotation( pl,...
+            [cc1,pv_rowu,center_point] = phase_correlation_rotation( pl,...
                 double(curlMap(r(1):r(2),c(1):c(2))),[],-1);
-            col_corr = abs(cc1);
+            rowu_corr = (cc1);
         end
-        total_corr = [symm_corr row_corr col_corr];
-        total_pval = [pv_symm pv_row pv_col];
+
+        %down
+        rowd_corr=0;pv_rowd=1;
+        if bbox.rowd.flag
+            c = bbox.rowd.cols;
+            r = bbox.rowd.rows;
+            pl = angle(double(xph(r(1):r(2),c(1):c(2))));
+            [cc1,pv_rowd,center_point] = phase_correlation_rotation( pl,...
+                double(curlMap(r(1):r(2),c(1):c(2))),[],-1);
+            rowd_corr = (cc1);
+        end
+        
+      
+        total_corr = abs([collt_corr colrt_corr rowu_corr rowd_corr]);
+        total_pval = [pv_collt pv_colrt pv_rowu pv_rowd];
         [aa bb]=max(total_corr);
         corr_val_update = [corr_val_update total_corr(bb)];
         pval_update = [pval_update total_pval(bb)];
         if total_pval(bb) <= 0.05
             corr_val = total_corr(bb);
             pval = total_pval(bb);
-        end
-        if total_pval(bb)> 0.05
-            loop_stay = false;
-        else
             switch bb
-                case 1 % symm
-                    symm_flag=true;
-                    cmin = bbox.symm.cols(1);
-                    cmax = bbox.symm.cols(2);
-                    rmin = bbox.symm.rows(1);
-                    rmax = bbox.symm.rows(2);
+                case 1 % lt
+                    
+                    cmin = bbox.collt.cols(1);
+                    cmax = bbox.collt.cols(2);
+                    rmin = bbox.collt.rows(1);
+                    rmax = bbox.collt.rows(2);
 
-                case 2 % row
-                    row_flag=true;
-                    cmin = bbox.row.cols(1);
-                    cmax = bbox.row.cols(2);
-                    rmin = bbox.row.rows(1);
-                    rmax = bbox.row.rows(2);
+                case 2 % rt
+                   
+                    cmin = bbox.colrt.cols(1);
+                    cmax = bbox.colrt.cols(2);
+                    rmin = bbox.colrt.rows(1);
+                    rmax = bbox.colrt.rows(2);
 
-                case 3 % col
-                    col_flag=true;
-                    cmin = bbox.col.cols(1);
-                    cmax = bbox.col.cols(2);
-                    rmin = bbox.col.rows(1);
-                    rmax = bbox.col.rows(2);
+                case 3 % up
+                   
+                    cmin = bbox.rowu.cols(1);
+                    cmax = bbox.rowu.cols(2);
+                    rmin = bbox.rowu.rows(1);
+                    rmax = bbox.rowu.rows(2);
+
+                case 4 % down
+                    
+                    cmin = bbox.rowd.cols(1);
+                    cmax = bbox.rowd.cols(2);
+                    rmin = bbox.rowd.rows(1);
+                    rmax = bbox.rowd.rows(2);
             end
+            kk=kk+1;
+            bbox_update(kk).r = [rmin rmax];
+            bbox_update(kk).c = [cmin cmax];            
+        else
+            loop_stay = false;
         end
+            
     end
+    [aa bb]=max(corr_val_update);
+    cmin = bbox_update(bb).c(1);cmax = bbox_update(bb).c(2);
+    rmin = bbox_update(bb).r(1);rmax = bbox_update(bb).r(2);
     rectangle('Position', [cmin, rmin, cmax - cmin, rmax - rmin], ...
           'EdgeColor', 'r', 'LineWidth', 2);  
-    vortices(k).corr = corr_val;
-    vortices(k).pval = pval;
+    vortices(k).corr = corr_val_update(bb);
+    vortices(k).pval = pval_update(bb);
     vortices(k).cols = [cmin cmax];
     vortices(k).rows = [rmin rmax];
     corr_total(k) = corr_val;

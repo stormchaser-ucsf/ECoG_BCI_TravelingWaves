@@ -622,8 +622,8 @@ plot_vector_field_NN(pd,pm,1);
 clc
 clear
 close all
-%filename='EigMaps.mat';
-filename='Eigmaps_layer1Ch2PC4.mat';
+filename='EigMaps.mat';
+%filename='Eigmaps_layer1Ch2PC4.mat';
 foldername = "/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D";
 filepath = fullfile(foldername,filename);
 cd(foldername)
