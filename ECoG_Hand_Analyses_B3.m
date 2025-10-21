@@ -1707,7 +1707,8 @@ for i=1:length(session_data)
         [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
 
     else
-        [xdata,ydata,idx,trial_idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,1);
+        [xdata,ydata,idx,trial_idx] = ...
+            get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,1);
     end
 
     labels = [labels; zeros(idx,1)];
@@ -1729,7 +1730,8 @@ for i=1:length(session_data)
         [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
 
     else
-        [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,1);
+        [xdata,ydata,idx] =...
+            get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,1);
     end
 
     labels = [labels; ones(idx,1)];
@@ -1751,7 +1753,8 @@ for i=1:length(session_data)
         [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
 
     else
-        [xdata,ydata,idx] = get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,1);
+        [xdata,ydata,idx] = ...
+            get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,1);
     end
 
     labels = [labels; ones(idx,1)];

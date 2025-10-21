@@ -760,7 +760,20 @@ print(df.head())
 # save
 df.to_pickle("ChannelStats_CNNAE_Model.pkl")        
     
+#%% (MAIN) EXTRACT LSTM ACTIVATIONS AND CONTRAST OL AND CL
 
+model=model.item()
+
+tmp = Xtest[:32,:]
+tmp_r,tmp_i = np.real(tmp), np.imag(tmp)
+tmp_r = torch.from_numpy(tmp_r).float().to(device)
+tmp_i = torch.from_numpy(tmp_i).float().to(device)
+
+model.eval()
+with torch.no_grad():
+    latent = model.encoder(tmp_r,tmp_i)
+    
+    
 
 #%% (MAIN) LOOK AT DIFFERENCES BETWEEN OL AND CL SEPARATELY AFTER PROJECTING ONTO THE LAYER
 # PCA, DAY BY DAY
