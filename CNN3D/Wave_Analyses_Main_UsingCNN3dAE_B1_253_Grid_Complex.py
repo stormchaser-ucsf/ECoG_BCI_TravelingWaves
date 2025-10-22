@@ -162,7 +162,7 @@ for iterr in np.arange(iterations):
     nn_filename = 'i3DAE_B1_Complex_New.pth' 
     
     model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size)
-    #model.load_state_dict(torch.load(b3Trf_filename))
+    model.load_state_dict(torch.load(b3Trf_filename))
     model=model.to(device)
     model.train()
     model_class = Autoencoder3D_Complex_deep
@@ -183,7 +183,7 @@ for iterr in np.arange(iterations):
     if aug_flag==True:
         batch_size=64
         sigma=0.025
-        aug_factor=3
+        aug_factor=4
     else:
         batch_size=128
         sigma=0
@@ -322,6 +322,19 @@ plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
 plt.figure();
 plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 
+#%% saving variables to reload and do analyses
+
+os.chdir('/media/user/Data/ecog_data/ECoG BCI/Spyder_Data/')
+np.savez('WaveAnalyses_Oct21_20205_B1_253Grid_Arrow',
+         Xval=Xval,
+         Yval=Yval,
+         labels_val=labels_val,
+         Xtest=Xtest,
+         Ytest=Ytest,
+         labels_test=labels_test,
+         labels_test_days=labels_test_days,
+         model=model,
+         nn_filename=nn_filename)
 
 # np.savez('Alpha_200Hz_AllDays_B1_253Grid_Arrow_25Iterations', 
 #           ce_loss = ce_loss,
