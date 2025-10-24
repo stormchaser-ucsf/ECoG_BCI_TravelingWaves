@@ -14,14 +14,14 @@
 %% INIT
 clc;clear
 
-addpath('/home/user/Documents/MATLAB')
+%addpath('/home/user/Documents/MATLAB')
 addpath('/home/user/Documents/MATLAB/CircStat2012a')
 addpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/helpers')
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/wave-matlab-master/wave-matlab-master'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves'))
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
 
-
-%% JUST EXTRACTING OL CORSS VAL ACC AND CL BEST PERFORMANCE BLOCKS
+%% JUST EXTRACTING OL CROSS VAL ACC AND CL BEST PERFORMANCE BLOCKS
 % across days
 
 root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6';
@@ -302,22 +302,16 @@ save session_data_B1_Hand session_data
 
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20230519\HandOnline';
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20240517\Robot3DArrow';
-filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250120\RealRobotBatch';
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250120\RealRobotBatch';
+%filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20250708/HandImagined';
+filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20250708/HandImagined';
 
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250120\RealRobotBatch';
 
 load('ECOG_Grid_8596_000067_B3.mat')
 
 files = findfiles('.mat',filepath,1)';
-
-files1=[];
-for i=1:length(files)
-    if isempty(regexp(files{i},'kf_params'))
-        files1=[files1;files(i)];
-    end
-end
-files=files1;
-%files=files(1:100);
+files = remove_kf_params(files);
 
 %elec_list=1:256;
 elec_list = [137	143	148	152	155	23
@@ -357,25 +351,32 @@ for ii=1:length(files)
         kinax = find(task_state==3);
         data = cell2mat(data_trial(kinax));
 
-        data=data(:,elec_list);
+        %data=data(:,elec_list);
         spectral_peaks=[];
         stats_tmp=[];
         parfor i=1:size(data,2)
+            %disp(i)
             x = data(:,i);
             [Pxx,F] = pwelch(x,1024,512,1024,1e3);
             pow_freq = [pow_freq;Pxx' ];
             ffreq = [ffreq ;F'];
-            %idx = logical((F>0) .* (F<=40));
-            idx = logical((F>0) .* (F<=150));
+            idx = logical((F>0) .* (F<=40));
+            %idx = logical((F>0) .* (F<=150));
             %idx = logical((F>65) .* (F<=150));
             F1=F(idx);
             F1=log2(F1);
             power_spect = Pxx(idx);
             power_spect = log2(power_spect);
             %[bhat p wh se ci t_stat]=robust_fit(F1,power_spect,1);
-            tb=fitlm(F1,power_spect,'RobustOpts','on');
-            stats_tmp = [stats_tmp tb.Coefficients.pValue(2)];
-            bhat = tb.Coefficients.Estimate;
+            %tb=fitlm(F1,power_spect,'RobustOpts','huber');
+            %stats_tmp = [stats_tmp tb.Coefficients.pValue(2)];
+            %bhat = tb.Coefficients.Estimate;
+
+            [b, stats] = robustfit(F1,power_spect, 'huber',...
+                [], 'on');
+            bhat = b;
+
+            
             x = [ones(length(F1),1) F1];
             yhat = x*bhat;
 
@@ -400,7 +401,7 @@ for ii=1:length(files)
 
         % getting oscillation clusters
         osc_clus_tmp=[];
-        for f=2:150 % 40 earlier
+        for f=2:40 % 40 earlier
         %for f=66:150 % 40 earlier
             ff = [f-1 f+1];
             tmp=0;ch_tmp=[];
@@ -423,8 +424,8 @@ end
 
 
 % plot oscillation clusters
-%f=2:40;
-f=2:150;
+f=2:40;
+%f=2:150;
 %f=66:150;
 figure;
 hold on
@@ -449,10 +450,9 @@ for i=1:length(spectral_peaks)
         end
     end
 end
-length(ch_idx)/128
-I = zeros(128,1);
+length(ch_idx)/(length(spectral_peaks)-3);
+I = zeros(256,1);
 I(ch_idx)=1;
-ecog_grid = TrialData.Params.ChMap;
 figure;imagesc(I(ecog_grid))
 
 % get all electrodes within 16 and 20Hz
@@ -460,16 +460,143 @@ ch_idx=[];
 for i=1:length(spectral_peaks)
     if sum(i==bad_ch)==0
         f = spectral_peaks(i).freqs;
-        if sum( (f>=2) .* (f<=6) ) >= 1
+        if sum( (f>=15) .* (f<=18) ) >= 1
             ch_idx=[ch_idx i];
         end
     end
 end
-length(ch_idx)/128
-I = zeros(128,1);
+length(ch_idx)/(length(spectral_peaks)-3);
+I = zeros(256,1);
 I(ch_idx)=1;
-ecog_grid = TrialData.Params.ChMap;
 figure;imagesc(I(ecog_grid))
+
+%% loading data, filtering and extracting epochs for use in a COMPLEX CNN AE
+% MAIN
+
+
+clc;clear
+close all
+
+if ispc
+    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker';
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
+    cd(root_path)
+    addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')    
+    addpath 'C:\Users\nikic\Documents\MATLAB'
+    load('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\ECOG_Grid_8596_000067_B3.mat')
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers'))
+
+else
+    %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
+    root_path='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6';
+    cd(root_path)
+    %load session_data_B3_Hand
+    load('ECOG_Grid_8596_000067_B3.mat')
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/helpers'))
+
+end
+
+xdata={};
+ydata={};
+labels=[];
+labels_batch=[];
+days=[];
+mvmt_labels=[];
+trial_number=[];
+data={};
+
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7.5,'HalfPowerFrequency2',9.5, ...
+    'SampleRate',1e3);
+
+d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7.5,'HalfPowerFrequency2',9.5, ...
+    'SampleRate',200);
+
+
+folders={'20250624', '20250703', ...
+    '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
+
+
+
+hg_alpha_switch=false; %1 means get hG, 0 means get alpha dynamics
+
+for i=1:length(folders)
+
+    folderpath = fullfile(root_path,folders{i});
+    D= dir(folderpath);
+    D = D(3:end);
+    imag_idx=[];
+    online_idx=[];
+    for j=1:length(D)        
+        if strcmp(D(j).name,'HandImagined')
+            imag_idx=[imag_idx j];
+        elseif strcmp(D(j).name,'HandOnline')
+            online_idx=[online_idx j];
+        end
+    end
+
+    %%%%%% get imagined data files    
+    files=[];
+    for ii=1:length(imag_idx)
+        imag_folderpath = fullfile(folderpath, D(imag_idx(ii)).name);        
+        files = [files;findfiles('.mat',imag_folderpath,1)'];
+    end
+    files = remove_kf_params(files);
+
+    if hg_alpha_switch
+        [xdata,ydata,idx] = get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata);
+
+    else
+        [xdata,ydata,idx,trial_idx] = ...
+            get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,1);
+
+    end
+
+    labels = [labels; zeros(idx,1)];
+    days = [days;ones(idx,1)*i];
+    labels_batch = [labels_batch;zeros(idx,1)];
+    mvmt_labels= [mvmt_labels;trial_idx];
+
+    %%%%%% getting online files now
+    files=[];
+    for ii=1:length(online_idx)
+        imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name);
+        files = [files;findfiles('.mat',imag_folderpath,1)'];
+    end
+    files = remove_kf_params(files);
+
+    if hg_alpha_switch
+        [xdata,ydata,idx,trial_idx] = ...
+            get_spatiotemp_windows_hg(files,d2,ecog_grid,xdata,ydata,1);
+
+    else
+        [xdata,ydata,idx,trial_idx] = ...
+            get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,1);
+    end
+
+    labels = [labels; ones(idx,1)];
+    days = [days;ones(idx,1)*i];
+    labels_batch = [labels_batch;zeros(idx,1)];
+    mvmt_labels= [mvmt_labels;trial_idx];
+end
+
+% 
+% for i=1:length(xdata)
+%     disp(i/length(xdata)*100)
+%     tmp=xdata{i};
+%     tmp = single(tmp);
+%     xdata{i}=tmp;
+% 
+%     tmp=ydata{i};
+%     tmp = single(tmp);
+%     ydata{i}=tmp;
+% end
+
+%save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
+save alpha_dynamics_B6_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex xdata ydata labels labels_batch days -v7.3
+
+
 
 %% RUNNING LDA TO GET DECODING PERFORMANCE
 

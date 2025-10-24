@@ -799,13 +799,13 @@ input_size=384*2
 lstm_size=32
 ksize=2;
 model_class = Autoencoder3D_Complex_deep
-nn_filename = 'i3DAE_B3_Complex_New.pth' 
+#nn_filename = 'i3DAE_B3_Complex_New.pth' 
 model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer7'
-channel_idx = 2
+layer_name = 'layer4'
+channel_idx = 14
 batch_size=256
 
 # init variables
@@ -845,7 +845,7 @@ for day_idx in np.arange(6)+1:
     
     
     # PLOT EIGMAPS AS PHASORS
-    pc_idx=1
+    pc_idx=3
     H,W = eigmaps.shape[:2]
     Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
     U = eigmaps[:,:,pc_idx].real
