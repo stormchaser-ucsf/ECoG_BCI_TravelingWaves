@@ -88,7 +88,7 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 1
+iterations = 10
 days = np.unique(labels_days)
 
 decoding_accuracy=[]
@@ -121,6 +121,8 @@ del data_dict
 #%% TRAIN MODEL
 
 for iterr in np.arange(iterations):    
+    
+    print(iterr)
     
     
    
