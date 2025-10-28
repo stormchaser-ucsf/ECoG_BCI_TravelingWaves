@@ -650,7 +650,7 @@ tic
 folders={'20250624', '20250703', ...
     '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
 
-parpool('threads')
+%parpool('threads')
 
 for i=1:length(folders)
 
@@ -727,7 +727,226 @@ toc
 
 
 %cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
-%save PAC_B3_Hand_rawValues_betaToHg_15To20Hz -v7.3
+save PAC_B6_Hand_muToHg_7pt5To9pt5Hz -v7.3
+
+%% PLOTTING, CONTINUATION FROM ABOVE
+
+
+imaging_B1_253;
+close all
+
+cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker')
+load('PAC_B1_253Grid_7DoF_rawValues_alphaToHg.mat')
+
+
+% plotting example of null hypothesis testing
+tmp = pac_raw_values(1).pac;
+boot= pac_raw_values(1).boot;
+stat=abs(mean(tmp(:,50)));
+figure;
+hist(boot(:,50));
+vline(stat,'r')
+ylabel('Count')
+xlabel('PLV')
+plot_beautify
+xlim([0 0.7])
+
+% num. sign channels over days after fdr correction
+ol=[];cl=[];
+for i=1:size(pval_cl,1)
+    ptmp=pval_ol(i,:);
+    [pfdr,pmask]=fdr(ptmp,0.05);
+    %pfdr=0.05;
+    ol(i) = sum(ptmp<=pfdr)/length(ptmp);
+
+    ptmp=pval_cl(i,:);
+    [pfdr,pmask]=fdr(ptmp,0.05);
+    %pfdr=0.05;
+    cl(i) = sum(ptmp<=pfdr)/length(ptmp);
+end
+% figure;
+% hold on
+% plot(ol,'.b','MarkerSize',20)
+% plot(cl,'.r','MarkerSize',20)
+
+days=1:size(pval_cl,1);
+X = [ones(length(days),1) days'];
+[B,BINT,R,RINT,STATS] = regress(ol',X);
+[B1,BINT,R,RINT,STATS1] = regress(cl',X);
+
+figure;
+hold on
+plot(days,ol,'.k','MarkerSize',20)
+plot(days,X*B,'k','LineWidth',2)
+
+plot(days,cl,'.b','MarkerSize',20)
+plot(days,X*B1,'b','LineWidth',2)
+xlabel('Days')
+ylabel('Prop. of sig channels, p = 0.05 level')
+set(gcf,'Color','w')
+xlim([0.5 size(pval_cl,1)+0.5])
+set(gca,'LineWidth',1)
+set(gca,'FontSize',12)
+xticks(1:size(pval_cl,1))
+legend({'','OL','','CL'})
+
+% is diff in regression slope sig?
+stat = abs(B1(2) - B(2));
+boot=[];
+for i=1:1000
+    tmp= [ol ;cl];
+    idx = rand(1,size(ol,2));
+    idx(idx>0.5)=1;
+    idx(idx<=0.5)=0;
+    for j=1:length(idx)
+        if idx(j)==1
+            tmp(:,j) = flipud(tmp(:,j));
+        end
+    end
+    ol1=tmp(1,:);
+    cl1=tmp(2,:);
+    [B1a] = regress(ol1',X);
+    [B1b] = regress(cl1',X);
+    boot(i) = abs(B1a(2)-B1b(2));
+end
+figure;hist(boot)
+vline(stat)
+
+figure;boxplot([ol' cl'])
+
+
+% day 1, OL, channel 50 has the highest PLV: look at its relationship in hg
+% vs alpha
+
+
+% code for plotting phase angle and PLV on grid. Taken from ecog hand
+% project code
+%day_idx=1;
+pac_day1 = pac_raw_values(12).pac;
+plv  = abs(mean(pac_day1));
+pval_day1 = pval_cl(6,:);
+[pfdr,pval1]=fdr(pval_day1,0.05);pfdr
+%pfdr=0.05;
+sig = pval_day1<=pfdr;
+ns = pval_day1>pfdr;
+pref_phase = angle(mean(pac_day1));
+%subplot(1,2,1)
+pax = plot_phases(pref_phase(sig));
+%rose(pref_phase(sig));
+
+% plotting plv values as an image first
+pac_tmp = abs(mean(pac_day1));
+ch_wts = [pac_tmp(1:107) 0 pac_tmp(108:111) 0  pac_tmp(112:115) 0 ...
+    pac_tmp(116:end)];
+sig1 = [sig(1:107) 0 sig(108:111) 0  sig(112:115) 0 ...
+    sig(116:end)];
+figure;
+imagesc(ch_wts(ecog_grid))
+figure;
+imagesc(ch_wts(ecog_grid).*sig1(ecog_grid))
+
+% plot sig electrodes, with size denoted by PLV and color b preferred phase
+% need to plot this taking into account the location of the grid and not
+% just channel numbers
+
+%plv(sig) = zscore(plv(sig))+4;
+phMap = linspace(-pi,pi,253)';
+ChColorMap = ([parula(253)]);
+figure
+%subplot(1,2,2)
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+e_h = el_add(elecmatrix, 'color', 'w','msize',2);
+% elecmatrix1 = [elecmatrix(1:107,:); zeros(1,3); elecmatrix(108:111,:); zeros(1,3) ; ...
+%     elecmatrix(112:115,:) ;zeros(1,3); elecmatrix(116:end,:)];
+ch_wts1=pac_tmp;
+for j=1:253
+    if sig(j)==1
+        ms = ch_wts1(j)*20;
+        %[aa bb]=min(abs(pref_phase(j) - phMap));
+        c=ChColorMap(bb,:);
+        e_h = el_add(elecmatrix(j,:), 'color', 'b','msize',ms);
+    end
+end
+set(gcf,'Color','w')
+
+
+% plotting the mean PLV over sig channels across days for OL and CL
+ol_plv=[];
+cl_plv=[];
+ol_angle=[];
+cl_angle=[];
+for i=1:6
+    idx = find(i==[pac_raw_values(1:end).Day]);
+    for j=1:length(idx)
+        if strcmp(pac_raw_values(idx(j)).type,'OL')
+            tmp = pac_raw_values(idx(j)).pac;
+            tmp_boot = pac_raw_values(idx(j)).boot;
+            stat = abs(mean(tmp));
+            pval = sum(tmp_boot>stat)./size(tmp_boot,1);
+            sig = pval<=0.05;
+            ns = pval>0.05;
+            ol_plv(i) = mean(stat(sig));
+            a = angle(mean(tmp));
+            a = a(sig);
+            ol_angle(i) = circ_mean(a');
+
+        elseif strcmp(pac_raw_values(idx(j)).type,'CL')
+            tmp = pac_raw_values(idx(j)).pac;
+            tmp_boot = pac_raw_values(idx(j)).boot;
+            stat = abs(mean(tmp));
+            pval = sum(tmp_boot>stat)./size(tmp_boot,1);
+            sig = pval<=0.05;
+            ns = pval>0.05;
+            cl_plv(i) = mean(stat(sig));
+            a = angle(mean(tmp));
+            a = a(sig);
+            cl_angle(i) = circ_mean(a');
+        end
+    end
+end
+%
+figure;plot(ol_plv)
+hold on
+plot(cl_plv)
+
+ol = ol_plv;
+cl = cl_plv;
+% figure;
+% hold on
+% plot(ol,'.b','MarkerSize',20)
+% plot(cl,'.r','MarkerSize',20)
+
+days=1:6;
+X = [ones(length(days),1) days'];
+[B,BINT,R,RINT,STATS] = regress(ol',X);
+[B1,BINT,R,RINT,STATS1] = regress(cl',X);
+
+figure;
+hold on
+plot(days,ol,'.k','MarkerSize',20)
+plot(days,X*B,'k','LineWidth',2)
+
+plot(days,cl,'.b','MarkerSize',20)
+plot(days,X*B1,'b','LineWidth',2)
+xlabel('Days')
+ylabel('Mean PLV over sig channels')
+set(gcf,'Color','w')
+xlim([0.5 6.5])
+set(gca,'LineWidth',1)
+set(gca,'FontSize',12)
+xticks(1:6)
+legend({'','OL','','CL'})
+
+figure;
+boxplot([ol' cl'])
+set(gcf,'Color','w')
+set(gca,'LineWidth',1)
+set(gca,'FontSize',12)
+xticklabels({'OL','CL'})
+ylabel('Mean PLV over sig channels')
+box off
+P = signrank(ol,cl)
+
 
 
 %% RUNNING LDA TO GET DECODING PERFORMANCE
@@ -1538,221 +1757,6 @@ toc
 % plot significant channel on brain with preferred phase
 % show how it traverses across days
 
-
-imaging_B1_253;
-close all
-
-cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker')
-load('PAC_B1_253Grid_7DoF_rawValues_alphaToHg.mat')
-
-
-% plotting example of null hypothesis testing
-tmp = pac_raw_values(1).pac;
-boot= pac_raw_values(1).boot;
-stat=abs(mean(tmp(:,50)));
-figure;
-hist(boot(:,50));
-vline(stat,'r')
-ylabel('Count')
-xlabel('PLV')
-plot_beautify
-xlim([0 0.7])
-
-% num. sign channels over days after fdr correction
-ol=[];cl=[];
-for i=1:size(pval_cl,1)
-    ptmp=pval_ol(i,:);
-    [pfdr,pmask]=fdr(ptmp,0.05);
-    %pfdr=0.05;
-    ol(i) = sum(ptmp<=pfdr)/length(ptmp);
-
-    ptmp=pval_cl(i,:);
-    [pfdr,pmask]=fdr(ptmp,0.05);
-    %pfdr=0.05;
-    cl(i) = sum(ptmp<=pfdr)/length(ptmp);
-end
-% figure;
-% hold on
-% plot(ol,'.b','MarkerSize',20)
-% plot(cl,'.r','MarkerSize',20)
-
-days=1:size(pval_cl,1);
-X = [ones(length(days),1) days'];
-[B,BINT,R,RINT,STATS] = regress(ol',X);
-[B1,BINT,R,RINT,STATS1] = regress(cl',X);
-
-figure;
-hold on
-plot(days,ol,'.k','MarkerSize',20)
-plot(days,X*B,'k','LineWidth',2)
-
-plot(days,cl,'.b','MarkerSize',20)
-plot(days,X*B1,'b','LineWidth',2)
-xlabel('Days')
-ylabel('Prop. of sig channels, p = 0.05 level')
-set(gcf,'Color','w')
-xlim([0.5 size(pval_cl,1)+0.5])
-set(gca,'LineWidth',1)
-set(gca,'FontSize',12)
-xticks(1:size(pval_cl,1))
-legend({'','OL','','CL'})
-
-% is diff in regression slope sig?
-stat = abs(B1(2) - B(2));
-boot=[];
-for i=1:1000
-    tmp= [ol ;cl];
-    idx = rand(1,size(ol,2));
-    idx(idx>0.5)=1;
-    idx(idx<=0.5)=0;
-    for j=1:length(idx)
-        if idx(j)==1
-            tmp(:,j) = flipud(tmp(:,j));
-        end
-    end
-    ol1=tmp(1,:);
-    cl1=tmp(2,:);
-    [B1a] = regress(ol1',X);
-    [B1b] = regress(cl1',X);
-    boot(i) = abs(B1a(2)-B1b(2));
-end
-figure;hist(boot)
-vline(stat)
-
-figure;boxplot([ol' cl'])
-
-
-% day 1, OL, channel 50 has the highest PLV: look at its relationship in hg
-% vs alpha
-
-
-% code for plotting phase angle and PLV on grid. Taken from ecog hand
-% project code
-%day_idx=1;
-pac_day1 = pac_raw_values(12).pac;
-plv  = abs(mean(pac_day1));
-pval_day1 = pval_cl(6,:);
-[pfdr,pval1]=fdr(pval_day1,0.05);pfdr
-%pfdr=0.05;
-sig = pval_day1<=pfdr;
-ns = pval_day1>pfdr;
-pref_phase = angle(mean(pac_day1));
-%subplot(1,2,1)
-pax = plot_phases(pref_phase(sig));
-%rose(pref_phase(sig));
-
-% plotting plv values as an image first
-pac_tmp = abs(mean(pac_day1));
-ch_wts = [pac_tmp(1:107) 0 pac_tmp(108:111) 0  pac_tmp(112:115) 0 ...
-    pac_tmp(116:end)];
-sig1 = [sig(1:107) 0 sig(108:111) 0  sig(112:115) 0 ...
-    sig(116:end)];
-figure;
-imagesc(ch_wts(ecog_grid))
-figure;
-imagesc(ch_wts(ecog_grid).*sig1(ecog_grid))
-
-% plot sig electrodes, with size denoted by PLV and color b preferred phase
-% need to plot this taking into account the location of the grid and not
-% just channel numbers
-
-%plv(sig) = zscore(plv(sig))+4;
-phMap = linspace(-pi,pi,253)';
-ChColorMap = ([parula(253)]);
-figure
-%subplot(1,2,2)
-c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
-e_h = el_add(elecmatrix, 'color', 'w','msize',2);
-% elecmatrix1 = [elecmatrix(1:107,:); zeros(1,3); elecmatrix(108:111,:); zeros(1,3) ; ...
-%     elecmatrix(112:115,:) ;zeros(1,3); elecmatrix(116:end,:)];
-ch_wts1=pac_tmp;
-for j=1:253
-    if sig(j)==1
-        ms = ch_wts1(j)*20;
-        %[aa bb]=min(abs(pref_phase(j) - phMap));
-        c=ChColorMap(bb,:);
-        e_h = el_add(elecmatrix(j,:), 'color', 'b','msize',ms);
-    end
-end
-set(gcf,'Color','w')
-
-
-% plotting the mean PLV over sig channels across days for OL and CL
-ol_plv=[];
-cl_plv=[];
-ol_angle=[];
-cl_angle=[];
-for i=1:10
-    idx = find(i==[pac_raw_values(1:end).Day]);
-    for j=1:length(idx)
-        if strcmp(pac_raw_values(idx(j)).type,'OL')
-            tmp = pac_raw_values(idx(j)).pac;
-            tmp_boot = pac_raw_values(idx(j)).boot;
-            stat = abs(mean(tmp));
-            pval = sum(tmp_boot>stat)./size(tmp_boot,1);
-            sig = pval<=0.05;
-            ns = pval>0.05;
-            ol_plv(i) = mean(stat(sig));
-            a = angle(mean(tmp));
-            a = a(sig);
-            ol_angle(i) = circ_mean(a');
-
-        elseif strcmp(pac_raw_values(idx(j)).type,'CL')
-            tmp = pac_raw_values(idx(j)).pac;
-            tmp_boot = pac_raw_values(idx(j)).boot;
-            stat = abs(mean(tmp));
-            pval = sum(tmp_boot>stat)./size(tmp_boot,1);
-            sig = pval<=0.05;
-            ns = pval>0.05;
-            cl_plv(i) = mean(stat(sig));
-            a = angle(mean(tmp));
-            a = a(sig);
-            cl_angle(i) = circ_mean(a');
-        end
-    end
-end
-%
-figure;plot(ol_plv)
-hold on
-plot(cl_plv)
-
-ol = ol_plv;
-cl = cl_plv;
-% figure;
-% hold on
-% plot(ol,'.b','MarkerSize',20)
-% plot(cl,'.r','MarkerSize',20)
-
-days=1:6;
-X = [ones(length(days),1) days'];
-[B,BINT,R,RINT,STATS] = regress(ol',X);
-[B1,BINT,R,RINT,STATS1] = regress(cl',X);
-
-figure;
-hold on
-plot(days,ol,'.k','MarkerSize',20)
-plot(days,X*B,'k','LineWidth',2)
-
-plot(days,cl,'.b','MarkerSize',20)
-plot(days,X*B1,'b','LineWidth',2)
-xlabel('Days')
-ylabel('Mean PLV over sig channels')
-set(gcf,'Color','w')
-xlim([0.5 6.5])
-set(gca,'LineWidth',1)
-set(gca,'FontSize',12)
-xticks(1:6)
-legend({'','OL','','CL'})
-
-figure;
-boxplot([ol' cl'])
-set(gcf,'Color','w')
-set(gca,'LineWidth',1)
-set(gca,'FontSize',12)
-xticklabels({'OL','CL'})
-ylabel('Mean PLV over sig channels')
-box off
-P = signrank(ol,cl)
 
 
 
