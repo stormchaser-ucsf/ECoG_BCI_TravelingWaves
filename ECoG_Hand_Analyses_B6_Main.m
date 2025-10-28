@@ -650,6 +650,8 @@ tic
 folders={'20250624', '20250703', ...
     '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
 
+parpool('threads')
+
 for i=1:length(folders)
 
     folderpath = fullfile(root_path,folders{i});
@@ -683,6 +685,7 @@ for i=1:length(folders)
 
     % run permutation test and get pvalue for each channel
     [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+    %sum(pval<=0.05)
 
     %sum(pac_r>0.3)/253
     pval_ol(i,:) = pval;
@@ -718,48 +721,13 @@ for i=1:length(folders)
     pac_raw_values(k).type = 'CL';
     pac_raw_values(k).Day = i;
     k=k+1;
-
-    %%%%%% getting batch udpated (CL2) files now
-    folders = session_data(i).folders(batch_idx1);
-    day_date = session_data(i).Day;
-    files=[];
-    for ii=1:length(folders)
-        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
-        %cd(folderpath)
-        files = [files;findfiles('mat',folderpath)'];
-    end
-
-    if ~isempty(files)
-
-        % get the phase locking value
-        disp(['Processing Day ' num2str(i) ' Batch'])
-        [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
-
-        % run permutation test and get pvalue for each channel
-        [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
-
-        pval_batch(i,:) = pval;
-        pac_batch(i,:) = abs(mean(pac));
-        %rboot_batch(i,:,:) = rboot;
-        pac_raw_values(k).pac = pac;
-        pac_raw_values(k).boot = rboot;
-        pac_raw_values(k).type = 'Batch';
-        pac_raw_values(k).Day = i;
-        k=k+1;
-
-
-    else
-        pac_batch(i,:)=NaN(1,253);
-        pval_batch(i,:)=NaN(1,253);
-    end
-
 end
 
 toc
 
 
-cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
-save PAC_B3_Hand_rawValues_betaToHg_15To20Hz -v7.3
+%cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
+%save PAC_B3_Hand_rawValues_betaToHg_15To20Hz -v7.3
 
 
 %% RUNNING LDA TO GET DECODING PERFORMANCE
