@@ -611,11 +611,10 @@ close all
 
 
 if ispc
-    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
+    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B6';
     addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
     cd(root_path)
-    addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
-    load session_data_B3_Hand
+    addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')    
     addpath 'C:\Users\nikic\Documents\MATLAB'
     load('ECOG_Grid_8596_000067_B3.mat')
     addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
@@ -650,9 +649,11 @@ tic
 folders={'20250624', '20250703', ...
     '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
 
-parpool('threads')
+%parpool('threads')
 
 for i=1:length(folders)
+
+    disp(['Processing day ' folders{i}])
 
     folderpath = fullfile(root_path,folders{i});
     D= dir(folderpath);
