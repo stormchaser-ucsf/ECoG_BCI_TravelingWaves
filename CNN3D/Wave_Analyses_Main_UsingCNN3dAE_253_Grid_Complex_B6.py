@@ -88,7 +88,7 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 10
+iterations = 1
 days = np.unique(labels_days)
 
 decoding_accuracy=[]
@@ -172,7 +172,7 @@ for iterr in np.arange(iterations):
     nn_filename = 'i3DAE_B6_Complex_New.pth' 
     
     model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size)
-    #model.load_state_dict(torch.load(b3Trf_filename))
+    model.load_state_dict(torch.load(b3Trf_filename))
     model=model.to(device)
     model.train()
     model_class = Autoencoder3D_Complex_deep
@@ -336,10 +336,20 @@ print(cl_mse_days.mean() - ol_mse_days.mean())
 plt.figure();
 plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 
+#%% SAVING MAIN RESLULTS
+
+np.savez('Alpha_200Hz_AllDays_B6_Hand_1Iteration', 
+          ce_loss = ce_loss,
+          balanced_acc_days = balanced_acc_days,
+          ol_mse_days = ol_mse_days,
+          cl_mse_days=cl_mse_days)
+
+
+
 #%% saving variables to reload and do analyses
 
 os.chdir('/media/user/Data/ecog_data/ECoG BCI/Spyder_Data/')
-np.savez('WaveAnalyses_Oct21_20205_B1_253Grid_Arrow',
+np.savez('WaveAnalyses_B6_Oct28_20205',
          Xval=Xval,
          Yval=Yval,
          labels_val=labels_val,
@@ -350,11 +360,28 @@ np.savez('WaveAnalyses_Oct21_20205_B1_253Grid_Arrow',
          model=model,
          nn_filename=nn_filename)
 
-# np.savez('Alpha_200Hz_AllDays_B1_253Grid_Arrow_25Iterations', 
-#           ce_loss = ce_loss,
-#           balanced_acc_days = balanced_acc_days,
-#           ol_mse_days = ol_mse_days,
-#           cl_mse_days=cl_mse_days)
+#%% LOADING DATA BACK FROM ABOVE
+
+data = np.load('/media/user/Data/ecog_data/ECoG BCI/Spyder_Data/WaveAnalyses_Sept0920205.npz',
+               allow_pickle=True)
+
+Xval = data.get('Xval')
+Yval = data.get('Yval')
+Xtest = data.get('Xtest')
+Ytest = data.get('Ytest')
+labels_test_days = data.get('labels_test_days')
+model = data.get('model')
+labels_test = data.get('labels_test')
+labels_val = data.get('labels_val')
+nn_filename = 'i3DAE_B3_Complex_New.pth' 
+
+
+# get the CNN architecture model
+num_classes=1    
+input_size=384*2
+lstm_size=32
+ksize=2;
+model_class = Autoencoder3D_Complex_deep
 
 #%% PLOT BACK RESULTS
 
