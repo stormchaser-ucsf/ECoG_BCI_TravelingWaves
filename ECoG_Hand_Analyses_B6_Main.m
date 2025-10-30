@@ -478,7 +478,7 @@ clc;clear
 close all
 
 if ispc
-    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker';
+    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B6';
     addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
     cd(root_path)
     addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')    
@@ -523,15 +523,29 @@ hg_alpha_switch=false; %1 means get hG, 0 means get alpha dynamics
 
 for i=1:length(folders)
 
-    folderpath = fullfile(root_path,folders{i});
+    % folderpath = fullfile(root_path,folders{i});
+    % D= dir(folderpath);
+    % D = D(3:end);
+    % imag_idx=[];
+    % online_idx=[];
+    % for j=1:length(D)        
+    %     if strcmp(D(j).name,'HandImagined')
+    %         imag_idx=[imag_idx j];
+    %     elseif strcmp(D(j).name,'HandOnline')
+    %         online_idx=[online_idx j];
+    %     end
+    % end
+
+    folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
     D= dir(folderpath);
     D = D(3:end);
     imag_idx=[];
     online_idx=[];
-    for j=1:length(D)        
-        if strcmp(D(j).name,'HandImagined')
+    for j=1:length(D)
+        subfoldername = dir(fullfile(folderpath,D(j).name));
+        if strcmp(subfoldername(3).name,'Imagined')
             imag_idx=[imag_idx j];
-        elseif strcmp(D(j).name,'HandOnline')
+        elseif strcmp(subfoldername(3).name,'BCI_Fixed')
             online_idx=[online_idx j];
         end
     end
@@ -646,24 +660,43 @@ rboot_ol=[];rboot_cl=[];rboot_batch=[];
 pac_raw_values={};k=1;
 tic
 
-folders={'20250624', '20250703', ...
-    '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
+% % hand folders
+% folders={'20250624', '20250703', ...
+%     '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
 
 %parpool('threads')
+
+%robot3d arrow folders
+folders = {'20250530','20250610','20250624','20250703','20250708','20250717','20250917',...
+    '20250924'};
 
 for i=1:length(folders)
 
     disp(['Processing day ' folders{i}])
 
-    folderpath = fullfile(root_path,folders{i});
+     % folderpath = fullfile(root_path,folders{i});
+    % D= dir(folderpath);
+    % D = D(3:end);
+    % imag_idx=[];
+    % online_idx=[];
+    % for j=1:length(D)        
+    %     if strcmp(D(j).name,'HandImagined')
+    %         imag_idx=[imag_idx j];
+    %     elseif strcmp(D(j).name,'HandOnline')
+    %         online_idx=[online_idx j];
+    %     end
+    % end
+
+    folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
     D= dir(folderpath);
     D = D(3:end);
     imag_idx=[];
     online_idx=[];
     for j=1:length(D)
-        if strcmp(D(j).name,'HandImagined')
+        subfoldername = dir(fullfile(folderpath,D(j).name));
+        if strcmp(subfoldername(3).name,'Imagined')
             imag_idx=[imag_idx j];
-        elseif strcmp(D(j).name,'HandOnline')
+        elseif strcmp(subfoldername(3).name,'BCI_Fixed')
             online_idx=[online_idx j];
         end
     end
@@ -728,7 +761,7 @@ toc
 
 
 %cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
-save PAC_B6_Hand_muToHg_7pt5To9pt5Hz -v7.3
+save PAC_B6_Hand_muToHg_7pt5To9pt5Hz_100Iter_Arrow -v7.3
 
 %% PLOTTING, CONTINUATION FROM ABOVE
 
@@ -736,8 +769,8 @@ save PAC_B6_Hand_muToHg_7pt5To9pt5Hz -v7.3
 imaging_B1_253;
 close all
 
-cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker')
-load('PAC_B1_253Grid_7DoF_rawValues_alphaToHg.mat')
+%cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker')
+%load('PAC_B1_253Grid_7DoF_rawValues_alphaToHg.mat')
 
 
 % plotting example of null hypothesis testing
