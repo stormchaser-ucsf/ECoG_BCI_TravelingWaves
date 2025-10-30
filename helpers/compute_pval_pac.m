@@ -11,7 +11,7 @@ end
 pval=[];
 rboot=[];
 r = abs(mean(pac));
-parfor iter=1:100
+parfor iter=1:500
     %fprintf('%d',iter)
     %disp(iter)
     if b1==false

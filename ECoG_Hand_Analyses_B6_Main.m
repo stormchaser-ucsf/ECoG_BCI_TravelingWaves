@@ -514,41 +514,46 @@ d2 = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',200);
 
 
+% hand
 folders={'20250624', '20250703', ...
-    '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
+     '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
 
+% robot3DArrow
+%folders = {'20250530','20250610','20250624','20250703','20250708','20250717','20250917'};
 
 
 hg_alpha_switch=false; %1 means get hG, 0 means get alpha dynamics
 
-for i=1:length(folders)
+for i=6:length(folders)
 
-    % folderpath = fullfile(root_path,folders{i});
-    % D= dir(folderpath);
-    % D = D(3:end);
-    % imag_idx=[];
-    % online_idx=[];
-    % for j=1:length(D)        
-    %     if strcmp(D(j).name,'HandImagined')
-    %         imag_idx=[imag_idx j];
-    %     elseif strcmp(D(j).name,'HandOnline')
-    %         online_idx=[online_idx j];
-    %     end
-    % end
-
-    folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
+    folderpath = fullfile(root_path,folders{i});
     D= dir(folderpath);
     D = D(3:end);
     imag_idx=[];
     online_idx=[];
-    for j=1:length(D)
-        subfoldername = dir(fullfile(folderpath,D(j).name));
-        if strcmp(subfoldername(3).name,'Imagined')
+    for j=1:length(D)        
+        if strcmp(D(j).name,'HandImagined')
             imag_idx=[imag_idx j];
-        elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+        elseif strcmp(D(j).name,'HandOnline')
             online_idx=[online_idx j];
         end
     end
+
+    % folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
+    % D= dir(folderpath);
+    % D = D(3:end);
+    % imag_idx=[];
+    % online_idx=[];
+    % for j=1:length(D)
+    %     subfoldername = dir(fullfile(folderpath,D(j).name));
+    %     if length(subfoldername)>2
+    %         if strcmp(subfoldername(3).name,'Imagined')
+    %             imag_idx=[imag_idx j];
+    %         elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+    %             online_idx=[online_idx j];
+    %         end
+    %     end
+    % end
 
     %%%%%% get imagined data files    
     files=[];
@@ -595,20 +600,20 @@ for i=1:length(folders)
     mvmt_labels= [mvmt_labels;trial_idx];
 end
 
-% 
-% for i=1:length(xdata)
-%     disp(i/length(xdata)*100)
-%     tmp=xdata{i};
-%     tmp = single(tmp);
-%     xdata{i}=tmp;
-% 
-%     tmp=ydata{i};
-%     tmp = single(tmp);
-%     ydata{i}=tmp;
-% end
+
+for i=1:length(xdata)
+    disp(i/length(xdata)*100)
+    tmp=xdata{i};
+    tmp = single(tmp);
+    xdata{i}=tmp;
+
+    tmp=ydata{i};
+    tmp = single(tmp);
+    ydata{i}=tmp;
+end
 
 %save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
-save alpha_dynamics_B6_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex xdata ydata labels labels_batch days -v7.3
+save alpha_dynamics_B6_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_Hand xdata ydata labels labels_batch days -v7.3
 
 
 
@@ -667,8 +672,7 @@ tic
 %parpool('threads')
 
 %robot3d arrow folders
-folders = {'20250530','20250610','20250624','20250703','20250708','20250717','20250917',...
-    '20250924'};
+folders = {'20250530','20250610','20250624','20250703','20250708','20250717','20250917'};
 
 for i=1:length(folders)
 
@@ -694,10 +698,12 @@ for i=1:length(folders)
     online_idx=[];
     for j=1:length(D)
         subfoldername = dir(fullfile(folderpath,D(j).name));
-        if strcmp(subfoldername(3).name,'Imagined')
-            imag_idx=[imag_idx j];
-        elseif strcmp(subfoldername(3).name,'BCI_Fixed')
-            online_idx=[online_idx j];
+        if length(subfoldername)>2
+            if strcmp(subfoldername(3).name,'Imagined')
+                imag_idx=[imag_idx j];
+            elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+                online_idx=[online_idx j];
+            end
         end
     end
 
@@ -761,7 +767,7 @@ toc
 
 
 %cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
-save PAC_B6_Hand_muToHg_7pt5To9pt5Hz_100Iter_Arrow -v7.3
+save PAC_B6_Hand_muToHg_7pt5To9pt5Hz_500Iter_Arrow -v7.3
 
 %% PLOTTING, CONTINUATION FROM ABOVE
 
@@ -909,7 +915,7 @@ ol_plv=[];
 cl_plv=[];
 ol_angle=[];
 cl_angle=[];
-for i=1:6
+for i=1:length(unique([pac_raw_values(1:end).Day]))
     idx = find(i==[pac_raw_values(1:end).Day]);
     for j=1:length(idx)
         if strcmp(pac_raw_values(idx(j)).type,'OL')
@@ -950,7 +956,7 @@ cl = cl_plv;
 % plot(ol,'.b','MarkerSize',20)
 % plot(cl,'.r','MarkerSize',20)
 
-days=1:6;
+days=1:length(unique([pac_raw_values(1:end).Day]));
 X = [ones(length(days),1) days'];
 [B,BINT,R,RINT,STATS] = regress(ol',X);
 [B1,BINT,R,RINT,STATS1] = regress(cl',X);
