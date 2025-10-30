@@ -524,7 +524,7 @@ folders={'20250624', '20250703', ...
 
 hg_alpha_switch=false; %1 means get hG, 0 means get alpha dynamics
 
-for i=6:length(folders)
+for i=1:length(folders)
 
     folderpath = fullfile(root_path,folders{i});
     D= dir(folderpath);
