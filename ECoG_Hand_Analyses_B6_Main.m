@@ -666,46 +666,46 @@ pac_raw_values={};k=1;
 tic
 
 % % hand folders
-% folders={'20250624', '20250703', ...
-%     '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
+folders={'20250624', '20250703', ...
+    '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
 
-%parpool('threads')
+parpool('threads')
 
 %robot3d arrow folders
-folders = {'20250530','20250610','20250624','20250703','20250708','20250717','20250917'};
+%folders = {'20250530','20250610','20250624','20250703','20250708','20250717','20250917'};
 
 for i=1:length(folders)
 
     disp(['Processing day ' folders{i}])
 
-     % folderpath = fullfile(root_path,folders{i});
-    % D= dir(folderpath);
-    % D = D(3:end);
-    % imag_idx=[];
-    % online_idx=[];
-    % for j=1:length(D)        
-    %     if strcmp(D(j).name,'HandImagined')
-    %         imag_idx=[imag_idx j];
-    %     elseif strcmp(D(j).name,'HandOnline')
-    %         online_idx=[online_idx j];
-    %     end
-    % end
-
-    folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
+    folderpath = fullfile(root_path,folders{i});
     D= dir(folderpath);
     D = D(3:end);
     imag_idx=[];
     online_idx=[];
     for j=1:length(D)
-        subfoldername = dir(fullfile(folderpath,D(j).name));
-        if length(subfoldername)>2
-            if strcmp(subfoldername(3).name,'Imagined')
-                imag_idx=[imag_idx j];
-            elseif strcmp(subfoldername(3).name,'BCI_Fixed')
-                online_idx=[online_idx j];
-            end
+        if strcmp(D(j).name,'HandImagined')
+            imag_idx=[imag_idx j];
+        elseif strcmp(D(j).name,'HandOnline')
+            online_idx=[online_idx j];
         end
     end
+
+    % folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
+    % D= dir(folderpath);
+    % D = D(3:end);
+    % imag_idx=[];
+    % online_idx=[];
+    % for j=1:length(D)
+    %     subfoldername = dir(fullfile(folderpath,D(j).name));
+    %     if length(subfoldername)>2
+    %         if strcmp(subfoldername(3).name,'Imagined')
+    %             imag_idx=[imag_idx j];
+    %         elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+    %             online_idx=[online_idx j];
+    %         end
+    %     end
+    % end
 
 
     %%%%%% get imagined data files    
@@ -767,7 +767,7 @@ toc
 
 
 %cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
-save PAC_B6_Hand_muToHg_7pt5To9pt5Hz_500Iter_Arrow -v7.3
+save PAC_B6_Hand_muToHg_7pt5To9pt5Hz_500Iter_Hand -v7.3
 
 %% PLOTTING, CONTINUATION FROM ABOVE
 
