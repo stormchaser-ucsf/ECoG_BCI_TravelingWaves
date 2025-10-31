@@ -24,7 +24,13 @@ cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
 %% JUST EXTRACTING OL CROSS VAL ACC AND CL BEST PERFORMANCE BLOCKS
 % across days
 
-root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6';
+% 
+% folders={'20250624', '20250703', ...
+%     '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
+% folders = folders(4:end);
+
+%root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6';
+root_path='F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B6';
 cd(root_path)
 imagined_folders={};k=1;
 online_folders={};kk=1;
@@ -205,6 +211,29 @@ end
 figure;
 plot(tmp)
 cl_curve=tmp;
+
+% plotting
+days=1:length(cl_curve);
+X = [ones(length(days),1) days'];
+[B,BINT,R,RINT,STATS] = regress(ol_curve',X);
+[B1,BINT,R,RINT,STATS1] = regress(cl_curve',X);
+ol = ol_curve;
+cl=cl_curve;
+figure;
+hold on
+plot(days,ol,'.k','MarkerSize',20)
+plot(days,X*B,'k','LineWidth',2)
+
+plot(days,cl,'.b','MarkerSize',20)
+plot(days,X*B1,'b','LineWidth',2)
+xlabel('Days')
+ylabel('Decoding Accuracy')
+set(gcf,'Color','w')
+xlim([0.5 3.5])
+set(gca,'LineWidth',1)
+set(gca,'FontSize',12)
+xticks(0.5:3.5)
+legend({'','OL','','CL'})
 
 
 %% SESSION DATA FOR HAND EXPERIMENTS 
@@ -668,7 +697,7 @@ tic
 % % hand folders
 folders={'20250624', '20250703', ...
     '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
-
+folders = folders(4:end);
 parpool('threads')
 
 %robot3d arrow folders
@@ -767,7 +796,7 @@ toc
 
 
 %cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
-save PAC_B6_Hand_muToHg_7pt5To9pt5Hz_500Iter_Hand -v7.3
+save PAC_B6_Hand_muToHg_7pt5To9pt5Hz_500Iter_Hand_woutDays1n3 -v7.3
 
 %% PLOTTING, CONTINUATION FROM ABOVE
 
@@ -925,7 +954,8 @@ for i=1:length(unique([pac_raw_values(1:end).Day]))
             pval = sum(tmp_boot>stat)./size(tmp_boot,1);
             sig = pval<=0.05;
             ns = pval>0.05;
-            ol_plv(i) = mean(stat(sig));
+            %ol_plv(i) = mean(stat(sig));
+            ol_plv(i) = mean(stat());
             a = angle(mean(tmp));
             a = a(sig);
             ol_angle(i) = circ_mean(a');
@@ -937,7 +967,8 @@ for i=1:length(unique([pac_raw_values(1:end).Day]))
             pval = sum(tmp_boot>stat)./size(tmp_boot,1);
             sig = pval<=0.05;
             ns = pval>0.05;
-            cl_plv(i) = mean(stat(sig));
+            %cl_plv(i) = mean(stat(sig));
+            cl_plv(i) = mean(stat());
             a = angle(mean(tmp));
             a = a(sig);
             cl_angle(i) = circ_mean(a');
