@@ -795,6 +795,7 @@ pac_cl=[];pval_cl=[];
 pac_batch=[];pval_batch=[];
 rboot_ol=[];rboot_cl=[];rboot_batch=[];
 pac_raw_values={};k=1;
+parpool('threads')
 tic
 for i=1:length(session_data)
 
@@ -965,6 +966,7 @@ folders={'20240515', '20240517', '20240614', ...
      '20240619', '20240621', '20240626',...
 '20240710','20240712','20240731'};
 
+%parpool('threads');
 pac_ol=[];pval_ol=[];
 pac_cl=[];pval_cl=[];
 pac_batch=[];pval_batch=[];
@@ -973,7 +975,8 @@ pac_raw_values={};k=1;
 tic
 for i=1:length(folders)
 
-    folderpath = fullfile(root_path,'B1_253',folders{i},'Robot3DArrow');
+    %folderpath = fullfile(root_path,'B1_253',folders{i},'Robot3DArrow');
+    folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
     D= dir(folderpath);
     D = D(3:end);
     imag_idx=[];
@@ -1083,7 +1086,7 @@ if ~ispc
 else
     cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker')
 end
-save PAC_B1_253Grid_7DoF_rawValues_alphaToHg -v7.3
+save PAC_B1_253Grid_7DoF_rawValues_alphaToHg_9Days_100Iter -v7.3
 
 
 
@@ -1250,7 +1253,8 @@ for i=1:10
             pval = sum(tmp_boot>stat)./size(tmp_boot,1);
             sig = pval<=0.05;
             ns = pval>0.05;
-            ol_plv(i) = mean(stat(sig));
+            %ol_plv(i) = mean(stat(sig));
+            ol_plv(i) = mean(stat());
             a = angle(mean(tmp));
             a = a(sig);
             ol_angle(i) = circ_mean(a');
@@ -1262,7 +1266,8 @@ for i=1:10
             pval = sum(tmp_boot>stat)./size(tmp_boot,1);
             sig = pval<=0.05;
             ns = pval>0.05;
-            cl_plv(i) = mean(stat(sig));
+            %cl_plv(i) = mean(stat(sig));
+            cl_plv(i) = mean(stat());
             a = angle(mean(tmp));
             a = a(sig);
             cl_angle(i) = circ_mean(a');
@@ -1586,19 +1591,19 @@ for i=1:length(folders)
 end
 
 
-% for i=1:length(xdata)
-%     disp(i/length(xdata)*100)
-%     tmp=xdata{i};
-%     tmp = single(tmp);
-%     xdata{i}=tmp;
-% 
-%     tmp=ydata{i};
-%     tmp = single(tmp);
-%     ydata{i}=tmp;
-% end
+for i=1:length(xdata)
+    disp(i/length(xdata)*100)
+    tmp=xdata{i};
+    tmp = single(tmp);
+    xdata{i}=tmp;
+
+    tmp=ydata{i};
+    tmp = single(tmp);
+    ydata{i}=tmp;
+end
 
 %save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
-save alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex xdata ydata labels labels_batch days -v7.3
+save alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr_9Days_Complex xdata ydata labels labels_batch days -v7.3
 
 
 %% NEW HAND DATA MULTI CYCLIC
