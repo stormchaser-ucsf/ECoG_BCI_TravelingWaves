@@ -959,7 +959,11 @@ d2 = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',1e3);
 
 
-folders={'20240515', '20240517', '20240614', '20240619', '20240621', '20240626'};
+%folders={'20240515', '20240517', '20240614', '20240619', '20240621', '20240626'};
+
+folders={'20240515', '20240517', '20240614', ...
+     '20240619', '20240621', '20240626',...
+'20240710','20240712','20240731'};
 
 pac_ol=[];pval_ol=[];
 pac_cl=[];pval_cl=[];
@@ -1489,10 +1493,13 @@ d2 = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',200);
 
 
+% folders={'20240515', '20240517', '20240614', ...
+%     '20240619', '20240621', '20240626'};
+
+
 folders={'20240515', '20240517', '20240614', ...
-    '20240619', '20240621', '20240626'};
-
-
+     '20240619', '20240621', '20240626',...
+'20240710','20240712','20240731'};
 
 hg_alpha_switch=false; %1 means get hG, 0 means get alpha dynamics
 
@@ -1525,7 +1532,6 @@ for i=1:length(folders)
     else
         [xdata,ydata,idx,trial_idx] = ...
             get_spatiotemp_windows(files,d2,ecog_grid,xdata,ydata,1);
-
     end
 
     labels = [labels; zeros(idx,1)];
@@ -1580,16 +1586,16 @@ for i=1:length(folders)
 end
 
 
-for i=1:length(xdata)
-    disp(i/length(xdata)*100)
-    tmp=xdata{i};
-    tmp = single(tmp);
-    xdata{i}=tmp;
-
-    tmp=ydata{i};
-    tmp = single(tmp);
-    ydata{i}=tmp;
-end
+% for i=1:length(xdata)
+%     disp(i/length(xdata)*100)
+%     tmp=xdata{i};
+%     tmp = single(tmp);
+%     xdata{i}=tmp;
+% 
+%     tmp=ydata{i};
+%     tmp = single(tmp);
+%     ydata{i}=tmp;
+% end
 
 %save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
 save alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex xdata ydata labels labels_batch days -v7.3
