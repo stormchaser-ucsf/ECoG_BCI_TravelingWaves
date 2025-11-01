@@ -66,7 +66,7 @@ from sklearn.preprocessing import MinMaxScaler
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
 
 filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/'
-filename='alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex.mat'
+filename='alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr_9Days_Complex.mat'
 filename = filepath + filename
 
 data_dict = mat73.loadmat(filename)
@@ -159,7 +159,7 @@ for iterr in np.arange(iterations):
     
     # transfer learning
     b3Trf_filename = 'i3DAE_B3_Complex_New.pth'  
-    nn_filename = 'i3DAE_B1_Complex_New.pth' 
+    nn_filename = 'i3DAE_B1_Complex_New_tmp.pth' 
     
     model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size)
     model.load_state_dict(torch.load(b3Trf_filename))
@@ -195,10 +195,6 @@ for iterr in np.arange(iterations):
                             Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
                             input_size,num_classes,ksize,lstm_size,alp_factor,aug_flag,
                             sigma,aug_factor,model_class)
-    
-    
-    
-    
     
     # test the model on held out data 
     # recon acc
@@ -281,7 +277,27 @@ for iterr in np.arange(iterations):
     if iterations > 1:
         del Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
         
-    
+
+# classif_loss = (classif_criterion(torch.from_numpy(tmp_labels[:1,:]).to(device),
+#                                    tmp_decodes[:1,:])).item()
+# print(classif_loss)
+
+
+# tmp = torch.from_numpy(tmp_labels)
+# tmp1 = tmp_decodes.cpu()
+
+# classif_loss = classif_criterion(tmp1,tmp).item()
+# print(classif_loss)
+
+# val=[];
+# for i in np.arange(tmp.shape[0]):
+#     val.append(classif_criterion(tmp1[i,:],tmp[i,:]).item())
+
+# val=np.array(val)
+# print(np.mean(val))
+
+# plt.figure();
+# plt.stem(val)
 
 torch.cuda.empty_cache()
 torch.cuda.ipc_collect() 
@@ -321,6 +337,19 @@ plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
 
 plt.figure();
 plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
+
+res = stats.ttest_rel(cl_mse_days, ol_mse_days,axis=1)
+print(res)
+res = stats.wilcoxon(cl_mse_days, ol_mse_days,axis=1)
+print(res)
+print(cl_mse_days.mean() - ol_mse_days.mean())
+
+
+# ol_mse_days_null=ol_mse_days
+# cl_mse_days_null = cl_mse_days
+# balanced_acc_days_null = balanced_acc_days
+# cd_loss_null = ce_loss
+
 
 #%% saving variables to reload and do analyses
 

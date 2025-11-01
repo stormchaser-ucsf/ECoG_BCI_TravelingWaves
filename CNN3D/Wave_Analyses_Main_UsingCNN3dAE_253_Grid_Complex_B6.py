@@ -73,8 +73,13 @@ from sklearn.preprocessing import MinMaxScaler
 
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
 
-filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/'
-filename='alpha_dynamics_B6_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex.mat'
+# filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/'
+# filename='alpha_dynamics_B6_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex.mat'
+
+filepath = '/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
+#filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
+filename = 'alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex.mat'
+
 filename = filepath + filename
 
 data_dict = mat73.loadmat(filename)
@@ -169,10 +174,10 @@ for iterr in np.arange(iterations):
     
     # transfer learning
     b3Trf_filename = 'i3DAE_B3_Complex_New.pth'  
-    nn_filename = 'i3DAE_B6_Complex_New.pth' 
+    nn_filename = 'i3DAE_B6_Complex_New_tmp.pth' 
     
     model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size)
-    model.load_state_dict(torch.load(b3Trf_filename))
+    #model.load_state_dict(torch.load(b3Trf_filename))
     model=model.to(device)
     model.train()
     model_class = Autoencoder3D_Complex_deep
