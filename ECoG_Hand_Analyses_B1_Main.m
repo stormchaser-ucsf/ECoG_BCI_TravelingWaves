@@ -1243,7 +1243,7 @@ ol_plv=[];
 cl_plv=[];
 ol_angle=[];
 cl_angle=[];
-for i=1:10
+for i=1:length(unique([pac_raw_values(1:end).Day]))
     idx = find(i==[pac_raw_values(1:end).Day]);
     for j=1:length(idx)
         if strcmp(pac_raw_values(idx(j)).type,'OL')
@@ -1286,7 +1286,7 @@ cl = cl_plv;
 % plot(ol,'.b','MarkerSize',20)
 % plot(cl,'.r','MarkerSize',20)
 
-days=1:6;
+days=1:length(unique([pac_raw_values(1:end).Day]));
 X = [ones(length(days),1) days'];
 [B,BINT,R,RINT,STATS] = regress(ol',X);
 [B1,BINT,R,RINT,STATS1] = regress(cl',X);
@@ -1301,10 +1301,10 @@ plot(days,X*B1,'b','LineWidth',2)
 xlabel('Days')
 ylabel('Mean PLV over sig channels')
 set(gcf,'Color','w')
-xlim([0.5 6.5])
+xlim([0.5 9.5])
 set(gca,'LineWidth',1)
 set(gca,'FontSize',12)
-xticks(1:6)
+xticks(1:9)
 legend({'','OL','','CL'})
 
 figure;
