@@ -1532,9 +1532,20 @@ folders={'20240515', '20240517', '20240614', ...
 
 hg_alpha_switch=false; %1 means get hG, 0 means get alpha dynamics
 
+
+% robot tasks
+folders_robot = {'20241126','20241204','20241217','20241218','20241220','20250103',...
+    '20250107','20250111','20250115','20250415'};
+
 for i=1:length(folders)
 
-    folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
+     if i<=2
+         folderpath = fullfile(root_path,folders_robot{i},'Robot3D');
+     else
+         folderpath = fullfile(root_path,folders_robot{i},'RealRobotBatch');
+     end
+
+    %folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
     D= dir(folderpath);
     D = D(3:end);
     imag_idx=[];
@@ -1627,7 +1638,7 @@ for i=1:length(xdata)
 end
 
 %save alpha_dynamics_200Hz_AllDays_zscore xdata ydata labels labels_batch days -v7.3
-save alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr_9Days_Complex xdata ydata labels labels_batch days -v7.3
+save alpha_dynamics_B1_253_Robot_200Hz_AllDays_DaysLabeled_ArtifactCorr_9Days_Complex xdata ydata labels labels_batch days -v7.3
 
 
 %% NEW HAND DATA MULTI CYCLIC
