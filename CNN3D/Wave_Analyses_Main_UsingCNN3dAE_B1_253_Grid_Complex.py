@@ -80,7 +80,7 @@ labels_batch = data_dict.get('labels_batch')
 xdata = np.concatenate(xdata)
 ydata = np.concatenate(ydata)
 
-iterations = 1
+iterations = 15
 days = np.unique(labels_days)
 
 decoding_accuracy=[]
@@ -117,7 +117,7 @@ for iterr in np.arange(iterations):
     
    
     # parse into training, validation and testing datasets    
-    Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.7,labels_days)                        
+    Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.75,labels_days)                        
     #del xdata, ydata
     
     # # circular shifting the data for null stats
@@ -178,7 +178,7 @@ for iterr in np.arange(iterations):
     batch_val=2048
     patience=6
     gradient_clipping=10    
-    alp_factor=25
+    alp_factor=18
     aug_flag=True
     if aug_flag==True:
         batch_size=64
@@ -302,8 +302,8 @@ for iterr in np.arange(iterations):
 torch.cuda.empty_cache()
 torch.cuda.ipc_collect() 
 
-tmp = np.mean(ol_mse_days,axis=0)
-tmp1 = np.mean(cl_mse_days,axis=0)
+tmp = np.median(ol_mse_days,axis=0)
+tmp1 = np.median(cl_mse_days,axis=0)
 plt.figure();
 plt.plot(tmp)    
 plt.plot(tmp1)
@@ -342,13 +342,22 @@ res = stats.ttest_rel(cl_mse_days, ol_mse_days,axis=1)
 print(res)
 res = stats.wilcoxon(cl_mse_days, ol_mse_days,axis=1)
 print(res)
-print(cl_mse_days.mean() - ol_mse_days.mean())
-
+#print(cl_mse_days.mean() - ol_mse_days.mean())
+print(np.median(cl_mse_days[0,:]) - np.median(ol_mse_days[0,:]))
+print(np.median(cl_mse_days) - np.median(ol_mse_days))
 
 # ol_mse_days_null=ol_mse_days
 # cl_mse_days_null = cl_mse_days
 # balanced_acc_days_null = balanced_acc_days
 # cd_loss_null = ce_loss
+
+tmp = np.median(ol_mse_days,axis=1)
+tmp1 = np.mdian(cl_mse_days,axis=1)
+plt.figure()
+plt.boxplot([tmp,tmp1])
+res = stats.wilcoxon(tmp, tmp1)
+print(res)
+
 
 
 #%% saving variables to reload and do analyses
@@ -365,11 +374,13 @@ np.savez('WaveAnalyses_Oct21_20205_B1_253Grid_Arrow',
          model=model,
          nn_filename=nn_filename)
 
-# np.savez('Alpha_200Hz_AllDays_B1_253Grid_Arrow_25Iterations', 
-#           ce_loss = ce_loss,
-#           balanced_acc_days = balanced_acc_days,
-#           ol_mse_days = ol_mse_days,
-#           cl_mse_days=cl_mse_days)
+#%% saving key variables from iterations, stats
+
+np.savez('Alpha_200Hz_AllDays_B1_253Grid_Arrow_15Iterations_Complex', 
+          ce_loss = ce_loss,
+          balanced_acc_days = balanced_acc_days,
+          ol_mse_days = ol_mse_days,
+          cl_mse_days=cl_mse_days)
 
 #%% PLOT BACK RESULTS
 
