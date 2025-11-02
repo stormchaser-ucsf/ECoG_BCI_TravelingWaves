@@ -968,8 +968,7 @@ folders={'20240515', '20240517', '20240614', ...
 '20240710','20240712','20240731'};
 
 % robot tasks
-folders_robot = {'20241126','20241204','20241217','20241218','20241220','20250103',...
-    '20250107','20250111','20250115','20250415'};
+folders_robot = {'20241126','20241204','20241217','20241218'};
 
 %parpool('threads');
 pac_ol=[];pval_ol=[];
@@ -978,7 +977,7 @@ pac_batch=[];pval_batch=[];
 rboot_ol=[];rboot_cl=[];rboot_batch=[];
 pac_raw_values={};k=1;
 tic
-for i=4:length(folders)
+for i=1:length(folders)
 
     % %folderpath = fullfile(root_path,'B1_253',folders{i},'Robot3DArrow');
     % folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
@@ -1110,7 +1109,7 @@ if ~ispc
 else
     cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker')
 end
-save PAC_B1_253Grid_7DoF_rawValues_alphaToHg_Robot_5Iter -v7.3
+save PAC_B1_253Grid_7DoF_rawValues_alphaToHg_9Days_100Iter -v7.3
 
 
 
