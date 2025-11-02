@@ -651,7 +651,7 @@ for lname, ch_vals in combined_importance.items():
             lstm_size=32
             ksize=2;
             model_class = Autoencoder3D_Complex_deep
-            nn_filename = 'i3DAE_B3_Complex_New.pth' 
+            #nn_filename = 'i3DAE_B3_Complex_New.pth' 
             model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
             model.load_state_dict(torch.load(nn_filename))
             batch_size=256
@@ -672,7 +672,7 @@ for lname, ch_vals in combined_importance.items():
             OL=[]
             CL=[]
             
-            for day_idx in np.arange(10)+1:
+            for day_idx in np.arange(9)+1:
                 
                 print('Processing day ' + str(day_idx))
                 
@@ -750,7 +750,7 @@ for lname, ch_vals in combined_importance.items():
             CL = np.array(CL)
             OL = np.array(OL)
             #filename = 'Eigmaps_layer4Ch14PC2.mat'
-            filename = 'Eigmaps_' +  str(layer_name) + 'Ch' + str(channel_idx) + 'PCs' + '.mat'
+            filename = 'B1_Eigmaps_' +  str(layer_name) + 'Ch' + str(channel_idx) + 'PCs' + '.mat'
             savemat(filename, {"OL": OL, "CL": CL}, long_field_names=True)
 
 
@@ -758,7 +758,7 @@ for lname, ch_vals in combined_importance.items():
 df = pd.DataFrame(rows)
 print(df.head())          
 # save
-df.to_pickle("ChannelStats_CNNAE_Model.pkl")        
+df.to_pickle("B1_ChannelStats_CNNAE_Model.pkl")        
     
 #%% (MAIN) EXTRACT LSTM ACTIVATIONS AND CONTRAST OL AND CL
 
@@ -804,8 +804,8 @@ model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer4'
-channel_idx = 14
+layer_name = 'layer7'
+channel_idx = 0
 batch_size=256
 
 # init variables
@@ -818,7 +818,7 @@ mean_statsA=[]
 mean_statsB=[]
 var_statsA=[]
 var_statsB=[]
-for day_idx in np.arange(6)+1:
+for day_idx in np.arange(9)+1:
     
     
     idx_days = np.where(labels_test_days == day_idx)[0]
@@ -845,7 +845,7 @@ for day_idx in np.arange(6)+1:
     
     
     # PLOT EIGMAPS AS PHASORS
-    pc_idx=3
+    pc_idx=2
     H,W = eigmaps.shape[:2]
     Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
     U = eigmaps[:,:,pc_idx].real
@@ -985,8 +985,8 @@ print((np.mean(noiseA)-np.mean(noiseB))/np.mean(noiseA) * 100)
 print(stats.mannwhitneyu(noiseA,noiseB))
 
 # make a movie of the PC through time
-pc_idx=2
-recon = Zproj[10,:,pc_idx][:,None] @ eigvecs[:,pc_idx].T.conj()[None,:]
+pc_idx=0
+recon = Zproj[15,:,pc_idx][:,None] @ eigvecs[:,pc_idx].T.conj()[None,:]
 recon = recon.T
 recon = recon.reshape(H,W,-1)
 
@@ -1002,7 +1002,7 @@ def update(i):
     return [im]
 
 ani = animation.FuncAnimation(fig, update, frames=frames.shape[0],interval=100,blit=True)
-filename1 = 'Eigmaps_'+str(layer_name)+'Ch'+str(channel_idx)+'PC'+str(pc_idx)+'TrialExample_imag.gif'
+filename1 = 'B1_Eigmaps_'+str(layer_name)+'Ch'+str(channel_idx)+'PC'+str(pc_idx)+'TrialExample_imag.gif'
 ani.save(filename1, writer="pillow", fps=5)
 
 

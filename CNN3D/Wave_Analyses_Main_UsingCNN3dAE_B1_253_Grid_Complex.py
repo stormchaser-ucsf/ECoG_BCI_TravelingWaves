@@ -352,7 +352,7 @@ print(np.median(cl_mse_days) - np.median(ol_mse_days))
 # cd_loss_null = ce_loss
 
 tmp = np.median(ol_mse_days,axis=1)
-tmp1 = np.mdian(cl_mse_days,axis=1)
+tmp1 = np.median(cl_mse_days,axis=1)
 plt.figure()
 plt.boxplot([tmp,tmp1])
 res = stats.wilcoxon(tmp, tmp1)
