@@ -65,8 +65,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 #filename = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr.mat'
 
-filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/'
-filename='alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr_9Days_Complex.mat'
+filepath = '/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
+filename='alpha_dynamics_B1_253_Robot_200Hz_AllDays_DaysLabeled_ArtifactCorr_9Days_Complex.mat'
 filename = filepath + filename
 
 data_dict = mat73.loadmat(filename)
@@ -115,7 +115,7 @@ del data_dict
 for iterr in np.arange(iterations):    
     
     
-   
+    print(iterr)
     # parse into training, validation and testing datasets    
     Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.75,labels_days)                        
     #del xdata, ydata
