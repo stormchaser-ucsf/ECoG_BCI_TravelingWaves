@@ -20,7 +20,8 @@ curl_val = imresize(curl_val0,[11 23],'bilinear');
 curl_val = abs(curl_val);
 
 % correlation should not drop more than 10%. or just sig. pval?
-out = detect_curlVortices_dataDriven(curl_val0,xph, 0.75);
+%out = detect_curlVortices_dataDriven(curl_val0,xph, 0.75);
+out = detect_curlVortices_dataDriven_any(curl_val0,xph, 0.75);
 
 % cc1=mean(corr_val);
 % out.curl_val0 = curl_val0;

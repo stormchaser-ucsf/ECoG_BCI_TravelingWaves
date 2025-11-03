@@ -115,7 +115,8 @@ save session_data_B1_Hand session_data
 
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20230519\HandOnline';
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20240517\Robot3DArrow';
-filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250115\RealRobotBatch';
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250115\RealRobotBatch';
+filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20210519\Robot3DArrow\';
 
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250120\RealRobotBatch';
 
@@ -133,15 +134,21 @@ files=files1;
 %files=files(1:100);
 
 %elec_list=1:256;
-elec_list = [137	143	148	152	155	23
-159	160	30	28	25	21
-134	140	170	174	178	182
-49	45	41	38	35	163
-221	62	59	56	52	48
-205	208	211	214	218	222];
+% elec_list = [137	143	148	152	155	23
+% 159	160	30	28	25	21
+% 134	140	170	174	178	182
+% 49	45	41	38	35	163
+% 221	62	59	56	52	48
+% 205	208	211	214	218	222];
 
-bad_ch=[108 113 118];
-%bad_ch=[];
+elec_list=[36	40	46	41
+32	27	9	3
+29	26	31	25
+104	116	103	106
+108	115	100	97];%128 grid
+
+%bad_ch=[108 113 118];%253 grid
+bad_ch=[]; %128 grid
 osc_clus=[];
 stats=[];
 pow_freq=[];
@@ -170,12 +177,16 @@ for ii=1:length(files)
         kinax = find(task_state==3);
         data = cell2mat(data_trial(kinax));
 
-        data=data(:,elec_list);
+        %data=data(:,elec_list);
         spectral_peaks=[];
         stats_tmp=[];
         parfor i=1:size(data,2)
             x = data(:,i);
-            [Pxx,F] = pwelch(x,1024,512,1024,1e3);
+            if size(data,1)>=1024
+                [Pxx,F] = pwelch(x,1024,512,1024,1e3);
+            else
+                [Pxx,F] = pwelch(x,512,256,1024,1e3);
+            end
             pow_freq = [pow_freq;Pxx' ];
             ffreq = [ffreq ;F'];
             idx = logical((F>0) .* (F<=40));
@@ -783,7 +794,7 @@ end
 
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    'HalfPowerFrequency1',9,'HalfPowerFrequency2',11, ...
     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -795,46 +806,68 @@ pac_cl=[];pval_cl=[];
 pac_batch=[];pval_batch=[];
 rboot_ol=[];rboot_cl=[];rboot_batch=[];
 pac_raw_values={};k=1;
-parpool('threads')
+%parpool('threads')
+
+folders={'20210521'};
+
 tic
 for i=1:length(session_data)
 
-    folders_imag =  strcmp(session_data(i).folder_type,'I');
-    folders_online = strcmp(session_data(i).folder_type,'O');
-    folders_batch = strcmp(session_data(i).folder_type,'B');
-    folders_batch1 = strcmp(session_data(i).folder_type,'B1');
-    %batch_idx_overall = [find(folders_batch==1) find(folders_batch1==1)];
-
-    imag_idx = find(folders_imag==1);
-    online_idx = find(folders_online==1);
-    batch_idx = find(folders_batch==1);
-    batch_idx1 = find(folders_batch1==1);
-    %     if sum(folders_batch1)==0
-    %         batch_idx = find(folders_batch==1);
-    %     else
-    %         batch_idx = find(folders_batch1==1);
-    %     end
-    %     %batch_idx = [online_idx batch_idx];
-
-    online_idx=[online_idx batch_idx];
+    % folders_imag =  strcmp(session_data(i).folder_type,'I');
+    % folders_online = strcmp(session_data(i).folder_type,'O');
+    % folders_batch = strcmp(session_data(i).folder_type,'B');
+    % folders_batch1 = strcmp(session_data(i).folder_type,'B1');
+    % %batch_idx_overall = [find(folders_batch==1) find(folders_batch1==1)];
+    % 
+    % imag_idx = find(folders_imag==1);
+    % online_idx = find(folders_online==1);
+    % batch_idx = find(folders_batch==1);
+    % batch_idx1 = find(folders_batch1==1);
+    % %     if sum(folders_batch1)==0
+    % %         batch_idx = find(folders_batch==1);
+    % %     else
+    % %         batch_idx = find(folders_batch1==1);
+    % %     end
+    % %     %batch_idx = [online_idx batch_idx];
+    % 
+    % online_idx=[online_idx batch_idx];
     %batch_idx = [online_idx batch_idx_overall];
+
+    % new method
+    folderpath = fullfile(root_path,folders{i},'Robot3DArrow');    
+    D= dir(folderpath);
+    D = D(3:end);
+    imag_idx=[];
+    online_idx=[];
+    for j=1:length(D)
+        subfoldername = dir(fullfile(folderpath,D(j).name));
+        if strcmp(subfoldername(3).name,'Imagined')
+            imag_idx=[imag_idx j];
+        elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+            online_idx=[online_idx j];
+        end
+    end
 
 
     %%%%%% get imagined data files
-    folders = session_data(i).folders(imag_idx);
-    day_date = session_data(i).Day;
+    % folders = session_data(i).folders(imag_idx);
+    % day_date = session_data(i).Day;
+    % files=[];
+    % for ii=1:length(folders)
+    %     folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
+    %     %cd(folderpath)
+    %     files = [files;findfiles('mat',folderpath)'];
+    % end
+
     files=[];
-    for ii=1:length(folders)
-        folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
-        %cd(folderpath)
-        files = [files;findfiles('mat',folderpath)'];
+    for ii=1:length(imag_idx)
+        imag_folderpath = fullfile(folderpath, D(imag_idx(ii)).name,'Imagined');
+        files = [files;findfiles('mat',imag_folderpath)'];
     end
 
     % get the phase locking value
     disp(['Processing Day ' num2str(i) ' OL'])
     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2,1);
-
-
 
     % run permutation test and get pvalue for each channel
     [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase,1);
@@ -850,13 +883,20 @@ for i=1:length(session_data)
 
 
     %%%%%% getting online files now
-    folders = session_data(i).folders(online_idx);
-    day_date = session_data(i).Day;
+    % folders = session_data(i).folders(online_idx);
+    % day_date = session_data(i).Day;
+    % files=[];
+    % for ii=1:length(folders)
+    %     folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+    %     %cd(folderpath)
+    %     files = [files;findfiles('mat',folderpath)'];
+    % end
+
+     %%%%%% getting online files now
     files=[];
-    for ii=1:length(folders)
-        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
-        %cd(folderpath)
-        files = [files;findfiles('mat',folderpath)'];
+    for ii=1:length(online_idx)
+        imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
+        files = [files;findfiles('mat',imag_folderpath)'];
     end
 
     % get the phase locking value
@@ -875,39 +915,39 @@ for i=1:length(session_data)
     pac_raw_values(k).Day = i;
     k=k+1;
 
-    %%%%%% getting batch udpated (CL2) files now
-    folders = session_data(i).folders(batch_idx1);
-    day_date = session_data(i).Day;
-    files=[];
-    for ii=1:length(folders)
-        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
-        %cd(folderpath)
-        files = [files;findfiles('mat',folderpath)'];
-    end
-
-    if ~isempty(files)
-
-        % get the phase locking value
-        disp(['Processing Day ' num2str(i) ' Batch'])
-        [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
-
-        % run permutation test and get pvalue for each channel
-        [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
-
-        pval_batch(i,:) = pval;
-        pac_batch(i,:) = abs(mean(pac));
-        %rboot_batch(i,:,:) = rboot;
-        pac_raw_values(k).pac = pac;
-        pac_raw_values(k).boot = rboot;
-        pac_raw_values(k).type = 'Batch';
-        pac_raw_values(k).Day = i;
-        k=k+1;
-
-
-    else
-        pac_batch(i,:)=NaN(1,253);
-        pval_batch(i,:)=NaN(1,253);
-    end
+    % %%%%%% getting batch udpated (CL2) files now
+    % folders = session_data(i).folders(batch_idx1);
+    % day_date = session_data(i).Day;
+    % files=[];
+    % for ii=1:length(folders)
+    %     folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+    %     %cd(folderpath)
+    %     files = [files;findfiles('mat',folderpath)'];
+    % end
+    % 
+    % if ~isempty(files)
+    % 
+    %     % get the phase locking value
+    %     disp(['Processing Day ' num2str(i) ' Batch'])
+    %     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+    % 
+    %     % run permutation test and get pvalue for each channel
+    %     [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+    % 
+    %     pval_batch(i,:) = pval;
+    %     pac_batch(i,:) = abs(mean(pac));
+    %     %rboot_batch(i,:,:) = rboot;
+    %     pac_raw_values(k).pac = pac;
+    %     pac_raw_values(k).boot = rboot;
+    %     pac_raw_values(k).type = 'Batch';
+    %     pac_raw_values(k).Day = i;
+    %     k=k+1;
+    % 
+    % 
+    % else
+    %     pac_batch(i,:)=NaN(1,253);
+    %     pval_batch(i,:)=NaN(1,253);
+    % end
 
 end
 

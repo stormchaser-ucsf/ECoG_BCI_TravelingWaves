@@ -173,6 +173,9 @@ for k=1:numel(xPeaks)
             bbox_update(kk).r = [rmin rmax];
             bbox_update(kk).c = [cmin cmax];            
         else
+            kk=kk+1;
+            bbox_update(kk).r = [rmin rmax];
+            bbox_update(kk).c = [cmin cmax];
             loop_stay = false;
         end
             

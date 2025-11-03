@@ -5,24 +5,50 @@
 
 %% init
 clc;clear
-root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3';
-cd(root_path)
-load('ECOG_Grid_8596_000067_B3.mat')
 
-% add the circ stats toolbox
-addpath('/home/user/Documents/MATLAB')
-addpath('/home/user/Documents/MATLAB/CircStat2012a')
-addpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/helpers')
-addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/wave-matlab-master/wave-matlab-master'))
-addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves'))
-imaging_B3_waves;close all
+if ispc
 
-folderpath='/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/Eigmaps';
-files = findfiles('',folderpath)'; % go by Layer ->  Channels
+
+    root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker';
+    cd(root_path)
+    load('ECOG_Grid_8596_000067_B3.mat')
+
+    % add the circ stats toolbox
+    addpath('C:\Users\nikic\Documents\MATLAB')
+    addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
+    addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim\helpers')
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves'))
+
+    %imaging_B3_waves;close all
+
+    folderpath='C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\CNN3D\Eigmaps_B1';
+    files = findfiles('',folderpath)'; % go by Layer ->  Channels
+
+
+else
+
+
+    root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3';
+    cd(root_path)
+    load('ECOG_Grid_8596_000067_B3.mat')
+
+    % add the circ stats toolbox
+    addpath('/home/user/Documents/MATLAB')
+    addpath('/home/user/Documents/MATLAB/CircStat2012a')
+    addpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/helpers')
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/wave-matlab-master/wave-matlab-master'))
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves'))
+    imaging_B3_waves;close all
+
+    folderpath='/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/Eigmaps';
+    files = findfiles('',folderpath)'; % go by Layer ->  Channels
+
+end
 
 %% MANUAL comparing the max curl value between OL and CL across all layers
 
-res=[];
+res=[];num_days=9;
 for iter=1:length(files)
     load(files{iter})
     max_curl_OL=[];
@@ -31,7 +57,7 @@ for iter=1:length(files)
     for pc_idx=1:5
         ol=[];
         cl=[];
-        for j=pc_idx:5:50
+        for j=pc_idx:5:num_days*5
             xph_OL = squeeze(OL(j,:,:));
             curl_OL =  get_curl(xph_OL);
             tmp=max(abs(curl_OL(:)));
@@ -64,13 +90,13 @@ end
 figure;imagesc(res)
 
 % now looking at the gradient fields individually
-iter =8;
+iter = 9;
 load(files{iter})
-pc_idx=4;
+pc_idx=3;
 figure;
 ha=tight_subplot(5,2);
 k=1;
-for j=pc_idx:5:50     
+for j=pc_idx:5:num_days*5     
     xph = squeeze(CL(j,:,:));
     [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
     % smooth phasors to get smoothed estimates of phase
@@ -87,7 +113,7 @@ for j=pc_idx:5:50
     M =  1.*cos(pd);
     N =  1.*sin(pd);
 
-    [curl_val] = divergence(XX,YY,M,N);
+    [curl_val] = curl(XX,YY,M,N);
 
     axes(ha(k))
     quiver(XX,YY,M,N)    
@@ -103,7 +129,7 @@ for iter = 1:length(files)
     load(files{iter})    
     max_curl_OL=[];
     max_curl_CL=[];
-    for j=3:5:50
+    for j=3:5:45
         xph_CL = squeeze(CL(j,:,:));
         xph_OL = squeeze(OL(j,:,:));
         out_OL = curl_stats(xph_OL);
