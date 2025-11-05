@@ -265,10 +265,10 @@ for batch_idx in range(num_batches):
 
     # Forward pass
     r,i,logits = model(Xtest_real_batch, Xtest_imag_batch)
-    #loss = classif_criterion(logits.squeeze(), labels_batch)
-    loss1 = recon_criterion(r,Ytest_real_batch)
-    loss2 = recon_criterion(i,Ytest_imag_batch)
-    loss=1*(loss1+loss2)
+    loss = classif_criterion(logits.squeeze(), labels_batch)
+    # loss1 = recon_criterion(r,Ytest_real_batch)
+    # loss2 = recon_criterion(i,Ytest_imag_batch)
+    # loss=1*(loss1+loss2)
 
     # Backward pass
     model.zero_grad()
@@ -798,14 +798,14 @@ num_classes=1
 input_size=384*2
 lstm_size=32
 ksize=2;
-model_class = Autoencoder3D_Complex_deep
+#model_class = Autoencoder3D_Complex_deep
 #nn_filename = 'i3DAE_B3_Complex_New.pth' 
 model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer3'
-channel_idx = 0
+layer_name = 'layer7'
+channel_idx = 3
 batch_size=256
 
 # init variables
@@ -818,7 +818,7 @@ mean_statsA=[]
 mean_statsB=[]
 var_statsA=[]
 var_statsB=[]
-for day_idx in np.arange(4)+1:
+for day_idx in np.arange(8)+1:
     
     
     idx_days = np.where(labels_test_days == day_idx)[0]
@@ -845,7 +845,7 @@ for day_idx in np.arange(4)+1:
     
     
     # PLOT EIGMAPS AS PHASORS
-    pc_idx=2
+    pc_idx=0
     H,W = eigmaps.shape[:2]
     Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
     U = eigmaps[:,:,pc_idx].real
@@ -1002,7 +1002,7 @@ def update(i):
     return [im]
 
 ani = animation.FuncAnimation(fig, update, frames=frames.shape[0],interval=100,blit=True)
-filename1 = 'B1_Eigmaps_'+str(layer_name)+'Ch'+str(channel_idx)+'PC'+str(pc_idx)+'TrialExample_imag.gif'
+filename1 = 'B1_Eigmaps_VF'+str(layer_name)+'Ch'+str(channel_idx)+'PC'+str(pc_idx)+'TrialExample_imag.gif'
 ani.save(filename1, writer="pillow", fps=5)
 
 
