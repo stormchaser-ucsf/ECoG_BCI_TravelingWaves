@@ -17,7 +17,7 @@ addpath('C:\Users\nikic\Documents\MATLAB')
 addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
 addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim\helpers')
 addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
-addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
+addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves'))
 
 
 %% SESSION DATA FOR HAND EXPERIMENTS 
@@ -1382,7 +1382,62 @@ box off
 P = signrank(ol,cl)
 
 
+%% COMPUTING ROTATION CURL AND CONTRACTION DIVERGENCE IN RAW DATA B/W OL AND CL
 
+% load the data
+load('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr_9Days_Complex.mat')
+
+% take Day 1 data for OL and CL
+ol_day=[];
+cl_day=[];
+for day_idx = 5:9
+    disp(['Processing Day ' num2str(day_idx)])
+    idx = find(days==day_idx);
+    labels_day = labels(idx);
+    xdata_day = xdata(idx);
+    ydata_day = ydata(idx);
+    ol = xdata_day(labels_day==0);
+    cl = xdata_day(labels_day==1);
+
+    % extract 100 random samples from each for this day
+    a = randperm(length(ol),1000);
+    ol = ol(a);
+    a = randperm(length(cl),1000);
+    cl = cl(a);
+
+    % compute average curl b/w both
+    ol_stats=[];k=1;
+    cl_stats=[];d=1;
+    parfor i=1:length(ol)
+        tmp = ol{i};
+        tmp1 = cl{i};
+        x=[];y=[];
+        for j=1:size(tmp,1)
+            xph = squeeze(tmp(j,:,:));
+            [curl_val,M,N,XX,YY] = get_curl(xph);
+            [aa]=max(abs(curl_val(:)));
+            x=[x aa];
+            %ol_stats = [ol_stats aa];
+
+            xph = squeeze(tmp1(j,:,:));
+            [curl_val,M,N,XX,YY] = get_curl(xph);
+            [aa]=max(abs(curl_val(:)));
+            y=[y aa];
+            %cl_stats = [cl_stats aa];
+        end
+        ol_stats(i) = mean(x);
+        cl_stats(i) = mean(y);
+    end
+
+    % contrast
+    figure;boxplot([cl_stats' ol_stats'],'notch','on')
+    title(num2str(day_idx))
+    %[median(cl_stats) median(ol_stats)]
+    ol_day(day_idx) = median(ol_stats);
+    cl_day(day_idx) = median(cl_stats);
+end
+
+figure;boxplot([ol_day' cl_day'])
 
 
 %% GETTING ALPHA WAVE FOR ARROW DATA, 253 grid

@@ -12,8 +12,8 @@ N =  1.*sin(ph);
 M = smoothn(M,'robust');
 N = smoothn(N,'robust');
 
-[curl_val]= curl(XX,YY,M,N);
-%[curl_val]= divergence(XX,YY,M,N);
+%[curl_val]= curl(XX,YY,M,N);
+[curl_val]= divergence(XX,YY,M,N);
 
 
 
