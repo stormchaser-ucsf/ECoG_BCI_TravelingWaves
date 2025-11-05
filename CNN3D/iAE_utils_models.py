@@ -2489,11 +2489,14 @@ def complex_data_augmentation_torch(Xtrain, Ytrain, labels_train, sigma, iterati
 
     for _ in range(iterations):
         # Global complex phase shift
-        thetas = torch.rand(n, device=device) * 2 * torch.pi  # shape: (n,)
-        phase_shifts = torch.exp(1j * thetas).reshape(n, 1, 1, 1, 1)  # shape: (n,1,1,1,1)
+        # thetas = torch.rand(n, device=device) * 2 * torch.pi  # shape: (n,)
+        # phase_shifts = torch.exp(1j * thetas).reshape(n, 1, 1, 1, 1)  # shape: (n,1,1,1,1)
 
-        tmp = Xtrain * phase_shifts
-        tmp1 = Ytrain * phase_shifts
+        # tmp = Xtrain * phase_shifts
+        # tmp1 = Ytrain * phase_shifts
+        
+        tmp = Xtrain 
+        tmp1 = Ytrain
 
         # Temporal roll
         shifts = torch.randint(0, t, (n,), device=device)  # shape: (n,)
@@ -2504,15 +2507,15 @@ def complex_data_augmentation_torch(Xtrain, Ytrain, labels_train, sigma, iterati
         tmp1 = torch.gather(tmp1, -1, idx)
         
         # Add small mean amplitude fluctuations, only to the input, by 5% plus/minus per channel
-        amp, phases = torch.abs(tmp), torch.angle(tmp)
-        amp_m = torch.mean(amp,axis=-1)
-        pos_neg = torch.rand(amp_m.shape,device=device)
-        pos_neg[pos_neg>=0.5]=1
-        pos_neg[pos_neg<0.5]=-1
-        amp_m = 0.05*amp_m*pos_neg
-        amp_m = amp_m.unsqueeze(-1).expand(-1,-1,-1,-1,t)
-        amp = amp + amp_m
-        tmp = torch.polar(amp,phases)
+        # amp, phases = torch.abs(tmp), torch.angle(tmp)
+        # amp_m = torch.mean(amp,axis=-1)
+        # pos_neg = torch.rand(amp_m.shape,device=device)
+        # pos_neg[pos_neg>=0.5]=1
+        # pos_neg[pos_neg<0.5]=-1
+        # amp_m = 0.05*amp_m*pos_neg
+        # amp_m = amp_m.unsqueeze(-1).expand(-1,-1,-1,-1,t)
+        # amp = amp + amp_m
+        # tmp = torch.polar(amp,phases)
 
         # Add complex Gaussian noise to input only, both real and imaginary part
         noise_real = torch.randn(n, c, h, w, t, device=device) * sigma

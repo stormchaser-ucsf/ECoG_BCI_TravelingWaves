@@ -189,16 +189,16 @@ for iterr in np.arange(iterations):
     # getparams and train the model 
     num_epochs=100
     batch_size=128
-    learning_rate=2e-3
+    learning_rate=1e-3
     batch_val=2048
     patience=6
     gradient_clipping=10
     nn_filename = 'i3DAE_B3_Complex_New_VectorField.pth' 
-    alp_factor=25
+    alp_factor=21 #25
     aug_flag=True
-    if aug_flag==True:
+    if aug_flag==False:
         batch_size=64
-        sigma=0.025
+        sigma=0.0025 #0.025 otherwise
         aug_factor=4
     else:
         batch_size=128
