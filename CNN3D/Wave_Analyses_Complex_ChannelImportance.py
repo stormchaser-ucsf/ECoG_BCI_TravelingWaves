@@ -805,7 +805,7 @@ model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
 layer_name = 'layer3'
-channel_idx = 11
+channel_idx = 0
 batch_size=256
 
 # init variables
@@ -845,7 +845,7 @@ for day_idx in np.arange(4)+1:
     
     
     # PLOT EIGMAPS AS PHASORS
-    pc_idx=0
+    pc_idx=2
     H,W = eigmaps.shape[:2]
     Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
     U = eigmaps[:,:,pc_idx].real

@@ -161,7 +161,7 @@ for iterr in np.arange(iterations):
     
     # get the CNN architecture model
     num_classes=1    
-    input_size=384*2
+    input_size=384*2/2
     lstm_size=32
     ksize=2;
     
