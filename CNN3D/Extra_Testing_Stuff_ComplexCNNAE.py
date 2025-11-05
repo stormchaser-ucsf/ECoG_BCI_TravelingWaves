@@ -376,55 +376,65 @@ recon_a,recon_b,logits = model(tmpr,tmpi)
 # h,w,t
 tmp=Xtrain[:128,:] # get this from the original xdata, just the first 128 samples
 total_params=0
+tmp = tmp[:,:,:,:,:20]
 tmp_real,tmp_imag = np.real(tmp),np.imag(tmp)
 
 #tmp_real = rnd.randn(64,1,40,11,23)
 #tmp_real = rnd.randn(64,1,40,11,23)
+
 tmp_real = torch.from_numpy(tmp_real).float().to(device)
 tmp_imag = torch.from_numpy(tmp_imag).float().to(device)
 
-r,i = model(tmp_real,tmp_imag)
+#r,i = model(tmp_real,tmp_imag)
 
 
 print(tmp_real.shape)
 
-model = nn.Conv3d(1, 8, kernel_size=(2,2,3),dilation=(1,1,2))
+# self.conv1 = ComplexConv3D(1, 12, (2,2,3), (1, 1, 1),0,(1,1,2)) 
+# self.conv2 = ComplexConv3D(12, 12, (2,2,3), (1, 1, 1),0,(1,1,2)) 
+# self.conv3 = ComplexConv3D(12, 12, (2,2,3), (1, 1, 1),0,(1,1,2))  
+# self.conv4 = ComplexConv3D(12, 16, (2,3,3), (1, 1, 1),0,(1,2,2))  
+# self.conv5 = ComplexConv3D(16, 16, (2,3,3), (1, 1, 1),0,(1,2,2))  
+# self.conv6 = ComplexConv3D(16, 16, (2,3,3), (1, 1, 1),0,(1,2,2))  
+# self.conv7 = ComplexConv3D(16, 24, (2,3,4), (1, 1, 1),0,(1,2,3))  
+
+model = nn.Conv3d(1, 8, kernel_size=(2,2,2),dilation=(1,1,1)).to(device)
 out=model(tmp_real)
 print(out.shape)
 trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 total_params = total_params+trainable_params
 
-model = nn.Conv3d(8,8, kernel_size=(2,2,3),dilation=(1,1,2))
+model = nn.Conv3d(8,8, kernel_size=(2,2,2),dilation=(1,1,1)).to(device)
 out=model(out)
 print(out.shape)
 trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 total_params = total_params+trainable_params
 
-model = nn.Conv3d(8, 12, kernel_size=(2,2,3),dilation=(1,1,2))
+model = nn.Conv3d(8, 12, kernel_size=(2,2,2),dilation=(1,1,1)).to(device)
 out=model(out)
 print(out.shape)
 trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 total_params = total_params+trainable_params
 
-model = nn.Conv3d(12, 12, kernel_size=(2,3,3),dilation=(1,2,2),stride=(1,1,1 ))
+model = nn.Conv3d(12, 12, kernel_size=(2,3,2),dilation=(1,2,2),stride=(1,1,1 )).to(device)
 out=model(out)
 print(out.shape)
 trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 total_params = total_params+trainable_params
 
-model = nn.Conv3d(12, 12, kernel_size=(2,3,3),dilation=(1,2,2),stride=(1,1,1))
+model = nn.Conv3d(12, 12, kernel_size=(2,3,2),dilation=(1,2,2),stride=(1,1,1)).to(device)
 out=model(out)
 print(out.shape)
 trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 total_params = total_params+trainable_params
 
-model = nn.Conv3d(12, 16, kernel_size=(2,3,3),dilation=(1,2,2),stride=(1,1,1))
+model = nn.Conv3d(12, 16, kernel_size=(2,3,3),dilation=(1,2,2),stride=(1,1,1)).to(device)
 out=model(out)
 print(out.shape)
 trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 total_params = total_params+trainable_params
 
-model = nn.Conv3d(16, 16, kernel_size=(2,3,4),dilation=(1,2,3),stride=(1,1,1))
+model = nn.Conv3d(16, 16, kernel_size=(2,3,3),dilation=(1,2,2),stride=(1,1,1)).to(device)
 out=model(out)
 print(out.shape)
 trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)

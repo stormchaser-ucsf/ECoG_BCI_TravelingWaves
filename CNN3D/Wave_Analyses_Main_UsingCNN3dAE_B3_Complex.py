@@ -59,7 +59,7 @@ from sklearn.preprocessing import MinMaxScaler
 if os.name=='nt':
     #filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'    
     filename='alpha_dynamics_200Hz_AllDays_M1_Complex_ArtifactCorr_SinglePrec.mat'
-    filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3/'
+    filepath = 'F:\\DATA\\ecog data\\ECoG BCI\\GangulyServer\\Multistate B3\\'
     filename = filepath + filename
 else:
     #filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
@@ -161,7 +161,8 @@ for iterr in np.arange(iterations):
     
     # get the CNN architecture model
     num_classes=1    
-    input_size=384*2/2
+    input_size=384*2
+    #input_size=256*2
     lstm_size=32
     ksize=2;
     
@@ -174,8 +175,12 @@ for iterr in np.arange(iterations):
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect() 
    
-    model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size).to(device)
-    model_class = Autoencoder3D_Complex_deep
+    #model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size).to(device)
+    #model_class = Autoencoder3D_Complex_deep
+    
+    model = Autoencoder3D_Complex_deep_VectorField(ksize,num_classes,
+                                                   input_size,lstm_size).to(device)
+    model_class = Autoencoder3D_Complex_deep_VectorField
     
     #get number of parameters
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)

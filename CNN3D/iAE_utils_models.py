@@ -1326,6 +1326,187 @@ class Encoder3D_Complex_deep(nn.Module):
         return a,b
 
 
+class Decoder3D_Complex_deep_VectorField(nn.Module):
+    def __init__(self,ksize):
+        super(Decoder3D_Complex_deep_VectorField, self).__init__()
+        
+        self.deconv1 = ComplexConvTranspose3D(24, 16, (2,3,3), (1, 1, 1),(0,0,0),(1,2,2))
+        self.deconv2 = ComplexConvTranspose3D(16, 16, (2,3,3), (1, 1, 1),(0,0,0),(1,2,2))
+        self.deconv3 = ComplexConvTranspose3D(16, 16, (2,3,2), (1, 1, 1),(0,0,0),(1,2,2))
+        self.deconv4 = ComplexConvTranspose3D(16, 12, (2,3,2), (1, 1, 1),(0,0,0),(1,2,2))
+        self.deconv5 = ComplexConvTranspose3D(12, 12, (2,2,2), (1, 1, 1),(0,0,0),(1,1,1))
+        self.deconv6 = ComplexConvTranspose3D(12, 12, (2,2,2), (1, 1, 1),(0,0,0),(1,1,1))
+        self.deconv7 = ComplexConvTranspose3D(12, 1,  (2,2,2), (1, 1, 1),(0,0,0),(1,1,1))
+        #self.elu = nn.ELU()        
+        self.elu1 = ModELU()
+        self.elu2 = ModELU()
+        self.elu3 = ModELU()
+        self.elu4 = ModELU()
+        self.elu5 = ModELU()
+        self.elu6 = ModELU()
+        
+        # self.bn1 = MagnitudeBatchNorm(16)
+        # self.bn2 = MagnitudeBatchNorm(16)
+        # self.bn3 = MagnitudeBatchNorm(16)
+        # self.bn4 = MagnitudeBatchNorm(12)
+        # self.bn5 = MagnitudeBatchNorm(12)
+        # self.bn6 = MagnitudeBatchNorm(12)
+        
+        
+        # self.bn1 = ComplexBatchNorm(16)
+        # self.bn2 = ComplexBatchNorm(16)
+        # self.bn3 = ComplexBatchNorm(16)
+        # self.bn4 = ComplexBatchNorm(12)
+        # self.bn5 = ComplexBatchNorm(12)
+        # self.bn6 = ComplexBatchNorm(12)
+             
+        
+    def forward(self, a,b):        
+         a,b = self.deconv1(a,b)        
+         #z = ((a**2) + (b**2))**0.5
+         #a,b = a*self.elu(z)/z, b*self.elu(z)/z
+         #a,b = self.elu(a),self.elu(b)   
+         #a,b=self.bn1(a,b)
+         a,b=self.elu1(a,b)  
+         
+         a,b = self.deconv2(a,b)        
+         # z = ((a**2) + (b**2))**0.5
+         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+         #a,b = self.elu(a),self.elu(b)    
+         #a,b=self.bn2(a,b)
+         a,b=self.elu2(a,b)          
+         
+         a,b = self.deconv3(a,b)        
+         # z = ((a**2) + (b**2))**0.5
+         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+         #a,b = self.elu(a),self.elu(b)  
+         #a,b=self.bn3(a,b)
+         a,b=self.elu3(a,b)              
+         
+         a,b = self.deconv4(a,b)        
+         # z = ((a**2) + (b**2))**0.5
+         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+         #a,b = self.elu(a),self.elu(b)   
+         #a,b=self.bn4(a,b)
+         a,b=self.elu4(a,b)               
+         
+         a,b = self.deconv5(a,b)         
+         # z = ((a**2) + (b**2))**0.5
+         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+         #a,b = self.elu(a),self.elu(b) 
+         #a,b=self.bn5(a,b)
+         a,b=self.elu5(a,b)        
+         
+         a,b = self.deconv6(a,b)         
+         # z = ((a**2) + (b**2))**0.5
+         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+         #a,b = self.elu(a),self.elu(b)  
+         #a,b=self.bn6(a,b)
+         a,b=self.elu6(a,b)      
+         
+         a,b = self.deconv7(a,b)         
+         
+                
+         
+         #x = self.elu(x)        
+         #x = self.deconv4(x)
+         #x = torch.tanh(x) # squish between -1 and 1
+         
+         return a,b
+
+
+
+
+class Encoder3D_Complex_deep_VectorField(nn.Module):
+    def __init__(self,ksize):
+        super(Encoder3D_Complex_deep_VectorField, self).__init__()
+        self.conv1 = ComplexConv3D(1, 12, (2,2,2), (1, 1, 1),0,(1,1,1)) 
+        self.conv2 = ComplexConv3D(12, 12, (2,2,2), (1, 1, 1),0,(1,1,1)) 
+        self.conv3 = ComplexConv3D(12, 12, (2,2,2), (1, 1, 1),0,(1,1,1))  
+        self.conv4 = ComplexConv3D(12, 16, (2,3,2), (1, 1, 1),0,(1,2,2))  
+        self.conv5 = ComplexConv3D(16, 16, (2,3,2), (1, 1, 1),0,(1,2,2))  
+        self.conv6 = ComplexConv3D(16, 16, (2,3,3), (1, 1, 1),0,(1,2,2))  
+        self.conv7 = ComplexConv3D(16, 24, (2,3,3), (1, 1, 1),0,(1,2,2))  
+        #self.elu = nn.ELU()
+        self.elu1 = ModELU()
+        self.elu2 = ModELU()
+        self.elu3 = ModELU()
+        self.elu4 = ModELU()
+        self.elu5 = ModELU()
+        self.elu6 = ModELU()
+        self.elu7 = ModELU()
+        
+        # self.bn1 = MagnitudeBatchNorm(12)
+        # self.bn2 = MagnitudeBatchNorm(12)
+        # self.bn3 = MagnitudeBatchNorm(12)
+        # self.bn4 = MagnitudeBatchNorm(16)
+        # self.bn5 = MagnitudeBatchNorm(16)
+        # self.bn6 = MagnitudeBatchNorm(16)
+        # self.bn7 = MagnitudeBatchNorm(24)
+        
+        # self.bn1 = ComplexBatchNorm(12)
+        # self.bn2 = ComplexBatchNorm(12)
+        # self.bn3 = ComplexBatchNorm(12)
+        # self.bn4 = ComplexBatchNorm(16)
+        # self.bn5 = ComplexBatchNorm(16)
+        # self.bn6 = ComplexBatchNorm(16)
+        # self.bn7 = ComplexBatchNorm(24)
+        
+
+    def forward(self, a,b):        
+        a,b = self.conv1(a,b) 
+        #z=torch.square(a) + torch.square(b)
+        # z = ((a**2) + (b**2))**0.5
+        # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+        #a,b = self.elu(a),self.elu(b)    
+        #a,b=self.bn1(a,b)
+        a,b=self.elu1(a,b)
+        
+        a,b = self.conv2(a,b)        
+        #z = ((a**2) + (b**2))**0.5
+        #a,b = a*self.elu(z)/z, b*self.elu(z)/z
+        #a,b = self.elu(a),self.elu(b)    
+        #a,b=self.bn2(a,b)
+        a,b=self.elu2(a,b)
+        
+        a,b = self.conv3(a,b)        
+        # z = ((a**2) + (b**2))**0.5
+        # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+        #a,b = self.elu(a),self.elu(b) 
+        #a,b=self.bn3(a,b)
+        a,b=self.elu3(a,b)
+        
+        a,b = self.conv4(a,b)        
+        # z = ((a**2) + (b**2))**0.5
+        # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+        #a,b = self.elu(a),self.elu(b)    
+        #a,b=self.bn4(a,b)
+        a,b=self.elu4(a,b)             
+        
+        a,b = self.conv5(a,b)        
+        # z = ((a**2) + (b**2))**0.5
+        # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+        #a,b = self.elu(a),self.elu(b)  
+        #a,b=self.bn5(a,b)
+        a,b=self.elu5(a,b)      
+
+        a,b = self.conv6(a,b)        
+        # z = ((a**2) + (b**2))**0.5
+        # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+        #a,b = self.elu(a),self.elu(b)   
+        #a,b=self.bn6(a,b)
+        a,b=self.elu6(a,b)
+
+        a,b = self.conv7(a,b)        
+        # z = ((a**2) + (b**2))**0.5
+        # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+        #a,b = self.elu(a),self.elu(b)  
+        #a,b=self.bn7(a,b)
+        a,b=self.elu7(a,b)                    
+        
+        return a,b
+
+
 class Decoder3D_Complex_deep(nn.Module):
     def __init__(self,ksize):
         super(Decoder3D_Complex_deep, self).__init__()
@@ -1414,7 +1595,6 @@ class Decoder3D_Complex_deep(nn.Module):
          
          return a,b
 
-
 class rnn_lstm_complex_deep(nn.Module):
     def __init__(self,num_classes,input_size,lstm_size):
         super(rnn_lstm_complex_deep,self).__init__()
@@ -1460,6 +1640,22 @@ class Autoencoder3D_Complex_deep(nn.Module):
         #return recon,logits  
         return recon_a,recon_b,logits
 
+class Autoencoder3D_Complex_deep_VectorField(nn.Module):
+    def __init__(self, ksize,num_classes,input_size,lstm_size):
+    #def __init__(self, ksize):
+        super(Autoencoder3D_Complex_deep_VectorField, self).__init__()
+        self.encoder = Encoder3D_Complex_deep_VectorField(ksize)
+        self.decoder = Decoder3D_Complex_deep_VectorField(ksize)
+        self.classifier = rnn_lstm_complex_deep(num_classes,input_size,lstm_size)
+        #self.classifier = nn.Linear(num_nodes, num_classes)  
+        
+        
+    def forward(self,a,b):
+        latent_a,latent_b = self.encoder(a,b)
+        recon_a,recon_b = self.decoder(latent_a,latent_b)
+        logits = self.classifier(latent_a,latent_b)
+        #return recon,logits  
+        return recon_a,recon_b,logits
 
 
 ####### end #######
