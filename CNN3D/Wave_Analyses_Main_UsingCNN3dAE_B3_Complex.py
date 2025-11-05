@@ -188,7 +188,7 @@ for iterr in np.arange(iterations):
     batch_val=2048
     patience=6
     gradient_clipping=10
-    nn_filename = 'i3DAE_B3_Complex_New.pth' 
+    nn_filename = 'i3DAE_B3_Complex_New_VectorField.pth' 
     alp_factor=25
     aug_flag=True
     if aug_flag==True:
