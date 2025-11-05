@@ -1772,7 +1772,21 @@ for i=1:length(session_data)
 
 end
 
-save alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex xdata ydata labels labels_batch days -v7.3
+
+for i=1:length(xdata)
+    disp(i/length(xdata)*100)
+    tmp=xdata{i};
+    tmp = single(tmp);
+    xdata{i}=tmp;
+
+    tmp=ydata{i};
+    tmp = single(tmp);
+    ydata{i}=tmp;
+end
+
+disp(size(xdata))
+
+save alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_VectorField xdata ydata labels labels_batch days -v7.3
 %save hg_LFO_dynamics_hG_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex xdata ydata labels labels_batch days -v7.3
 
 
