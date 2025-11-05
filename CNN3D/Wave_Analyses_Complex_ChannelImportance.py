@@ -804,7 +804,7 @@ model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer7'
+layer_name = 'layer6'
 channel_idx = 3
 batch_size=256
 
