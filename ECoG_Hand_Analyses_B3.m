@@ -170,8 +170,8 @@ session_data(10).AM_PM = {'am','am','am','am','am','am',...
 
 %20240515, 20240517, 20240614, 20240619, 20240621, 20240626
 
-filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230511\HandImagined';
-%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230511\HandImagined';
+filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230223\Robot3DArrow';
 
 load('ECOG_Grid_8596_000067_B3.mat')
@@ -187,6 +187,12 @@ end
 files=files1;
 %files=files(1:100);
 
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'SampleRate',1e3);
+fvtool(bpFilt)
+
+
 %elec_list=1:256;
 elec_list = [137	143	148	152	155	23
 159	160	30	28	25	21
@@ -194,6 +200,10 @@ elec_list = [137	143	148	152	155	23
 49	45	41	38	35	163
 221	62	59	56	52	48
 205	208	211	214	218	222];
+
+% plot raw with mu filtered activity over 12 random electrodes, sorted by
+% peak
+
 
 bad_ch=[108 113 118];
 %bad_ch=[];
@@ -233,9 +243,9 @@ for ii=1:length(files)
             [Pxx,F] = pwelch(x,1024,512,1024,1e3);
             pow_freq = [pow_freq;Pxx' ];
             ffreq = [ffreq ;F'];
-            %idx = logical((F>0) .* (F<=40));
+            idx = logical((F>0) .* (F<=40));
             %idx = logical((F>0) .* (F<=150));
-            idx = logical((F>65) .* (F<=150));
+            %idx = logical((F>65) .* (F<=150));
             F1=F(idx);
             F1=log2(F1);
             power_spect = Pxx(idx);
@@ -268,8 +278,8 @@ for ii=1:length(files)
 
         % getting oscillation clusters
         osc_clus_tmp=[];
-        %for f=2:150 % 40 earlier
-        for f=66:150 % 40 earlier
+        for f=2:40 % 40 earlier
+        %for f=66:150 % 40 earlier
             ff = [f-1 f+1];
             tmp=0;ch_tmp=[];
             for j=1:length(spectral_peaks)
@@ -291,9 +301,9 @@ end
 
 
 % plot oscillation clusters
-%f=2:40;
+f=2:40;
 %f=2:150;
-f=66:150;
+%f=66:150;
 figure;
 hold on
 plot(f,osc_clus,'Color',[.5 .5 .5 .5],'LineWidth',.5)
