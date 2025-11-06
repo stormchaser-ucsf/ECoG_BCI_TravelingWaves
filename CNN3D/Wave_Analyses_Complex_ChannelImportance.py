@@ -845,7 +845,7 @@ for day_idx in np.arange(4)+1:
     
     
     # PLOT EIGMAPS AS PHASORS
-    pc_idx=0
+    pc_idx=3
     H,W = eigmaps.shape[:2]
     Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
     U = eigmaps[:,:,pc_idx].real
