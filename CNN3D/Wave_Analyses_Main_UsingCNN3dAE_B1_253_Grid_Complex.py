@@ -302,8 +302,8 @@ for iterr in np.arange(iterations):
 torch.cuda.empty_cache()
 torch.cuda.ipc_collect() 
 
-tmp = np.median(ol_mse_days,axis=0)
-tmp1 = np.median(cl_mse_days,axis=0)
+tmp = np.mean(ol_mse_days,axis=0)
+tmp1 = np.mean(cl_mse_days,axis=0)
 plt.figure();
 plt.plot(tmp)    
 plt.plot(tmp1)
@@ -313,14 +313,22 @@ plt.show()
 from sklearn.linear_model import LinearRegression
 x = days
 x = x.reshape(-1,1)
-y = tmp1
+y = tmp[:4]
+x=x[:4]
 mdl = LinearRegression()
 mdl.fit(x,y)
 plt.figure();
-plt.scatter(x,y)
+plt.scatter(x,y,color='red')
 #x = np.concatenate((np.ones((10,1)),x),axis=1)
 yhat = mdl.predict(x)
 plt.plot(x,yhat,color='red')
+y = tmp1[:4]
+mdl = LinearRegression()
+mdl.fit(x,y)
+plt.scatter(x,y,color='blue')
+#x = np.concatenate((np.ones((10,1)),x),axis=1)
+yhat = mdl.predict(x)
+plt.plot(x,yhat,color='blue')
 plt.show()
 
 
@@ -362,8 +370,9 @@ print(res)
 
 #%% saving variables to reload and do analyses
 
-os.chdir('/media/user/Data/ecog_data/ECoG BCI/Spyder_Data/')
-np.savez('WaveAnalyses_Oct21_20205_B1_253Grid_Arrow',
+#os.chdir('/media/user/Data/ecog_data/ECoG BCI/Spyder_Data/')
+os.chdir('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker')
+np.savez('WaveAnalyses_Nov6_20205_B1_253Grid_Arrow_NEW_MAIN_1st4Days',
          Xval=Xval,
          Yval=Yval,
          labels_val=labels_val,
@@ -376,7 +385,7 @@ np.savez('WaveAnalyses_Oct21_20205_B1_253Grid_Arrow',
 
 #%% saving key variables from iterations, stats
 
-np.savez('Alpha_200Hz_AllDays_B1_253Grid_Arrow_15Iterations_Complex', 
+np.savez('MAIN_4DaysAreGreat_Alpha_200Hz_AllDays_B1_253Grid_Arrow_Complex', 
           ce_loss = ce_loss,
           balanced_acc_days = balanced_acc_days,
           ol_mse_days = ol_mse_days,

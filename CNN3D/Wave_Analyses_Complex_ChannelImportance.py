@@ -190,7 +190,7 @@ from iAE_utils_models import *
 torch.cuda.empty_cache()
 torch.cuda.ipc_collect() 
 
-os.chdir('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
+#os.chdir('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D')
 
 if 'model' in locals():
     del model 
@@ -804,8 +804,8 @@ model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer6'
-channel_idx = 3
+layer_name = 'layer3'
+channel_idx = 11
 batch_size=256
 
 # init variables
@@ -818,7 +818,7 @@ mean_statsA=[]
 mean_statsB=[]
 var_statsA=[]
 var_statsB=[]
-for day_idx in np.arange(8)+1:
+for day_idx in np.arange(4)+1:
     
     
     idx_days = np.where(labels_test_days == day_idx)[0]
