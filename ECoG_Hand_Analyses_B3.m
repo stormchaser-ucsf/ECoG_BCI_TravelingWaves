@@ -3666,3 +3666,69 @@ hold on
 plot(bb)
 plot(cc)
 
+
+%% PLOTTING RESULTS FROM THE OUTPUT OF A CNN AE COMPLEX VALUED
+
+ol=[
+0.107973
+0.134634
+0.119587
+0.106558
+0.137985
+0.0947398
+0.105988
+0.0970945
+0.0577818
+0.061307
+];
+
+cl =  [
+    0.0883338
+0.122775
+0.113442
+0.109576
+0.123754
+0.0792244
+0.0846212
+0.0917824
+0.0513609
+0.0571246
+];
+
+% plot dots with regression lines (robust) 
+days=1:length(ol);
+figure; hold on
+plot(days,ol,'.b','MarkerSize',20)
+plot(days,cl,'.r','MarkerSize',20)
+mdl = fitlm(days,ol,'RobustOpts','on');
+bhat = mdl.Coefficients.Estimate;
+yhat = mdl.predict(days');
+plot(days,yhat,'b')
+mdl = fitlm(days,cl,'RobustOpts','on');
+bhat = mdl.Coefficients.Estimate;
+yhat = mdl.predict(days');
+plot(days,yhat,'r')
+xticks(1:10)
+xlabel('Days')
+ylabel('MSE per spatiotemporal pixel')
+plot_beautify
+legend('','','Open loop','Closed loop')
+
+
+figure;
+boxplot([ol cl])
+xticks(1:2)
+xticklabels({'Open Loop','Closed Loop'})
+ylabel('MSE per spatiotemp. pixel')
+plot_beautify
+[p,h]=signrank(ol,cl);
+
+
+figure;
+boxplot(tmp*100)
+ylim([0.3 1]*100)
+hline(0.5*100,'--r')
+xticks ''
+ylabel('Balanced Classification Acc.')
+plot_beautify
+xlim([0.8 1.2])
