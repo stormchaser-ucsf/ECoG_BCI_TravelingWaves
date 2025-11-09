@@ -194,11 +194,11 @@ for iterr in np.arange(iterations):
     patience=6
     gradient_clipping=10
     nn_filename = 'i3DAE_B3_Complex_New_V2.pth' 
-    alp_factor=21 #25
+    alp_factor=25 #25 or 21
     aug_flag=True
     if aug_flag==False:
         batch_size=64
-        sigma=0.0025 #0.025 otherwise
+        sigma=0.025 #0.025 otherwise or even 0.0025
         aug_factor=4
     else:
         batch_size=128
