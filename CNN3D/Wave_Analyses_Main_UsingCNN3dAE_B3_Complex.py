@@ -337,14 +337,22 @@ plt.show()
 from sklearn.linear_model import LinearRegression
 x = days
 x = x.reshape(-1,1)
-y = tmp1
+y = tmp[:4]
+x=x[:4]
 mdl = LinearRegression()
 mdl.fit(x,y)
 plt.figure();
-plt.scatter(x,y)
+plt.scatter(x,y,color='red')
 #x = np.concatenate((np.ones((10,1)),x),axis=1)
 yhat = mdl.predict(x)
 plt.plot(x,yhat,color='red')
+y = tmp1[:4]
+mdl = LinearRegression()
+mdl.fit(x,y)
+plt.scatter(x,y,color='blue')
+#x = np.concatenate((np.ones((10,1)),x),axis=1)
+yhat = mdl.predict(x)
+plt.plot(x,yhat,color='blue')
 plt.show()
 
 
@@ -362,10 +370,25 @@ plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
 plt.figure();
 plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 
+res = stats.ttest_rel(cl_mse_days, ol_mse_days,axis=1)
+print(res)
+res = stats.wilcoxon(cl_mse_days, ol_mse_days,axis=1)
+print(res)
+#print(cl_mse_days.mean() - ol_mse_days.mean())
+print(np.median(cl_mse_days[0,:]) - np.median(ol_mse_days[0,:]))
+print(np.median(cl_mse_days) - np.median(ol_mse_days))
+
 # ol_mse_days_null=ol_mse_days
 # cl_mse_days_null = cl_mse_days
 # balanced_acc_days_null = balanced_acc_days
 # cd_loss_null = ce_loss
+
+tmp = np.median(ol_mse_days,axis=1)
+tmp1 = np.median(cl_mse_days,axis=1)
+plt.figure()
+plt.boxplot([tmp,tmp1])
+res = stats.wilcoxon(tmp, tmp1)
+print(res)
 
 
 #%% SAVING 
@@ -425,13 +448,62 @@ model_class = Autoencoder3D_Complex_deep
 #     }
 # scipy.io.savemat('xtest_data.mat',data)
 
-#%% LOADING DATA BACK
+#%% LOADING DATA BACK AND PLOTTING
 
 data=np.load('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2.npz')
+print(data.files)
+ol_mse_days = data.get('ol_mse_days')
+cl_mse_days = data.get('cl_mse_days')
 
 
+tmp = np.median(ol_mse_days,axis=0)
+tmp1 = np.median(cl_mse_days,axis=0)
+plt.figure();
+plt.plot(tmp)    
+plt.plot(tmp1)
+plt.show()
+tmp = tmp/(11*23*40)
+tmp1 = tmp1/(11*23*40)
+
+# now same but with regression line
+from sklearn.linear_model import LinearRegression
+days = np.arange(10)+1
+x = days
+x = x.reshape(-1,1)
+y = tmp
+mdl = LinearRegression()
+mdl.fit(x,y)
+plt.figure();
+plt.scatter(x,y,color='blue')
+#x = np.concatenate((np.ones((10,1)),x),axis=1)
+yhat = mdl.predict(x)
+plt.plot(x,yhat,color='blue')
+y = tmp1
+mdl = LinearRegression()
+mdl.fit(x,y)
+plt.scatter(x,y,color='red')
+#x = np.concatenate((np.ones((10,1)),x),axis=1)
+yhat = mdl.predict(x)
+plt.plot(x,yhat,color='red')
+plt.show()
 
 
+ol_mse_days = ol_mse_days/(11*23*40)
+cl_mse_days = cl_mse_days/(11*23*40)
+plt.figure();
+plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
+
+res = stats.ttest_rel(tmp, tmp1)
+print(res)
+res = stats.wilcoxon(tmp, tmp1)
+print(res)
+
+res = stats.wilcoxon(ol_mse_days.flatten(), cl_mse_days.flatten())
+print(res)
+
+
+plt.figure();
+plt.boxplot([(tmp),(tmp1)])
 
 
 #%% (MAIN MAIN) PLOTTING LAYER ACTIVATIONS AS MOVIE AND PHASORS
