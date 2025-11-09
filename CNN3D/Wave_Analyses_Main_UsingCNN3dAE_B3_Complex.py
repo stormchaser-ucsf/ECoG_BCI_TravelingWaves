@@ -337,14 +337,22 @@ plt.show()
 from sklearn.linear_model import LinearRegression
 x = days
 x = x.reshape(-1,1)
-y = tmp1
+y = tmp[:4]
+x=x[:4]
 mdl = LinearRegression()
 mdl.fit(x,y)
 plt.figure();
-plt.scatter(x,y)
+plt.scatter(x,y,color='red')
 #x = np.concatenate((np.ones((10,1)),x),axis=1)
 yhat = mdl.predict(x)
 plt.plot(x,yhat,color='red')
+y = tmp1[:4]
+mdl = LinearRegression()
+mdl.fit(x,y)
+plt.scatter(x,y,color='blue')
+#x = np.concatenate((np.ones((10,1)),x),axis=1)
+yhat = mdl.predict(x)
+plt.plot(x,yhat,color='blue')
 plt.show()
 
 
@@ -362,10 +370,25 @@ plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
 plt.figure();
 plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 
+res = stats.ttest_rel(cl_mse_days, ol_mse_days,axis=1)
+print(res)
+res = stats.wilcoxon(cl_mse_days, ol_mse_days,axis=1)
+print(res)
+#print(cl_mse_days.mean() - ol_mse_days.mean())
+print(np.median(cl_mse_days[0,:]) - np.median(ol_mse_days[0,:]))
+print(np.median(cl_mse_days) - np.median(ol_mse_days))
+
 # ol_mse_days_null=ol_mse_days
 # cl_mse_days_null = cl_mse_days
 # balanced_acc_days_null = balanced_acc_days
 # cd_loss_null = ce_loss
+
+tmp = np.median(ol_mse_days,axis=1)
+tmp1 = np.median(cl_mse_days,axis=1)
+plt.figure()
+plt.boxplot([tmp,tmp1])
+res = stats.wilcoxon(tmp, tmp1)
+print(res)
 
 
 #%% SAVING 
