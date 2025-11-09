@@ -62,8 +62,8 @@ if os.name=='nt':
     filepath = 'F:\\DATA\\ecog data\\ECoG BCI\\GangulyServer\\Multistate B3\\'
     filename = filepath + filename
 else:
-    #filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
-    filepath = '/media/user/Data/ECoG_BCI_TravelingWave_Data/'
+    filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
+    #filepath = '/media/user/Data/ECoG_BCI_TravelingWave_Data/'
     filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
     #filename = filepath + filename
     #filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
@@ -337,8 +337,8 @@ plt.show()
 from sklearn.linear_model import LinearRegression
 x = days
 x = x.reshape(-1,1)
-y = tmp[:4]
-x=x[:4]
+y = tmp
+x=x
 mdl = LinearRegression()
 mdl.fit(x,y)
 plt.figure();
@@ -346,7 +346,7 @@ plt.scatter(x,y,color='red')
 #x = np.concatenate((np.ones((10,1)),x),axis=1)
 yhat = mdl.predict(x)
 plt.plot(x,yhat,color='red')
-y = tmp1[:4]
+y = tmp1
 mdl = LinearRegression()
 mdl.fit(x,y)
 plt.scatter(x,y,color='blue')
