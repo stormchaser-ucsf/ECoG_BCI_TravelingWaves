@@ -119,7 +119,7 @@ for iterr in np.arange(iterations):
    
     # parse into training, validation and testing datasets
     
-    Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.7,labels_days)                        
+    Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days=training_test_val_split_CNN3DAE_equal(xdata,ydata,labels,0.75,labels_days)                        
     #del xdata, ydata
     
     # # circular shifting the data for null stats
@@ -175,12 +175,12 @@ for iterr in np.arange(iterations):
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect() 
    
-    #model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size).to(device)
-    #model_class = Autoencoder3D_Complex_deep
+    model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size).to(device)
+    model_class = Autoencoder3D_Complex_deep
     
-    model = Autoencoder3D_Complex_deep_VectorField(ksize,num_classes,
-                                                   input_size,lstm_size).to(device)
-    model_class = Autoencoder3D_Complex_deep_VectorField
+    # model = Autoencoder3D_Complex_deep_VectorField(ksize,num_classes,
+    #                                                input_size,lstm_size).to(device)
+    # model_class = Autoencoder3D_Complex_deep_VectorField
     
     #get number of parameters
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -193,7 +193,7 @@ for iterr in np.arange(iterations):
     batch_val=2048
     patience=6
     gradient_clipping=10
-    nn_filename = 'i3DAE_B3_Complex_New_VectorField.pth' 
+    nn_filename = 'i3DAE_B3_Complex_New_V2.pth' 
     alp_factor=21 #25
     aug_flag=True
     if aug_flag==False:
