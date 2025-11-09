@@ -425,13 +425,62 @@ model_class = Autoencoder3D_Complex_deep
 #     }
 # scipy.io.savemat('xtest_data.mat',data)
 
-#%% LOADING DATA BACK
+#%% LOADING DATA BACK AND PLOTTING
 
 data=np.load('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2.npz')
+print(data.files)
+ol_mse_days = data.get('ol_mse_days')
+cl_mse_days = data.get('cl_mse_days')
 
 
+tmp = np.median(ol_mse_days,axis=0)
+tmp1 = np.median(cl_mse_days,axis=0)
+plt.figure();
+plt.plot(tmp)    
+plt.plot(tmp1)
+plt.show()
+tmp = tmp/(11*23*40)
+tmp1 = tmp1/(11*23*40)
+
+# now same but with regression line
+from sklearn.linear_model import LinearRegression
+days = np.arange(10)+1
+x = days
+x = x.reshape(-1,1)
+y = tmp
+mdl = LinearRegression()
+mdl.fit(x,y)
+plt.figure();
+plt.scatter(x,y,color='blue')
+#x = np.concatenate((np.ones((10,1)),x),axis=1)
+yhat = mdl.predict(x)
+plt.plot(x,yhat,color='blue')
+y = tmp1
+mdl = LinearRegression()
+mdl.fit(x,y)
+plt.scatter(x,y,color='red')
+#x = np.concatenate((np.ones((10,1)),x),axis=1)
+yhat = mdl.predict(x)
+plt.plot(x,yhat,color='red')
+plt.show()
 
 
+ol_mse_days = ol_mse_days/(11*23*40)
+cl_mse_days = cl_mse_days/(11*23*40)
+plt.figure();
+plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
+
+res = stats.ttest_rel(tmp, tmp1)
+print(res)
+res = stats.wilcoxon(tmp, tmp1)
+print(res)
+
+res = stats.wilcoxon(ol_mse_days.flatten(), cl_mse_days.flatten())
+print(res)
+
+
+plt.figure();
+plt.boxplot([(tmp),(tmp1)])
 
 
 #%% (MAIN MAIN) PLOTTING LAYER ACTIVATIONS AS MOVIE AND PHASORS

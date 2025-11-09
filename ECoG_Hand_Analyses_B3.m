@@ -203,7 +203,23 @@ elec_list = [137	143	148	152	155	23
 
 % plot raw with mu filtered activity over 12 random electrodes, sorted by
 % peak
+figure;
+ch=i;
+plot(zscore(data(:,ch)))
+hold on
+plot(zscore(filtfilt(bpFilt,data(:,ch))))
+xlim([4000 6000])
 
+% plot a bunch of mu
+tmp= (data(:,1:12));
+tmp = zscore(filtfilt(bpFilt,tmp));
+tmp = tmp(2000:6000,:);
+m = 3* (0:size(tmp,2)-1);
+tmp = tmp+m;
+figure;plot(tmp,'Color','k')
+figure;plot(tmp)
+axis off
+plot_beautify
 
 bad_ch=[108 113 118];
 %bad_ch=[];
@@ -235,7 +251,7 @@ for ii=1:length(files)
         kinax = find(task_state==3);
         data = cell2mat(data_trial(kinax));
 
-        data=data(:,elec_list);
+        %data=data(:,elec_list);
         spectral_peaks=[];
         stats_tmp=[];
         parfor i=1:size(data,2)
@@ -257,11 +273,11 @@ for ii=1:length(files)
             x = [ones(length(F1),1) F1];
             yhat = x*bhat;
 
-            % %plot
-            % figure;
-            % plot(F1,power_spect,'LineWidth',1);
-            % hold on
-            % plot(F1,yhat,'LineWidth',1);
+            %plot
+            figure;
+            plot(F1,power_spect,'LineWidth',1);
+            hold on
+            plot(F1,yhat,'LineWidth',1);
 
             % get peaks in power spectrum at specific frequencies
             power_spect = zscore(power_spect - yhat);
@@ -654,24 +670,31 @@ end
 %save B3_Hand_Res -v7.3
 
 % plotting the accuracy
-acc=[];
+acc=[];acc_i=[];
 for i=1:length(session_data)
     tmp = squeeze(acc_batch_days(:,:,i));
-    acc(i) = mean(diag(tmp));
+    acc(i) = 100*mean(diag(tmp));
+    tmp = squeeze(acc_imagined_days(:,:,i));
+    acc_i(i) = 100*mean(diag(tmp));
 end
 figure;hold on
 plot(acc,'ok','MarkerSize',20)
 plot(acc,'LineWidth',2,'Color','k')
-ylim([0 1])
+ylim([0 100])
 xlabel('Days')
-ylabel('Decoding Accuracy (X100%)')
+ylabel('Decoding Accuracy')
 set(gcf,'Color','w')
 box off
 set(gca,'FontSize',12)
 xlim([0 length(session_data)+1])
 xticks(1:length(session_data))
-yticks([0:.1:1])
+yticks([0:10:100])
 set(gca,'LineWidth',1)
+hline(100/12,'--r')
+hold on
+plot(acc_i,'ob','MarkerSize',20)
+plot(acc_i,'LineWidth',2,'Color','b')
+legend({,'','Closed loop','','Open loop'})
 
 % plot accuaracy vs. mahab distances
 x= median(mahab_full_online,1) - median(mahab_full_imagined,1);
