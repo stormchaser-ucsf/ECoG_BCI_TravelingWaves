@@ -454,7 +454,7 @@ data=np.load('Alpha_200Hz_AllDays_B3_New_L2Norm_AE_Model_ArtCorrData_Complex_v2.
 print(data.files)
 ol_mse_days = data.get('ol_mse_days')
 cl_mse_days = data.get('cl_mse_days')
-
+balanced_acc_days = data.get('balanced_acc_days')
 
 tmp = np.median(ol_mse_days,axis=0)
 tmp1 = np.median(cl_mse_days,axis=0)
