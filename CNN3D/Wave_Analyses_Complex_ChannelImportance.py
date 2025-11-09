@@ -265,10 +265,12 @@ for batch_idx in range(num_batches):
 
     # Forward pass
     r,i,logits = model(Xtest_real_batch, Xtest_imag_batch)
-    loss = classif_criterion(logits.squeeze(), labels_batch)
-    # loss1 = recon_criterion(r,Ytest_real_batch)
-    # loss2 = recon_criterion(i,Ytest_imag_batch)
-    # loss=1*(loss1+loss2)
+    class_loss = classif_criterion(logits.squeeze(), labels_batch)
+    loss1 = recon_criterion(r,Ytest_real_batch)
+    loss2 = recon_criterion(i,Ytest_imag_batch)
+    #loss=25*(loss1+loss2) + class_loss
+    loss = 25*(loss1+loss2) + class_loss
+    #loss = class_loss
 
     # Backward pass
     model.zero_grad()
@@ -368,6 +370,11 @@ for i, name in enumerate(combined_importance.keys()):
              ha='center', va='bottom', fontsize=8, rotation=0)
 
 plt.tight_layout()
+
+# save
+plt.savefig("B3_Hand_Grad_Mag_per_channel_TotalLoss.svg", format="svg", dpi=300)
+
+
 plt.show()
 
 #%% GRAD CAM ANALYSES USING SAME CODE STRUCTURE AS ABOVE
@@ -818,7 +825,7 @@ mean_statsA=[]
 mean_statsB=[]
 var_statsA=[]
 var_statsB=[]
-for day_idx in np.arange(4)+1:
+for day_idx in np.arange(10)+1:
     
     
     idx_days = np.where(labels_test_days == day_idx)[0]
@@ -845,7 +852,7 @@ for day_idx in np.arange(4)+1:
     
     
     # PLOT EIGMAPS AS PHASORS
-    pc_idx=3
+    pc_idx=2
     H,W = eigmaps.shape[:2]
     Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
     U = eigmaps[:,:,pc_idx].real
@@ -941,6 +948,7 @@ print(stats.wilcoxon(noise_stats))
 print(stats.wilcoxon(var_stats))
 print(stats.wilcoxon(mean_stats))
 
+#%% CONTI FROM ABOVE
 # plotting
 mean_statsA = np.array(mean_statsA)
 mean_statsB = np.array(mean_statsB)
