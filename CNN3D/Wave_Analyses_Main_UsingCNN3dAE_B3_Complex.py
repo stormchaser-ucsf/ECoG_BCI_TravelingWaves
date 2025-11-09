@@ -440,7 +440,7 @@ lstm_size=32
 ksize=2;
 model_class = Autoencoder3D_Complex_deep
 
-
+#asas
 # data = {
 #     'Xtest': Xtest,
 #     'labels_test': labels_test,
