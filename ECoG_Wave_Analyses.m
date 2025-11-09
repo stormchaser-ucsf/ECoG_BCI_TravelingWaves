@@ -14,7 +14,7 @@ if ispc
     addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim\helpers')
     addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
     addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
-    imaging_B3_waves;close all
+%    imaging_B3_waves;close all
 
 elseif isunix
 
@@ -624,10 +624,16 @@ clear
 close all
 filename='EigMaps.mat';
 %filename='Eigmaps_layer1Ch2PC4.mat';
-foldername = "/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D";
+if ispc
+    foldername = "C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\CNN3D";
+else
+    foldername = "/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D";
+end
 filepath = fullfile(foldername,filename);
 cd(foldername)
 load(filename)
+
+addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves'))
 
 pixel_spacing = 1; %a.u.
 sign_IF=-1;
@@ -747,6 +753,88 @@ xticklabels({'OL','CL'})
 ylabel('Rotational strength')
 title(['Pval of ' num2str(p)])
 plot_beautify
+
+% plot only days 1,3,8 for poster SfN
+% OL
+figure;
+ha=tight_subplot(3,1);
+days=[1 3 8];
+for i=1:length(days)
+    axes(ha(i))
+    xph = squeeze(OL(days(i),:,:));
+    [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xph, ...
+        pixel_spacing,sign_IF);
+
+    [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+
+    ph=pd;
+    M =  1.*cos(ph);
+    N =  1.*sin(ph);
+    %
+    % M =  1.*cos(ph);
+    % N =  1.*sin(ph);
+
+    % M = pm .* smoothn(M,'robust');
+    % N = pm .* smoothn(N,'robust');
+
+    M = smoothn(M,'robust');
+    N = smoothn(N,'robust');
+
+    quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+    set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
+    axis tight
+    xticks ''
+    yticks ''
+
+    [d,c]= curl(XX,YY,M,N);
+    [div]= divergence(XX,YY,M,N);
+    hold on
+    contour(XX,YY,d,'ShowText','on','LineWidth',1)       
+end
+set(gcf,'Color','w')
+
+
+
+% plot only days 1,3,8 for poster SfN
+% CL
+figure;
+ha=tight_subplot(3,1);
+days=[1 3 8];
+for i=1:length(days)
+    axes(ha(i))
+    xph = squeeze(CL(days(i),:,:));
+    [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xph, ...
+        pixel_spacing,sign_IF);
+
+    [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+
+    ph=pd;
+    M =  1.*cos(ph);
+    N =  1.*sin(ph);
+    %
+    % M =  1.*cos(ph);
+    % N =  1.*sin(ph);
+
+    % M = pm .* smoothn(M,'robust');
+    % N = pm .* smoothn(N,'robust');
+
+    M = smoothn(M,'robust');
+    N = smoothn(N,'robust');
+
+    quiver( XX, YY, M, N, 0.5, 'k', 'linewidth', 2 );
+    set( gca, 'fontname', 'arial', 'fontsize', 14, 'ydir', 'reverse' );
+    axis tight
+    xticks ''
+    yticks ''
+
+    [d,c]= curl(XX,YY,M,N);
+    [div]= divergence(XX,YY,M,N);
+    hold on
+    contour(XX,YY,d,'ShowText','on','LineWidth',1)       
+end
+set(gcf,'Color','w')
+
+
 
 %% (MAIN) CONTINUATION FROM ABOVE BUT SEGMENTING INTO ROTATIONAL AND PLANAR REGIONS
 
@@ -1073,7 +1161,7 @@ end
 [p,h]=signrank(abs(corr_ol),abs(corr_cl))
 figure;boxplot(abs([corr_ol' corr_cl']))
 xticks(1:2)
-xticklabels({'OL','CL'})
+xticklabels({'Open Loop','Closed Loop'})
 ylabel('Rotational strength')
 title(['Pval of ' num2str(p)])
 plot_beautify
