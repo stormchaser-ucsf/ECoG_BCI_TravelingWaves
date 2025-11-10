@@ -931,6 +931,8 @@ plt.boxplot(noise_stats);plt.hlines(0,0.5,1.5)
 plt.title('Phase noise')
 plt.ylabel('Open Loop minus Closed loop (%)')
 plt.xticks([])
+plt.savefig("B3_PhaseNoiseStats.svg",format="svg",dpi=300)
+plt.show()
 
 plt.figure()
 plt.boxplot(var_stats);plt.hlines(0,0.5,1.5)

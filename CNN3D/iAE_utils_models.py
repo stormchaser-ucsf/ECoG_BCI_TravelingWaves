@@ -2928,15 +2928,37 @@ def get_phase_statistics(A,B):
         tmp = np.abs(tmp_data)
         ampA.append(np.mean(tmp))
         
+        # plt.figure();
+        # plt.plot(np.real(tmp_data))
+        # plt.savefig("B3_Hand_Act_real.svg", format="svg", dpi=300)
+        # plt.show()
+        
+        # plt.figure();
+        # plt.plot(np.imag(tmp_data))
+        # plt.savefig("B3_Hand_Act_imag.svg", format="svg", dpi=300)
+        # plt.show()
+        
         # phase noise noise
         tmp = np.angle(tmp_data)
+        # plt.figure();
+        # plt.plot(tmp)
+        # plt.savefig("B3_Hand_Phase.svg", format="svg", dpi=300)
+        # plt.show()
+        
         tmp = np.unwrap(tmp)
         t = np.arange(len(tmp))
         p = np.polyfit(t,tmp,1)
         ph_hat = np.polyval(p,t)
+        # plt.figure();
+        # plt.plot(tmp)
+        # plt.plot(ph_hat)
+        # plt.savefig("B3_Hand_PhaseUnwrapped.svg", format="svg", dpi=300)
+        # plt.show()
+        
         err = tmp - ph_hat
         noiseA.append(np.std(err))
         freqA.append(p[0])
+        
         #noiseA.append(stats.circvar(tmp))
     
     for i in np.arange(B.shape[0]):
