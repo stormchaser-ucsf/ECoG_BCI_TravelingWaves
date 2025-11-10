@@ -865,6 +865,8 @@ for day_idx in np.arange(10)+1:
     plt.xlim(X.min()-1,X.max()+1)
     plt.ylim(Y.min()-1,Y.max()+1)
     plt.title('OL Day ' + str(day_idx))
+    #filename = 'B3_Eigmaps_tmp_OL' + '.mat'
+    #savemat(filename, {"X": X, "Y": Y, "U": U, "V": V}, long_field_names=True)
     
     
     #pc_idx=1
