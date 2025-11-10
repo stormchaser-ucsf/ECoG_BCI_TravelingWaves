@@ -657,7 +657,7 @@ for lname, ch_vals in combined_importance.items():
             input_size=384*2
             lstm_size=32
             ksize=2;
-            model_class = Autoencoder3D_Complex_deep
+            #model_class = Autoencoder3D_Complex_deep
             #nn_filename = 'i3DAE_B3_Complex_New.pth' 
             model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
             model.load_state_dict(torch.load(nn_filename))
@@ -679,7 +679,7 @@ for lname, ch_vals in combined_importance.items():
             OL=[]
             CL=[]
             
-            for day_idx in np.arange(9)+1:
+            for day_idx in np.arange(10)+1:
                 
                 print('Processing day ' + str(day_idx))
                 
@@ -757,7 +757,7 @@ for lname, ch_vals in combined_importance.items():
             CL = np.array(CL)
             OL = np.array(OL)
             #filename = 'Eigmaps_layer4Ch14PC2.mat'
-            filename = 'B1_Eigmaps_' +  str(layer_name) + 'Ch' + str(channel_idx) + 'PCs' + '.mat'
+            filename = 'B3_Eigmaps_V2_' +  str(layer_name) + 'Ch' + str(channel_idx) + 'PCs' + '.mat'
             savemat(filename, {"OL": OL, "CL": CL}, long_field_names=True)
 
 
@@ -765,7 +765,7 @@ for lname, ch_vals in combined_importance.items():
 df = pd.DataFrame(rows)
 print(df.head())          
 # save
-df.to_pickle("B1_ChannelStats_CNNAE_Model.pkl")        
+df.to_pickle("B3_V2__ChannelStats_CNNAE_Model.pkl")        
     
 #%% (MAIN) EXTRACT LSTM ACTIVATIONS AND CONTRAST OL AND CL
 
