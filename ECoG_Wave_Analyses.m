@@ -872,7 +872,7 @@ for i=1:10
 
     % compute gradient
     [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphs, ...
-        pixel_spacing,sign_IF);
+        1,-1);
 
     % M =  1.*cos(pd);
     % N =  1.*sin(pd);
