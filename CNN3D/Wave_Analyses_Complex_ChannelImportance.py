@@ -372,7 +372,7 @@ for i, name in enumerate(combined_importance.keys()):
 plt.tight_layout()
 
 # save
-plt.savefig("B3_Hand_Grad_Mag_per_channel_TotalLoss.svg", format="svg", dpi=300)
+#plt.savefig("B3_Hand_Grad_Mag_per_channel_TotalLoss.svg", format="svg", dpi=300)
 
 
 plt.show()
@@ -403,7 +403,7 @@ def get_hook(name):
     return hook
 
 # ===== User setting =====
-target_layer_base = "layer3"  # <-- base name, no _real/_imag needed
+target_layer_base = "layer4"  # <-- base name, no _real/_imag needed
 
 # ===== Register hooks =====
 hook_handles = []
@@ -852,7 +852,7 @@ for day_idx in np.arange(10)+1:
     
     
     # PLOT EIGMAPS AS PHASORS
-    pc_idx=2
+    pc_idx=1
     H,W = eigmaps.shape[:2]
     Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
     U = eigmaps[:,:,pc_idx].real
@@ -880,6 +880,9 @@ for day_idx in np.arange(10)+1:
     plt.xlim(X.min()-1,X.max()+1)
     plt.ylim(Y.min()-1,Y.max()+1)
     plt.title('CL Day ' + str(day_idx))
+    #filename = 'B3_Eigmaps_tmp' + '.mat'
+    #savemat(filename, {"X": X, "Y": Y, "U": U, "V": V}, long_field_names=True)
+
     
     # get the phase gradients 
     # pm,pd = phase_gradient_complex_multiplication(Z2)
