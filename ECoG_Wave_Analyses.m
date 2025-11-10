@@ -13,7 +13,7 @@ if ispc
     addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
     addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim\helpers')
     addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
-    addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves'))
 %    imaging_B3_waves;close all
 
 elseif isunix
@@ -879,6 +879,10 @@ for i=1:10
 
     M =  1.*cos(pd);
     N =  1.*sin(pd);
+
+    M = smoothn(M,'robust'); %dx
+    N = smoothn(N,'robust'); %dy
+
 
     if plot_true
 
