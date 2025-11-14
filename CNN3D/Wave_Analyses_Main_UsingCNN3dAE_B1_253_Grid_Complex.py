@@ -160,10 +160,10 @@ for iterr in np.arange(iterations):
     
     # transfer learning
     b3Trf_filename = 'i3DAE_B3_Complex_New_V2.pth'  
-    nn_filename = 'i3DAE_B1_Complex_New_Tmp.pth' 
+    nn_filename = 'i3DAE_B1_Complex_New_Tmp_Robot.pth' 
     
     model = Autoencoder3D_Complex_deep(ksize,num_classes,input_size,lstm_size)
-    model.load_state_dict(torch.load(b3Trf_filename))
+    #model.load_state_dict(torch.load(b3Trf_filename))
     model=model.to(device)
     model.train()
     model_class = Autoencoder3D_Complex_deep
