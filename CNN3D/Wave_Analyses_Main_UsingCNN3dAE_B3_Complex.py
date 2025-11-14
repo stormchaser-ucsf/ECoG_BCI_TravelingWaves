@@ -62,8 +62,8 @@ if os.name=='nt':
     filepath = 'F:\\DATA\\ecog data\\ECoG BCI\\GangulyServer\\Multistate B3\\'
     filename = filepath + filename
 else:
-    filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
-    #filepath = '/media/user/Data/ECoG_BCI_TravelingWave_Data/'
+    #filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
+    filepath = '/media/user/Data/ECoG_BCI_TravelingWave_Data/'
     filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
     #filename = filepath + filename
     #filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
@@ -196,7 +196,7 @@ for iterr in np.arange(iterations):
     nn_filename = 'i3DAE_B3_Complex_New_V2.pth' 
     alp_factor=25 #25 or 21
     aug_flag=True
-    if aug_flag==False:
+    if aug_flag==True:
         batch_size=64
         sigma=0.025 #0.025 otherwise or even 0.0025
         aug_factor=4

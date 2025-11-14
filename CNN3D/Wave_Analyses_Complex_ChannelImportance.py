@@ -269,8 +269,9 @@ for batch_idx in range(num_batches):
     loss1 = recon_criterion(r,Ytest_real_batch)
     loss2 = recon_criterion(i,Ytest_imag_batch)
     #loss=25*(loss1+loss2) + class_loss
-    loss = 25*(loss1+loss2) + class_loss
+    #loss = 18*(loss1+loss2) + class_loss
     #loss = class_loss
+    loss = loss1+loss2
 
     # Backward pass
     model.zero_grad()
@@ -679,7 +680,7 @@ for lname, ch_vals in combined_importance.items():
             OL=[]
             CL=[]
             
-            for day_idx in np.arange(10)+1:
+            for day_idx in np.arange(9)+1:
                 
                 print('Processing day ' + str(day_idx))
                 
@@ -757,7 +758,7 @@ for lname, ch_vals in combined_importance.items():
             CL = np.array(CL)
             OL = np.array(OL)
             #filename = 'Eigmaps_layer4Ch14PC2.mat'
-            filename = 'B3_Eigmaps_V2_' +  str(layer_name) + 'Ch' + str(channel_idx) + 'PCs' + '.mat'
+            filename = 'B1_Eigmaps_Arrow_V2_' +  str(layer_name) + 'Ch' + str(channel_idx) + 'PCs' + '.mat'
             savemat(filename, {"OL": OL, "CL": CL}, long_field_names=True)
 
 
@@ -765,7 +766,7 @@ for lname, ch_vals in combined_importance.items():
 df = pd.DataFrame(rows)
 print(df.head())          
 # save
-df.to_pickle("B3_V2__ChannelStats_CNNAE_Model.pkl")        
+df.to_pickle("B1_Eigmaps_Arrow_V2__ChannelStats_CNNAE_Model.pkl")        
     
 #%% (MAIN) EXTRACT LSTM ACTIVATIONS AND CONTRAST OL AND CL
 
@@ -812,7 +813,7 @@ model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
 layer_name = 'layer3'
-channel_idx = 11
+channel_idx = 1
 batch_size=256
 
 # init variables
@@ -825,7 +826,7 @@ mean_statsA=[]
 mean_statsB=[]
 var_statsA=[]
 var_statsB=[]
-for day_idx in np.arange(10)+1:
+for day_idx in np.arange(9)+1:
     
     
     idx_days = np.where(labels_test_days == day_idx)[0]
@@ -852,7 +853,7 @@ for day_idx in np.arange(10)+1:
     
     
     # PLOT EIGMAPS AS PHASORS
-    pc_idx=1
+    pc_idx=3
     H,W = eigmaps.shape[:2]
     Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
     U = eigmaps[:,:,pc_idx].real
