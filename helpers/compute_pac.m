@@ -49,7 +49,7 @@ for ii=1:length(files)
         %data = [data1;data2]; % only state 1 and 2
 
         % extract hG envelope signal
-        hg = filtfilt(d2,data);
+        hg = filtfilt(d2,data);hg0=hg;
         hg = abs(hilbert(hg));
 
         % extract the alpha component of the hg envelope
@@ -61,6 +61,26 @@ for ii=1:length(files)
         % get phase of both signal
         hg_alpha_ph = angle(hilbert(hg_alpha));
         alp_ph = angle(hilbert(alp));
+        % 
+        % % plotting
+        % figure;
+        % plot(data(1:end,200));
+        % figure;hold on
+        % plot(hg0(1:end,200))
+        % plot(hg(1:end,200))
+        % xlim([1700 2100])
+        % figure;
+        % plot(hg_alpha(1:end,200))
+        % figure;
+        % plot(alp(1:end,200))
+        % xlim([1700 2100])
+        % figure;
+        % plot(hg_alpha_ph(:,200));
+        % xlim([1700 2100])
+        % figure;
+        % plot(alp_ph(:,200));
+        % xlim([1700 2100])
+
 
         % cut it to state 3
         alp=alp(l2+1:end,:);

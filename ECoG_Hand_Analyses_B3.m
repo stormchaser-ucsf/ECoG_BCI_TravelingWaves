@@ -2755,14 +2755,21 @@ end
 
 days=1:10;
 X = [ones(length(days),1) days'];
-[B,BINT,R,RINT,STATS] = regress(ol',X);
-[B1,BINT,R,RINT,STATS1] = regress(cl',X);
+%[B,BINT,R,RINT,STATS] = regress(ol',X);
+%[B1,BINT,R,RINT,STATS1] = regress(cl',X);
+days_poly = [days' days'.^2 days'.^3 days'.^4];
+mdl  = fitlm(days',ol','RobustOpts','on');
+%mdl  = fitlm(days_poly,ol','RobustOpts','on');
+B = mdl.Coefficients.Estimate;
+mdl1  = fitlm(days',cl','RobustOpts','on');
+%mdl1  = fitlm(days_poly,cl','RobustOpts','on');
+B1 = mdl1.Coefficients.Estimate;
 
 figure;
 hold on
+%X =  [X(:,1) days_poly];
 plot(days,ol,'.k','MarkerSize',20)
 plot(days,X*B,'k','LineWidth',2)
-
 plot(days,cl,'.b','MarkerSize',20)
 plot(days,X*B1,'b','LineWidth',2)
 xlabel('Days')
@@ -2806,7 +2813,7 @@ figure;boxplot([ol' cl'])
 % code for plotting phase angle and PLV on grid. Taken from ecog hand
 % project code
 %day_idx=1;
-pac_day1 = pac_raw_values(2).pac;
+pac_day1 = pac_raw_values(1).pac;
 plv  = abs(mean(pac_day1));
 pval_day1 = pval_cl(1,:);
 %[pfdr,pval1]=fdr(pval_day1,0.05);pfdr
@@ -2852,7 +2859,7 @@ for j=1:256%length(sig)
     if ~isempty(xx)
         ch = ch_layout(xx,yy);
         if sig1(j)==1
-            ms = ch_wts(j)*20;
+            ms = ch_wts(j)*7.55;
             %[aa bb]=min(abs(pref_phase(j) - phMap));
             c=ChColorMap(bb,:);
             e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
@@ -2915,11 +2922,11 @@ X = [ones(length(days),1) days'];
 
 figure;
 hold on
-plot(days,ol,'.k','MarkerSize',20)
-plot(days,X*B,'k','LineWidth',2)
+plot(days,ol,'.b','MarkerSize',20)
+plot(days,X*B,'b','LineWidth',2)
 
-plot(days,cl,'.b','MarkerSize',20)
-plot(days,X*B1,'b','LineWidth',2)
+plot(days,cl,'.r','MarkerSize',20)
+plot(days,X*B1,'r','LineWidth',2)
 xlabel('Days')
 ylabel('Mean PLV over sig channels')
 set(gcf,'Color','w')

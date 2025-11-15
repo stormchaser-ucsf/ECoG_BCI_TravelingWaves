@@ -191,10 +191,10 @@ for i=1:length(session_data)
         yhat = x*B;
         plot(x(:,2),yhat,'k')
 
-        % % plot mahab dist on brain
-        % %figure;
-        % plot_on_brain(ch_wts_mahab,cortex,elecmatrix,ecog_grid)
-        %   title(['hG decoding info CL Day ' num2str(i)])
+        % plot mahab dist on brain
+        figure;
+        plot_on_brain(ch_wts_mahab,cortex,elecmatrix,ecog_grid)
+          title(['hG decoding info CL Day ' num2str(i)])
         % 
         % % plot PAC on brain
         % %figure
@@ -275,7 +275,8 @@ hline(log(0.05),'--r')
 figure;hold on
 plot((reg_days(2,:)),'.','MarkerSize',20)
 xlabel('Days')
-ylabel('Slope b/w PAC and decoding info.')
+%ylabel('Slope b/w PAC and decoding info.')
+ylabel('LFO - hG PAC and hG decoding info.')
 xticks(1:10)
 y = reg_days(2,:)';
 x = (1:10)';
