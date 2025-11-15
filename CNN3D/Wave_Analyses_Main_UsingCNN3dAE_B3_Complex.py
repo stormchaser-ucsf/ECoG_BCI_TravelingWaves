@@ -393,7 +393,7 @@ print(res)
 
 #%% SAVING 
 
-np.savez('Alpha_200Hz_AllDays_B3_Complex_DataAug_15Iter', 
+np.savez('Alpha_200Hz_AllDays_B3_Complex_DataAug_1Iter_New', 
           ce_loss = ce_loss,
           balanced_acc_days = balanced_acc_days,
           ol_mse_days = ol_mse_days,
@@ -404,9 +404,9 @@ np.savez('Alpha_200Hz_AllDays_B3_Complex_DataAug_15Iter',
 
 #%% saving variables to reload and do analyses
 
-#os.chdir('/media/user/Data/ecog_data/ECoG BCI/Spyder_Data/')
-os.chdir('/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/Analyses_Data/')
-np.savez('WaveAnalyses_Nov5_20205_B1Arrow_253',
+os.chdir('/media/user/Data/ECoG_BCI_TravelingWave_Data/')
+#os.chdir('/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/Analyses_Data/')
+np.savez('WaveAnalyses_Nov15_2025_B3Complex_New',
          Xval=Xval,
          Yval=Yval,
          labels_val=labels_val,

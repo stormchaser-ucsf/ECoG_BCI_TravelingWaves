@@ -2499,12 +2499,12 @@ def complex_data_augmentation_torch(Xtrain, Ytrain, labels_train, sigma, iterati
         #tmp1 = Ytrain
 
         # Temporal roll
-        shifts = torch.randint(0, t, (n,), device=device)  # shape: (n,)
-        idx = (torch.arange(t, device=device)[None, :] - shifts[:, None]) % t  # (n, t)
-        idx = idx.view(n, 1, 1, 1, t).expand(n, c, h, w, t)  # (n, c, h, w, t)
+        # shifts = torch.randint(0, t, (n,), device=device)  # shape: (n,)
+        # idx = (torch.arange(t, device=device)[None, :] - shifts[:, None]) % t  # (n, t)
+        # idx = idx.view(n, 1, 1, 1, t).expand(n, c, h, w, t)  # (n, c, h, w, t)
 
-        tmp = torch.gather(tmp, -1, idx)
-        tmp1 = torch.gather(tmp1, -1, idx)
+        # tmp = torch.gather(tmp, -1, idx)
+        # tmp1 = torch.gather(tmp1, -1, idx)
         
         # Add small mean amplitude fluctuations, only to the input, by 5% plus/minus per channel
         amp, phases = torch.abs(tmp), torch.angle(tmp)
