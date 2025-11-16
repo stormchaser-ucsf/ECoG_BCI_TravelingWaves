@@ -163,6 +163,7 @@ for ii=1:length(imag_idx)
     imag_folderpath = fullfile(folderpath, D(imag_idx(ii)).name,'Imagined');
     files = [files;findfiles('mat',imag_folderpath)'];
 end
+files=files(1:21);
 stats_ol = rotational_waves_stats(files,d2,hilbert_flag,ecog_grid);
 
 
@@ -173,7 +174,7 @@ for ii=1:length(online_idx)
     imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
     files = [files;findfiles('mat',imag_folderpath)'];
 end
-
+files=files(1:21);
 stats_cl = rotational_waves_stats(files,d2,hilbert_flag,ecog_grid);
 
 
@@ -186,7 +187,7 @@ for i = 1:length(stats_ol)
     %x= [x; nanmedian(tmp)];
     %x=[x;sum(isnan(tmp))/length(tmp)];
 
-    %tmp = stats_ol(i).size;
+    tmp = stats_ol(i).size;
     x=[x;nanmean(tmp)];
 end
 %figure;plot(mean(x,1))
@@ -195,13 +196,13 @@ xol=x;
 
 x=[];
 for i = 1:length(stats_cl)
-    tmp = stats_cl(i).corr;
+    %tmp = stats_cl(i).corr;
     %tmp = smooth(tmp,10);
     %x= [x; nanmedian(tmp)];
     %x(i,:) = smooth(tmp(1:500),50);
     %x=[x;sum(isnan(tmp))/length(tmp)];
 
-    %tmp = stats_cl(i).size;
+    tmp = stats_cl(i).size;
     % if length(tmp)>1000
     %     x=[x;mean(tmp)];
     % end
