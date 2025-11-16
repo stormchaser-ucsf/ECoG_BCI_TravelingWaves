@@ -187,7 +187,7 @@ for i = 1:length(stats_ol)
     %x=[x;sum(isnan(tmp))/length(tmp)];
 
     tmp = stats_ol(i).size;
-    x=[x;nanmedian(tmp)];
+    x=[x;mean(tmp)];
 end
 %figure;plot(mean(x,1))
 xol=x;
@@ -202,9 +202,12 @@ for i = 1:length(stats_cl)
     %x=[x;sum(isnan(tmp))/length(tmp)];
 
     tmp = stats_cl(i).size;
-    x=[x;nanmedian(tmp)];
+    if length(tmp)>1000
+        x=[x;mean(tmp)];
+    end
 end
 xcl=x;
+median(xcl)
 
 [p,h] = ranksum(xol,xcl)
 

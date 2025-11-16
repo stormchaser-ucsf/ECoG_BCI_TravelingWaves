@@ -42,7 +42,7 @@ for ii=1:length(files)
         if hilbert_flag
             df= hilbert(df);
         end
-        df = df(l11+1:end,:);
+        %df = df(l11+1:end,:);
 
         % detect rotations per time - point
 
