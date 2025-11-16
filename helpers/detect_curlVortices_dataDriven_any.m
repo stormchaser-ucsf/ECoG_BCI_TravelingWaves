@@ -1,4 +1,4 @@
-function vortices = detect_curlVortices_dataDriven_any(curlMap, xph,Thresh)
+function vortices = detect_curlVortices_dataDriven_any(curlMap, xph,xphs,Thresh)
 % DETECT_NONOVERLAPPING_VORTICES
 % Detect strong curl peaks and assign non-overlapping symmetric masks.
 %
@@ -16,7 +16,7 @@ function vortices = detect_curlVortices_dataDriven_any(curlMap, xph,Thresh)
 %              .symMask
 %              .bbox [xmin xmax ymin ymax]
 
-if nargin < 3, Thresh = 0.75; end
+if nargin < 4, Thresh = 0.75; end
 
 
 [rows, cols] = size(curlMap);
@@ -25,8 +25,8 @@ vortices = struct('center', {}, 'Cpeak', {}, 'componentMask', {}, ...
 
 %% Step 1: Find strong curl peaks
 
-strongMask = abs(curlMap) >= Thresh;
-localMaxMask = imregionalmax(abs(curlMap));
+strongMask = (curlMap) >= Thresh;
+localMaxMask = imregionalmax((curlMap));
 peakMask = strongMask & localMaxMask;
 [yPeaks, xPeaks] = find(peakMask);
 
@@ -39,13 +39,12 @@ peakMask = strongMask & localMaxMask;
 % end
 
 
-%% STEP 2: For each curl peak, use circular linear correlation to expand 
-% in any direction around the center peak and find extent
+%% (NEW)
 
-figure;
-imagesc(curlMap)
-colorbar 
-hold on
+% figure;
+% imagesc(curlMap)
+% colorbar 
+% hold on
 vortices={};
 corr_total=[];
 for k=1:numel(xPeaks)
@@ -63,7 +62,7 @@ for k=1:numel(xPeaks)
     end
 
     % perform circular linear correlation w/ init 3X3
-    pl = angle(double(xph(rmin:rmax, cmin:cmax)));
+    pl = angle(double(xphs(rmin:rmax, cmin:cmax))); %xphs for init
     [cc1,pv,center_point] = phase_correlation_rotation( pl,...
         double(curlMap(rmin:rmax, cmin:cmax)),[],-1);
     corr_val_init = abs(cc1);
@@ -71,15 +70,15 @@ for k=1:numel(xPeaks)
     loop_stay = true;
     corr_val=corr_val_init;
     pval=1;
-
-    
    
     corr_val_update=[corr_val_init];
     pval_update=[pval_init];
     bbox_update={};kk=1;
     bbox_update(kk).r = [rmin rmax];
     bbox_update(kk).c = [cmin cmax];
+    iterr=0;
     while loop_stay
+        iterr=iterr+1;
 
         % expand bounding box  
         bbox={};
@@ -133,6 +132,7 @@ for k=1:numel(xPeaks)
         
       
         total_corr = abs([collt_corr colrt_corr rowu_corr rowd_corr]);
+        %disp(total_corr)
         total_pval = [pv_collt pv_colrt pv_rowu pv_rowd];
         [aa bb]=max(total_corr);
         corr_val_update = [corr_val_update total_corr(bb)];
@@ -178,20 +178,178 @@ for k=1:numel(xPeaks)
             bbox_update(kk).c = [cmin cmax];
             loop_stay = false;
         end
+        %disp([cmin cmax rmin rmax])
             
     end
     [aa bb]=max(corr_val_update);
     cmin = bbox_update(bb).c(1);cmax = bbox_update(bb).c(2);
     rmin = bbox_update(bb).r(1);rmax = bbox_update(bb).r(2);
-    rectangle('Position', [cmin, rmin, cmax - cmin, rmax - rmin], ...
-          'EdgeColor', 'r', 'LineWidth', 2);  
+    % rectangle('Position', [cmin, rmin, cmax - cmin, rmax - rmin], ...
+    %       'EdgeColor', 'r', 'LineWidth', 2);  
     vortices(k).corr = corr_val_update(bb);
     vortices(k).pval = pval_update(bb);
     vortices(k).cols = [cmin cmax];
     vortices(k).rows = [rmin rmax];
     corr_total(k) = corr_val;
 end
-title(['Average correlation of ' num2str(mean(corr_total))]) 
+%title(['Average correlation of ' num2str(mean( [vortices(1:end).corr]))]) 
+
+%% (OLD) STEP 2: For each curl peak, use circular linear correlation to expand 
+% in any direction around the center peak and find extent
+
+
+% 
+% figure;
+% imagesc(curlMap)
+% colorbar 
+% hold on
+% vortices={};
+% corr_total=[];
+% for k=1:numel(xPeaks)
+%     x0 = xPeaks(k);
+%     y0 = yPeaks(k);
+% 
+%     % initial 3X3
+%     cmin = x0-1;
+%     cmax = x0+1;
+%     rmin = y0-1;
+%     rmax = y0+1;
+% 
+%     if cmin==0 || cmax > cols || rmin ==0 || rmax>rows
+%         continue;
+%     end
+% 
+%     % perform circular linear correlation w/ init 3X3
+%     pl = angle(double(xph(rmin:rmax, cmin:cmax)));
+%     [cc1,pv,center_point] = phase_correlation_rotation( pl,...
+%         double(curlMap(rmin:rmax, cmin:cmax)),[],-1);
+%     corr_val_init = abs(cc1);
+%     pval_init = pv;
+%     loop_stay = true;
+%     corr_val=corr_val_init;
+%     pval=1;
+% 
+% 
+% 
+%     corr_val_update=[corr_val_init];
+%     pval_update=[pval_init];
+%     bbox_update={};kk=1;
+%     bbox_update(kk).r = [rmin rmax];
+%     bbox_update(kk).c = [cmin cmax];
+%     while loop_stay
+% 
+%         % expand bounding box  
+%         bbox={};
+%         [bbox] = expand_bound_box_all(bbox,cmin,cmax,rmin,rmax,...
+%             rows,cols);
+% 
+%         % compute correlation for bbox
+%         %lt
+%         collt_corr=0;pv_collt=1;
+%         if bbox.collt.flag
+%             c = bbox.collt.cols;
+%             r = bbox.collt.rows;
+%             pl = angle(double(xph(r(1):r(2),c(1):c(2))));
+%             [cc1,pv_collt,center_point] = phase_correlation_rotation( pl,...
+%                 double(curlMap(r(1):r(2),c(1):c(2))),[],-1);
+%             collt_corr = (cc1);
+%         end
+% 
+%         %rt
+%         colrt_corr=0;pv_colrt=1;
+%         if bbox.colrt.flag
+%             c = bbox.colrt.cols;
+%             r = bbox.colrt.rows;
+%             pl = angle(double(xph(r(1):r(2),c(1):c(2))));
+%             [cc1,pv_colrt,center_point] = phase_correlation_rotation( pl,...
+%                 double(curlMap(r(1):r(2),c(1):c(2))),[],-1);
+%             colrt_corr = (cc1);
+%         end
+% 
+%         %up
+%         rowu_corr=0;pv_rowu=1;
+%         if bbox.rowu.flag
+%             c = bbox.rowu.cols;
+%             r = bbox.rowu.rows;
+%             pl = angle(double(xph(r(1):r(2),c(1):c(2))));
+%             [cc1,pv_rowu,center_point] = phase_correlation_rotation( pl,...
+%                 double(curlMap(r(1):r(2),c(1):c(2))),[],-1);
+%             rowu_corr = (cc1);
+%         end
+% 
+%         %down
+%         rowd_corr=0;pv_rowd=1;
+%         if bbox.rowd.flag
+%             c = bbox.rowd.cols;
+%             r = bbox.rowd.rows;
+%             pl = angle(double(xph(r(1):r(2),c(1):c(2))));
+%             [cc1,pv_rowd,center_point] = phase_correlation_rotation( pl,...
+%                 double(curlMap(r(1):r(2),c(1):c(2))),[],-1);
+%             rowd_corr = (cc1);
+%         end
+% 
+% 
+%         total_corr = abs([collt_corr colrt_corr rowu_corr rowd_corr]);
+%         %disp(total_corr)
+%         total_pval = [pv_collt pv_colrt pv_rowu pv_rowd];
+%         [aa bb]=max(total_corr);
+%         corr_val_update = [corr_val_update total_corr(bb)];
+%         pval_update = [pval_update total_pval(bb)];
+%         if total_pval(bb) <= 0.05
+%             corr_val = total_corr(bb);
+%             pval = total_pval(bb);
+%             switch bb
+%                 case 1 % lt
+% 
+%                     cmin = bbox.collt.cols(1);
+%                     cmax = bbox.collt.cols(2);
+%                     rmin = bbox.collt.rows(1);
+%                     rmax = bbox.collt.rows(2);
+% 
+%                 case 2 % rt
+% 
+%                     cmin = bbox.colrt.cols(1);
+%                     cmax = bbox.colrt.cols(2);
+%                     rmin = bbox.colrt.rows(1);
+%                     rmax = bbox.colrt.rows(2);
+% 
+%                 case 3 % up
+% 
+%                     cmin = bbox.rowu.cols(1);
+%                     cmax = bbox.rowu.cols(2);
+%                     rmin = bbox.rowu.rows(1);
+%                     rmax = bbox.rowu.rows(2);
+% 
+%                 case 4 % down
+% 
+%                     cmin = bbox.rowd.cols(1);
+%                     cmax = bbox.rowd.cols(2);
+%                     rmin = bbox.rowd.rows(1);
+%                     rmax = bbox.rowd.rows(2);
+%             end
+%             kk=kk+1;
+%             bbox_update(kk).r = [rmin rmax];
+%             bbox_update(kk).c = [cmin cmax];            
+%         else
+%             kk=kk+1;
+%             bbox_update(kk).r = [rmin rmax];
+%             bbox_update(kk).c = [cmin cmax];
+%             loop_stay = false;
+%         end
+% 
+%     end
+%     [aa bb]=max(corr_val_update);
+%     cmin = bbox_update(bb).c(1);cmax = bbox_update(bb).c(2);
+%     rmin = bbox_update(bb).r(1);rmax = bbox_update(bb).r(2);
+%     rectangle('Position', [cmin, rmin, cmax - cmin, rmax - rmin], ...
+%           'EdgeColor', 'r', 'LineWidth', 2);  
+%     vortices(k).corr = corr_val_update(bb);
+%     vortices(k).pval = pval_update(bb);
+%     vortices(k).cols = [cmin cmax];
+%     vortices(k).rows = [rmin rmax];
+%     corr_total(k) = corr_val;
+% end
+% title(['Average correlation of ' num2str(mean( [vortices(1:end).corr]))]) 
 % 
 % 
 % %% Step 2: Sort peaks by descending curl magnitude

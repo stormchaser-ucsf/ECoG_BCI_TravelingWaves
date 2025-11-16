@@ -3740,5 +3740,16 @@ ylabel('Balanced Classification Acc.')
 plot_beautify
 xlim([0.8 1.2])
 
+%% DETECTION OF TRAVELING WAVES IN SINGLE TRIAL DATA
+
+clc;clear
+
+% load cl2 trials from last day
+
+%examine rotational waves
+
+% load ol trials from last day/ or perhaps first day
+% examine rotational waves 
+
 
 

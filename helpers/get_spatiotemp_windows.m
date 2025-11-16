@@ -46,7 +46,7 @@ for ii=1:length(files)
         data1 = cell2mat(TrialData.BroadbandData(kinax1)');
         l1 = length(data1);
 
-        data = [data1;data2;data3;data4];
+        data = [data1;data2;data3;];
         l22=floor(l2/5); % length of the down sampled signal
         l11=floor(l1/5); % length of the down sampled signal
 
