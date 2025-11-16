@@ -42,7 +42,7 @@ for ii=1:length(files)
         if hilbert_flag
             df= hilbert(df);
         end
-        df = df(l22+1:end,:);
+        df = df(l11+1:end,:);
 
         % detect rotations per time - point
 
@@ -59,7 +59,7 @@ for ii=1:length(files)
             % correlation between rotation angle and signal phase (data
             % driven extents)
             if max((curl_val(:))) > 0.75
-                xph=xphs;
+                xph=xph;
                 vortices = ...
                     detect_curlVortices_dataDriven_any(curl_val, xph,xphs,0.75);
             end

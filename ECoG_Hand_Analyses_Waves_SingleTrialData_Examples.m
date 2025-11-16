@@ -108,10 +108,10 @@ if ispc
     addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
     cd(root_path)
     addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
-    load session_data_B3_Hand
+    %load session_data_B3_Hand
     addpath 'C:\Users\nikic\Documents\MATLAB'
     load('ECOG_Grid_8596_000067_B3.mat')
-    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers'))
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\'))
 
 else
     %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
@@ -145,8 +145,8 @@ for j=1:length(D)
         online_idx=[online_idx j];
     end
 end
-imag_idx=imag_idx(1:4);
-online_idx=online_idx(1:4);
+imag_idx=imag_idx(1);
+online_idx=online_idx(1);
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
@@ -165,6 +165,18 @@ for ii=1:length(imag_idx)
 end
 stats_ol = rotational_waves_stats(files,d2,hilbert_flag,ecog_grid);
 
+
+
+%%%%%% get batch data files %%%%%
+files=[];
+for ii=1:length(online_idx)
+    imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
+    files = [files;findfiles('mat',imag_folderpath)'];
+end
+
+stats_cl = rotational_waves_stats(files,d2,hilbert_flag,ecog_grid);
+
+
 x=[];
 for i = 1:length(stats_ol)
     %tmp = stats_ol(i).corr;
@@ -180,15 +192,6 @@ end
 %figure;plot(mean(x,1))
 xol=x;
 
-
-%%%%%% get batch data files %%%%%
-files=[];
-for ii=1:length(online_idx)
-    imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
-    files = [files;findfiles('mat',imag_folderpath)'];
-end
-
-stats_cl = rotational_waves_stats(files,d2,hilbert_flag,ecog_grid);
 
 x=[];
 for i = 1:length(stats_cl)
