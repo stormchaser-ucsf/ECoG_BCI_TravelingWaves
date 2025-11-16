@@ -179,15 +179,15 @@ stats_cl = rotational_waves_stats(files,d2,hilbert_flag,ecog_grid);
 
 x=[];
 for i = 1:length(stats_ol)
-    %tmp = stats_ol(i).corr;
+    tmp = stats_ol(i).corr;
     %tmp = stats_ol(i).corr;
     %x(i,:) = smooth(tmp(1:2.2e3),50);
     %tmp = smooth(tmp,50);
     %x= [x; nanmedian(tmp)];
     %x=[x;sum(isnan(tmp))/length(tmp)];
 
-    tmp = stats_ol(i).size;
-    x=[x;mean(tmp)];
+    %tmp = stats_ol(i).size;
+    x=[x;nanmean(tmp)];
 end
 %figure;plot(mean(x,1))
 xol=x;
@@ -195,19 +195,20 @@ xol=x;
 
 x=[];
 for i = 1:length(stats_cl)
-    %tmp = stats_cl(i).corr;
+    tmp = stats_cl(i).corr;
     %tmp = smooth(tmp,10);
     %x= [x; nanmedian(tmp)];
     %x(i,:) = smooth(tmp(1:500),50);
     %x=[x;sum(isnan(tmp))/length(tmp)];
 
-    tmp = stats_cl(i).size;
-    if length(tmp)>1000
-        x=[x;mean(tmp)];
-    end
+    %tmp = stats_cl(i).size;
+    % if length(tmp)>1000
+    %     x=[x;mean(tmp)];
+    % end
+    x=[x;nanmean(tmp)];
 end
 xcl=x;
-median(xcl)
+
 
 [p,h] = ranksum(xol,xcl)
 
