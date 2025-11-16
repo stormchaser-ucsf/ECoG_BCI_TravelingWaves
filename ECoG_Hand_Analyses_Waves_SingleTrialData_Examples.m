@@ -152,7 +152,7 @@ d1 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
     'SampleRate',1e3);
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'HalfPowerFrequency1',7.5,'HalfPowerFrequency2',9.5, ...
     'SampleRate',200);
 hilbert_flag=1;
 
@@ -167,15 +167,15 @@ stats_ol = rotational_waves_stats(files,d2,hilbert_flag,ecog_grid);
 
 x=[];
 for i = 1:length(stats_ol)
-    tmp = stats_ol(i).corr;
+    %tmp = stats_ol(i).corr;
     %tmp = stats_ol(i).corr;
     %x(i,:) = smooth(tmp(1:2.2e3),50);
     %tmp = smooth(tmp,50);
     %x= [x; nanmedian(tmp)];
-    x=[x;sum(isnan(tmp))/length(tmp)];
+    %x=[x;sum(isnan(tmp))/length(tmp)];
 
-    %tmp = stats_ol(i).size;
-    %x=[x;nanmedian(tmp)];
+    tmp = stats_ol(i).size;
+    x=[x;nanmedian(tmp)];
 end
 %figure;plot(mean(x,1))
 xol=x;
@@ -192,14 +192,14 @@ stats_cl = rotational_waves_stats(files,d2,hilbert_flag,ecog_grid);
 
 x=[];
 for i = 1:length(stats_cl)
-    tmp = stats_cl(i).corr;
+    %tmp = stats_cl(i).corr;
     %tmp = smooth(tmp,10);
     %x= [x; nanmedian(tmp)];
     %x(i,:) = smooth(tmp(1:500),50);
-    x=[x;sum(isnan(tmp))/length(tmp)];
+    %x=[x;sum(isnan(tmp))/length(tmp)];
 
-    % tmp = stats_cl(i).size;
-    % x=[x;nanmedian(tmp)];
+    tmp = stats_cl(i).size;
+    x=[x;nanmedian(tmp)];
 end
 xcl=x;
 
