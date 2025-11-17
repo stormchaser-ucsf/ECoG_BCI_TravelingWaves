@@ -419,7 +419,7 @@ np.savez('WaveAnalyses_Nov15_2025_B3Complex_New',
 
 #%% LOADING DATA BACK FROM ABOVE
 
-data = np.load('/media/user/Data/ecog_data/ECoG BCI/Spyder_Data/WaveAnalyses_Sept0920205.npz',
+data = np.load('/media/user/Data/ecog_data/ECoG BCI/Spyder_Data/WaveAnalyses_Nov15_2025_B3Complex_New.npz',
                allow_pickle=True)
 
 Xval = data.get('Xval')
@@ -430,7 +430,7 @@ labels_test_days = data.get('labels_test_days')
 model = data.get('model')
 labels_test = data.get('labels_test')
 labels_val = data.get('labels_val')
-nn_filename = 'i3DAE_B3_Complex_New.pth' 
+nn_filename = 'i3DAE_B3_Complex_New_V2.pth' 
 
 
 # get the CNN architecture model

@@ -270,8 +270,8 @@ for batch_idx in range(num_batches):
     loss2 = recon_criterion(i,Ytest_imag_batch)
     #loss=25*(loss1+loss2) + class_loss
     #loss = 18*(loss1+loss2) + class_loss
-    #loss = class_loss
-    loss = loss1+loss2
+    loss = class_loss
+    #loss = loss1+loss2
 
     # Backward pass
     model.zero_grad()
@@ -812,8 +812,8 @@ model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
 model.load_state_dict(torch.load(nn_filename))
 
 # GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
-layer_name = 'layer3'
-channel_idx = 1
+layer_name = 'layer4'
+channel_idx = 0
 batch_size=256
 
 # init variables
@@ -826,7 +826,7 @@ mean_statsA=[]
 mean_statsB=[]
 var_statsA=[]
 var_statsB=[]
-for day_idx in np.arange(9)+1:
+for day_idx in np.arange(10)+1:
     
     
     idx_days = np.where(labels_test_days == day_idx)[0]
@@ -853,7 +853,7 @@ for day_idx in np.arange(9)+1:
     
     
     # PLOT EIGMAPS AS PHASORS
-    pc_idx=3
+    pc_idx=1
     H,W = eigmaps.shape[:2]
     Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
     U = eigmaps[:,:,pc_idx].real

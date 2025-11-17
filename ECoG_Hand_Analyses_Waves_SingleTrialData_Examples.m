@@ -123,94 +123,115 @@ else
 
 end
 
-folders={'20240515', '20240517', '20240614', ...
-     '20240619', '20240621', '20240626',...
-'20240710','20240712','20240731'};
-i=1;
-folderpath = fullfile(root_path,folders{i},'Robot3DArrow');
-% if i<=2
-%     folderpath = fullfile(root_path,folders_robot{i},'Robot3D');
-% else
-%     folderpath = fullfile(root_path,folders_robot{i},'RealRobotBatch');
-% end
-D= dir(folderpath);
-D = D(3:end);
-imag_idx=[];
-online_idx=[];
-for j=1:length(D)
-    subfoldername = dir(fullfile(folderpath,D(j).name));
-    if strcmp(subfoldername(3).name,'Imagined')
-        imag_idx=[imag_idx j];
-    elseif strcmp(subfoldername(3).name,'BCI_Fixed')
-        online_idx=[online_idx j];
-    end
-end
-imag_idx=imag_idx(1);
-online_idx=online_idx(1);
-
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',9, ...
     'SampleRate',1e3);
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',7.5,'HalfPowerFrequency2',9.5, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',9, ...
     'SampleRate',200);
 hilbert_flag=1;
 
 
-%%%%%% get imagined data files
-files=[];
-for ii=1:length(imag_idx)
-    imag_folderpath = fullfile(folderpath, D(imag_idx(ii)).name,'Imagined');
-    files = [files;findfiles('mat',imag_folderpath)'];
-end
-files=files(1:21);
-stats_ol = rotational_waves_stats(files,d2,hilbert_flag,ecog_grid);
-
-
-
-%%%%%% get batch data files %%%%%
-files=[];
-for ii=1:length(online_idx)
-    imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
-    files = [files;findfiles('mat',imag_folderpath)'];
-end
-files=files(1:21);
-stats_cl = rotational_waves_stats(files,d2,hilbert_flag,ecog_grid);
-
-
-x=[];
-for i = 1:length(stats_ol)
-    tmp = stats_ol(i).corr;
-    %tmp = stats_ol(i).corr;
-    %x(i,:) = smooth(tmp(1:2.2e3),50);
-    %tmp = smooth(tmp,50);
-    %x= [x; nanmedian(tmp)];
-    %x=[x;sum(isnan(tmp))/length(tmp)];
-
-    tmp = stats_ol(i).size;
-    x=[x;nanmean(tmp)];
-end
-%figure;plot(mean(x,1))
-xol=x;
-
-
-x=[];
-for i = 1:length(stats_cl)
-    %tmp = stats_cl(i).corr;
-    %tmp = smooth(tmp,10);
-    %x= [x; nanmedian(tmp)];
-    %x(i,:) = smooth(tmp(1:500),50);
-    %x=[x;sum(isnan(tmp))/length(tmp)];
-
-    tmp = stats_cl(i).size;
-    % if length(tmp)>1000
-    %     x=[x;mean(tmp)];
+folders={'20240515', '20240517', '20240614', ...
+    '20240619', '20240621', '20240626',...
+    '20240710','20240712','20240731'};
+xol_days=[];
+xcl_days=[];
+for days=1:length(folders)-1
+    disp(['Processing day ' num2str(days)])
+    folderpath = fullfile(root_path,folders{days},'Robot3DArrow');
+    % if i<=2
+    %     folderpath = fullfile(root_path,folders_robot{i},'Robot3D');
+    % else
+    %     folderpath = fullfile(root_path,folders_robot{i},'RealRobotBatch');
     % end
-    x=[x;nanmean(tmp)];
+    D= dir(folderpath);
+    D = D(3:end);
+    imag_idx=[];
+    online_idx=[];
+    for j=1:length(D)
+        subfoldername = dir(fullfile(folderpath,D(j).name));
+        if strcmp(subfoldername(3).name,'Imagined')
+            imag_idx=[imag_idx j];
+        elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+            online_idx=[online_idx j];
+        end
+    end
+    imag_idx_main=imag_idx(1:3);
+    online_idx_main=online_idx(1:3);
+
+    for folder=1:3
+
+        imag_idx = imag_idx_main(folder);
+        online_idx = online_idx_main(folder);
+
+
+
+        %%%%%% get imagined data files
+        files=[];
+        for ii=1:length(imag_idx)
+            imag_folderpath = fullfile(folderpath, D(imag_idx(ii)).name,'Imagined');
+            files = [files;findfiles('mat',imag_folderpath)'];
+        end
+        %files=files(1:21);
+        stats_ol = rotational_waves_stats(files,d2,hilbert_flag,ecog_grid);
+
+
+
+        %%%%%% get batch data files %%%%%
+        files=[];
+        for ii=1:length(online_idx)
+            imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
+            files = [files;findfiles('mat',imag_folderpath)'];
+        end
+        %files=files(1:21);
+        stats_cl = rotational_waves_stats(files,d2,hilbert_flag,ecog_grid);
+
+
+        x=[];
+        for i = 1:length(stats_ol)
+            tmp = stats_ol(i).corr;
+            %tmp = stats_ol(i).corr;
+            %x(i,:) = smooth(tmp(1:2.2e3),50);
+            %tmp = smooth(tmp,50);
+            %x= [x; nanmedian(tmp)];
+            %x=[x;sum(isnan(tmp))/length(tmp)];
+
+            %tmp = stats_ol(i).size;
+            x=[x;nanmean(tmp)];
+        end
+        %figure;plot(mean(x,1))
+        xol=x;
+
+
+        x=[];
+        for i = 1:length(stats_cl)
+            tmp = stats_cl(i).corr;
+            %tmp = smooth(tmp,10);
+            %x= [x; nanmedian(tmp)];
+            %x(i,:) = smooth(tmp(1:500),50);
+            %x=[x;sum(isnan(tmp))/length(tmp)];
+
+            %tmp = stats_cl(i).size;
+            % if length(tmp)>1000
+            %     x=[x;mean(tmp)];
+            % end
+            x=[x;nanmean(tmp)];
+        end
+        xcl=x;
+
+        %xol_days(days) = median(xol);        
+        %xcl_days(days) = median(xcl);
+
+        xol_days = [xol_days median(xol)];
+        xcl_days = [xcl_days median(xcl)];
+    end
 end
-xcl=x;
 
+[p,h] = ranksum(xol_days,xcl_days)
+figure;boxplot([xol_days' xcl_days'],'notch','off')
 
-[p,h] = ranksum(xol,xcl)
+%% USING A LINEAR MODEL TO PREDICT TEMPORALLY 1 STEP INTO FUTURE
+
 
 
