@@ -114,6 +114,7 @@ for j=pc_idx:5:num_days*5
     N =  1.*sin(pd);
 
     [curl_val] = curl(XX,YY,M,N);
+    [div_val] = divergence(XX,YY,M,N);
 
     axes(ha(k))
     quiver(XX,YY,M,N)    

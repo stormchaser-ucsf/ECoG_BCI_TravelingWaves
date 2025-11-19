@@ -1032,6 +1032,201 @@ ani.save(filename1, writer="pillow", fps=5)
 #ani.save("matrix_movie.mp4", writer=writer)
 
 
+#%% GET TOP 10% OF TEST SAMPLES based in largest activation patterns
+
+
+
+# PRELIMS
+from iAE_utils_models import *
+torch.cuda.empty_cache()
+torch.cuda.ipc_collect() 
+
+if 'model' in locals():
+    del model 
+
+num_classes=1    
+input_size=384*2
+lstm_size=32
+ksize=2;
+#model_class = Autoencoder3D_Complex_deep
+#nn_filename = 'i3DAE_B3_Complex_New.pth' 
+model = model_class(ksize,num_classes,input_size,lstm_size).to(device)
+model.load_state_dict(torch.load(nn_filename))
+
+# GET THE ACTIVATIONS FROM A CHANNEL LAYER OF INTEREST
+layer_name = 'layer4'
+channel_idx = 0
+batch_size=256
+
+for day_idx in np.arange(10)+1:
+    
+    
+    idx_days = np.where(labels_test_days == day_idx)[0]
+    tmp_labels = labels_test[idx_days]
+    tmp_ydata = Ytest[idx_days,:]
+    tmp_xdata = Xtest[idx_days,:]
+    
+    activations_real, activations_imag = get_channel_activations(model, tmp_xdata, tmp_ydata,
+                                        tmp_labels,device,layer_name,
+                                        channel_idx,batch_size)
+    activations = activations_real + 1j*activations_imag
+    
+    # GET max activations and then check which OL/CL belonged to    
+    activations_mag = np.abs(activations);
+    activations_mag = np.sum(activations_mag, axis=(1,2,3))
+    threshold = np.percentile(activations_mag, 90)
+    top10_idx = np.where(activations_mag >= threshold)[0]
+    labels_mag = tmp_labels[top10_idx]
+    idx0=np.where(labels_mag==0)[0]
+    idx1=np.where(labels_mag==1)[0]
+    ol_mag = activations_mag[idx0]
+    cl_mag = activations_mag[idx1]
+    
+    # GET MAX ACTIVATIONS, OL
+    idx = np.where(tmp_labels==0)[0]
+    activations_ol_orig = activations[idx,:]
+    xdata_ol = (tmp_xdata[idx,:])
+    activations_ol = np.abs(activations_ol_orig);
+    activations_ol = np.sum(activations_ol, axis=(1,2,3))
+    threshold = np.percentile(activations_ol, 95)
+    top10_idx = np.where(activations_ol >= threshold)[0]
+    
+    
+    # MAKE A MOVIE OF THE RAW DATA THAT GENERATED THESE ACTIVATIONS
+    def update(i):
+        im.set_array(frames[i])
+        ax.set_title(f"Frame {i}")
+        return [im]
+
+    xdata_ol_top = xdata_ol[top10_idx,:].squeeze()
+    for j in np.arange(10):
+        recon = np.real(xdata_ol_top[j,:])
+        # Transpose so shape = (time, height, width)
+        frames = np.moveaxis(recon, -1, 0)  # (28, 8, 20)
+        fig,ax = plt.subplots()
+        im = ax.imshow(frames[0],cmap='viridis',aspect='auto')
+
+    
+        ani = animation.FuncAnimation(fig, update, frames=frames.shape[0],interval=100,blit=True)
+        filename1 = 'Top_Act_Ch'+str(channel_idx) + layer_name + 'sample_'+str(j)+'_CL.gif'
+        ani.save(filename1, writer="pillow", fps=5)
+    
+    # run complex PCa on these top test samples alone
+    eigvals1, eigmaps1, Zproj1 , VAF1,eigvecs1 ,_= complex_pca(xdata_ol_top,15)
+    
+    #plt.stem(VAF)
+    
+    # RUN COMPLEX PCA on CL
+    idx = np.where(tmp_labels==1)[0]
+    activations_cl = activations[idx,:]
+    eigvals1, eigmaps1, Zproj1 , VAF1,eigvecs1 ,_= complex_pca(activations_cl,15)
+    #plt.stem(VAF1)
+    
+    
+    # PLOT EIGMAPS AS PHASORS
+    pc_idx=0
+    H,W = eigmaps.shape[:2]
+    Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+    U = eigmaps[:,:,pc_idx].real
+    V = eigmaps[:,:,pc_idx].imag
+    Z1 = U+1j*V
+    plt.figure()
+    plt.quiver(X,Y,U,V,angles='xy')
+    plt.gca().invert_yaxis()
+    OL.append(Z1)
+    plt.xlim(X.min()-1,X.max()+1)
+    plt.ylim(Y.min()-1,Y.max()+1)
+    plt.title('OL Day ' + str(day_idx))
+    #filename = 'B3_Eigmaps_tmp_OL' + '.mat'
+    #savemat(filename, {"X": X, "Y": Y, "U": U, "V": V}, long_field_names=True)
+    
+    
+    #pc_idx=1
+    H,W = eigmaps1.shape[:2]
+    Y, X = np.meshgrid(np.arange(H), np.arange(W), indexing='ij')
+    U = eigmaps1[:,:,pc_idx].real
+    V = eigmaps1[:,:,pc_idx].imag
+    Z2 = U+1j*V
+    plt.figure()
+    plt.quiver(X,Y,U,V,angles='xy')
+    plt.gca().invert_yaxis()
+    CL.append(Z2)
+    plt.xlim(X.min()-1,X.max()+1)
+    plt.ylim(Y.min()-1,Y.max()+1)
+    plt.title('CL Day ' + str(day_idx))
+    #filename = 'B3_Eigmaps_tmp' + '.mat'
+    #savemat(filename, {"X": X, "Y": Y, "U": U, "V": V}, long_field_names=True)
+
+    
+    # get the phase gradients 
+    # pm,pd = phase_gradient_complex_multiplication(Z2)
+    
+    # # plot the phase gradients
+    # U = np.cos(pd)
+    # V =  np.sin(pd)    
+    # plt.figure()
+    # plt.quiver(X,Y,U,V,angles='xy')
+    # plt.gca().invert_yaxis()
+    
+    #### LOOK AT PHASE NOISE 
+    A = Zproj[:,:,pc_idx]
+    B = Zproj1[:,:,pc_idx]
+    ampA,ampB,noiseA,noiseB = get_phase_statistics(A,B)
+    noise_diff = (np.mean(noiseA)-np.mean(noiseB))/np.mean(noiseA) * 100
+    var_stats.append((np.std(ampA)-np.std(ampB))/np.std(ampA) * 100)
+    mean_stats.append((np.mean(ampA)-np.mean(ampB))/np.mean(ampA) * 100)
+    noise_stats.append(noise_diff)
+    
+    mean_statsA.append(np.mean(ampA))
+    mean_statsB.append(np.mean(ampB))
+    var_statsA.append(np.std(ampA))
+    var_statsB.append(np.std(ampB))
+
+var_stats = np.array(var_stats)
+noise_stats = np.array(noise_stats)
+mean_stats = np.array(mean_stats)
+
+
+# plot example activation
+tmp = Zproj[112,:,pc_idx]
+plt.figure()
+plt.plot(tmp.real)
+plt.plot(tmp.imag)
+plt.plot(abs(tmp))
+plt.legend(('Real','Imag','Abs'))
+plt.ylabel('mu wave')
+plt.xlabel('Time')
+plt.title('Single Trial PC 1 Projection')
+
+plt.figure()
+plt.boxplot(noise_stats);plt.hlines(0,0.5,1.5)
+plt.title('Phase noise')
+plt.ylabel('Open Loop minus Closed loop (%)')
+plt.xticks([])
+plt.savefig("B3_PhaseNoiseStats.svg",format="svg",dpi=300)
+plt.show()
+
+plt.figure()
+plt.boxplot(var_stats);plt.hlines(0,0.5,1.5)
+plt.title('Trial to Trial Variance')
+plt.ylabel('Open Loop minus Closed loop (%)')
+plt.xticks([])
+
+plt.figure()
+plt.boxplot(mean_stats);plt.hlines(0,0.5,1.5)
+plt.title('Mean amplitude')
+plt.ylabel('Open Loop minus Closed loop (%)')
+plt.xticks([])
+
+
+print(stats.ttest_1samp(noise_stats,0))
+pvalue,boot_stat = bootstrap_test(noise_stats,'mean')
+pvalue,boot_stat = bootstrap_test(var_stats,'mean')
+pvalue,boot_stat = bootstrap_test(mean_stats,'mean')
+print(stats.wilcoxon(noise_stats))
+print(stats.wilcoxon(var_stats))
+print(stats.wilcoxon(mean_stats))
+
 #%%
 fig, ax = plt.subplots()
 

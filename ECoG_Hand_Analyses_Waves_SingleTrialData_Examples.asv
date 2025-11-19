@@ -226,7 +226,7 @@ for days=1:length(folders)-1
         end
         xcl=x;
 
-        %xol_days(days) = median(xol);
+        %xol_days(days) = median(xol);        
         %xcl_days(days) = median(xcl);
 
         xol_days = [xol_days median(xol)];
@@ -240,45 +240,64 @@ figure;boxplot([xol_days' xcl_days'],'notch','off')
 %% USING A LINEAR MODEL TO PREDICT TEMPORALLY 1 STEP INTO FUTURE
 
 clc;clear;
-%cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/')
-cd('/media/user/Data/ECoG_BCI_TravelingWave_Data/')
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/')
 
 % load data
-%load('alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr')
-load('alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec')
+load('alpha_dynamics_B1_253_Arrow_200Hz_AllDays_DaysLabeled_ArtifactCorr')
 
-parpool('threads')
+% take day 1 data alone
+idx = find(days==2);
+labels_day = labels(idx);
+x_day = xdata(idx);
+y_day = ydata(idx);
 
-recon_ol=[];
-recon_cl=[];
-for i=1:10
-    disp(num2str(i))
+ol = find(labels_day==0);
+cl = find(labels_day==1);
 
-    % take day 1 data alone
-    idx = find(days==i);
-    labels_day = labels(idx);
-    x_day = xdata(idx);
-    y_day = ydata(idx);
 
-    ol = find(labels_day==0);
-    cl = find(labels_day==1);
+x = x_day(ol);
+y = y_day(ol);
 
-    % ol recon error
-    x = x_day(ol);
-    y = y_day(ol);
-    recon_ol(i) = lin_pred_model(x,y);
+% split into 80% training and 20% testing 
+train_idx = randperm(length(x),round(0.8*length(x)));
+I =  ones(length(x),1);
+I(train_idx)=0;
+test_idx = find(I==1);
 
-    % cl recon error
-    x = x_day(cl);
-    y = y_day(cl);
-    recon_cl(i) = lin_pred_model(x,y);
+xtrain = x(train_idx);
+xtrain = cell2mat(xtrain);
+xtrain = xtrain(:,:);
 
+ytrain = y(train_idx);
+ytrain = cell2mat(ytrain);
+ytrain = ytrain(:,:);
+
+% build the regression model
+A = pinv(xtrain)*ytrain;
+
+% test on held out samples
+xtest=x(test_idx);
+ytest=y(test_idx);
+
+for i=1:length(xtest)
+    tmp = xtest{i};
+    tmp = tmp(:,:);
+
+    tmpy = ytest{i};
+    tmpy = tmpy(:,:);
+
+    predy = tmp*A;
 end
 
-figure;
-plot(recon_ol);
-hold on
-plot(recon_cl);
+
+ytest = cell2mat(ytest);
+ytest = ytest(:,:);
+xtest = cell2mat(xtest);
+xtest = xtest(:,:);
+predy = xtest*A;
+
+recon_error = ytest - predy;
+norm(recon_error,'fro')/size(recon_error,1)
 
 
 
