@@ -1,19 +1,24 @@
-function [rho,pval] = compute_planar_wave(xph,idx,idy,XX,YY)
+function [rho,pval] = compute_planar_wave(xph,XX,YY)
+%function [rho,pval] = compute_planar_wave(xph,idx,idy,XX,YY)
 %function [rho,pval] = compute_planar_wave(xph,idx,idy,XX,YY)
 
 
 %look at planar wave strength in the middle
-XX1=XX(idx,idy);
-YY1=YY(idx,idy);
+%XX1=XX(idx,idy);
+%YY1=YY(idx,idy);
+XX1=XX;
+YY1=YY;
+pred=[];
 pred(:,1)= XX1(:);
 pred(:,2) = YY1(:);
 pred = (pred - min(pred)) + 1;
-tmp = angle(xph(idx,idy));
+%tmp = angle(xph(idx,idy));
+tmp = angle(xph);
 tmp = tmp(:);
 
 % init of reg grid search parameters
-alp_range = 0:0.25:360;
-r_range = (0.01:0.01:25)';
+alp_range = 0:1:360;
+r_range = (0.01:0.1:18.1)';
 
 theta = tmp;
 theta = wrapTo2Pi(theta);
