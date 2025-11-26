@@ -68,7 +68,18 @@ for ii=1:length(files)
     end
     b=cell2mat(planar_val_time');
     r1=[b(1:end).rho];    
+    alp=[b(1:end).alp];    
     stats(ii).corr = r1;
+    % stability
+    stab=[];
+    for k=2:length(r1)
+        tmp = cosd(alp(k)) + 1i*sind(alp(k));
+        tmpm1 = cosd(alp(k-1)) + 1i*sind(alp(k-1));
+        stab(k) = abs((r1(k)*tmp) - (r1(k-1)*tmpm1));
+    end
+    %figure;plot(zscore(stab))
+    stats(ii).stab = stab;
+
 end
 
 
