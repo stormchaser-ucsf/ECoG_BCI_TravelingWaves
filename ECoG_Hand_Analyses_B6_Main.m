@@ -333,7 +333,8 @@ save session_data_B1_Hand session_data
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20240517\Robot3DArrow';
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250120\RealRobotBatch';
 %filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20250708/HandImagined';
-filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20250708/HandImagined';
+%filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20250708/HandImagined';
+filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20250917/Robot3DArrow/';
 
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250120\RealRobotBatch';
 

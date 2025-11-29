@@ -40,7 +40,8 @@ end
 if ispc
     filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
 else isunix
-    filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230518/HandOnline';
+    %filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230518/HandOnline';
+    filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20231207/Robot3DArrow/';
 end
 
 

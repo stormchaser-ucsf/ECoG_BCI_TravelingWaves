@@ -172,8 +172,7 @@ session_data(10).AM_PM = {'am','am','am','am','am','am',...
 
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230511\HandImagined';
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
-%filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230223/Robot3DArrow';
-filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230518/HandOnline';
+filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230223/Robot3DArrow';
 
 load('ECOG_Grid_8596_000067_B3.mat')
 

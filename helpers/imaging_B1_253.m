@@ -12,7 +12,7 @@ if ispc
 
 else
     dirn=pwd;
-    cd('/home/reza/Repositories/ECoG_BCI_TravelingWaves/helpers')
+    cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/helpers')
     load('BRAVO1_lh_pial')
     %load('BRAVO1_elecs_all')
     load('bravo1r_elecs_all_042024_blackrock_order')

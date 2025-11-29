@@ -48,7 +48,7 @@ for ii=1:length(files)
         if hilbert_flag
             df= hilbert(df);
         end
-        df = df(l11+1:end-20,:);
+        df = df(l11+1:end-40,:);%remove last 800ms
 
         
 

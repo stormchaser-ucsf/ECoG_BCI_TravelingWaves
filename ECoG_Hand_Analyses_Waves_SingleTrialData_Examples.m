@@ -282,6 +282,7 @@ plot(recon_cl);
 
 
 %% B3: CHECK PLANAR WAVES IN 6 BY 6 MINIGRID ROLLING AROUND THE OVERALL GRID
+% (MAIN, ARROW OR HAND)
 
 clc;clear;
 close all
@@ -300,18 +301,33 @@ else
     %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
     root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
     cd(root_path)
-    %load session_data_B3_Hand
-    load session_data_B3
+    load session_data_B3_Hand
+    %load session_data_B3
     load('ECOG_Grid_8596_000067_B3.mat')
     addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 
 end
 
+
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',1e3);
+d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',50);
+hilbert_flag=1;
+
+imaging_B3_waves;
+close all
+
 % load cl2 trials from last day
 %i=length(session_data);
 xol_days=[];
 xcl_days=[];
-for days=1:10
+stats_ol_days={};
+stats_cl_days={};
+len_days = min(11,length(session_data));
+for days=1:len_days
 
     folders_imag =  strcmp(session_data(days).folder_type,'I');
     folders_online = strcmp(session_data(days).folder_type,'O');
@@ -321,18 +337,10 @@ for days=1:10
     online_idx = find(folders_online==1);
     batch_idx = find(folders_batch==1);
     batch_idx1 = find(folders_batch1==1);
-    online_idx=[online_idx batch_idx];
+    online_idx=[online_idx batch_idx batch_idx1];
     %online_idx=[online_idx batch_idx batch_idx1];
     %online_idx = [batch_idx batch_idx1];
 
-
-    d1 = designfilt('bandpassiir','FilterOrder',4, ...
-        'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
-        'SampleRate',1e3);
-    d2 = designfilt('bandpassiir','FilterOrder',4, ...
-        'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
-        'SampleRate',200);
-    hilbert_flag=1;
 
 
     %%%%%% get imagined data files
@@ -340,35 +348,36 @@ for days=1:10
     day_date = session_data(days).Day;
     files=[];
     for ii=1:length(folders)
-        %folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
-        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'Imagined');
+        folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
+        %folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'Imagined');
         %cd(folderpath)
         files = [files;findfiles('mat',folderpath)'];
     end
 
-    len = min(50,length(files));
+    len = min(150,length(files));
     idx=randperm(length(files),len);
-    stats_ol = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid);
+    stats_ol = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+        grid_layout,elecmatrix);
+    stats_ol_days{days}=stats_ol;
 
 
 
-    %%%%%% get batch data files %%%%%
+    %%%%%% get online data files %%%%%
     folders = session_data(days).folders(online_idx);
     day_date = session_data(days).Day;
     files=[];
     for ii=1:length(folders)
-        %folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
-        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
+        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        %folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
         %cd(folderpath)
         files = [files;findfiles('mat',folderpath)'];
     end
 
-
-    len = min(50,length(files));
+    len = min(150,length(files));
     idx=randperm(length(files),len);
-    stats_cl = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid);
-
-
+    stats_cl = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+        grid_layout,elecmatrix);
+    stats_cl_days{days}=stats_cl;
 
     x=[];
     for i = 1:length(stats_ol)
@@ -379,9 +388,12 @@ for days=1:10
         %x= [x; nanmedian(tmp)];
         %x=[x;sum(isnan(tmp))/length(tmp)];
         %x(i) = median(abs(tmp));
-        tmp = stats_ol(i).stab;
-        tmp=zscore(tmp);
-        x(i) = sum(tmp>0.0)/length(tmp);
+        tmp = (stats_ol(i).stab);        
+        tmp=zscore(tmp(1:end));
+        %x(i) = sum(tmp>0.0)/length(tmp);
+        out = wave_stability_detect(tmp);
+        x(i) = mean(out);
+        %x(i) = sum(out)/length(tmp);
     end
     %figure;plot(mean(x,1))
     xol=x;
@@ -394,16 +406,25 @@ for days=1:10
         %x(i,:) = smooth(tmp(1:500),50);
         %x=[x;sum(isnan(tmp))/length(tmp)];
         %x(i) = median(abs(tmp));
-        tmp = stats_cl(i).stab;
-        tmp=zscore(tmp);
-        x(i) = sum(tmp>0.0)/length(tmp);
+        tmp = (stats_cl(i).stab);        
+        tmp=zscore(tmp(1:end));        
+        %x(i) = sum(tmp>0.0)/length(tmp);
+        out = wave_stability_detect(tmp);
+        x(i) = mean(out);
+        %x(i) = sum(out)/length(tmp);
     end
     xcl=x;
 
-    [p,h] = ranksum(xol,xcl)
-    figure;boxplot([xol' xcl'],'notch','off')
+    %[p,h] = ranksum(xol,xcl)
+    %figure;boxplot([xol' xcl'],'notch','off')
+    %title(['Day ' num2str(days)]);
     xcl_days(days)=mean(xcl);
     xol_days(days)=mean(xol);
+
+    %[p,h] = signrank(xol,xcl)
+    %figure;boxplot([xol' xcl'],'notch','off')    
+
+    save B3_waves_hand_stability -v7.3
 end
 
 figure;
@@ -417,7 +438,9 @@ boxplot([xol_days' xcl_days'])
 [h,p,tb,st]=ttest(xol_days,xcl_days)
 
 %% B1 CHECK PLANAR WAVES IN 6 BY 6 MINIGRID ROLLING AROUND THE OVERALL GRID
+% (MAIN)
 
+tic 
 clc;clear;
 close all
 if ispc
@@ -457,10 +480,12 @@ folders={'20240515', '20240517', '20240614', ...
     '20240619', '20240621', '20240626',...
     '20240710','20240712','20240731'};
 
-folders = folders(1:6);
+folders = folders(1:7);
+
 xol_days=[];
 xcl_days=[];
-
+stats_ol_days={};
+stats_cl_days={};
 for days=1:length(folders)
 
     folderpath = fullfile(root_path,folders{days},'Robot3DArrow');
@@ -505,10 +530,11 @@ for days=1:length(folders)
         files = [files;findfiles('mat',imag_folderpath)'];
     end
     
-    len = min(25,length(files));
+    len = min(150,length(files));
     idx=randperm(length(files),len);
     stats_ol = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
         grid_layout,elecmatrix);
+    stats_ol_days{days}=stats_ol;
 
 
     %%%%%% get online data files %%%%%
@@ -518,10 +544,11 @@ for days=1:length(folders)
         files = [files;findfiles('mat',imag_folderpath)'];
     end
   
-    len = min(25,length(files));
+    len = min(150,length(files));
     idx=randperm(length(files),len);
     stats_cl = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
         grid_layout,elecmatrix);
+    stats_cl_days{days}=stats_cl;
 
     x=[];
     for i = 1:length(stats_ol)
@@ -534,7 +561,10 @@ for days=1:length(folders)
         %x(i) = median(abs(tmp));
         tmp = stats_ol(i).stab;        
         tmp=zscore(tmp(1:end));
-        x(i) = sum(tmp>0.0)/length(tmp);
+        %x(i) = sum(tmp>0.0)/length(tmp);
+        out = wave_stability_detect(tmp);
+        %x(i) = mean(out);
+        x(i) = sum(out)/length(tmp);
     end
     %figure;plot(mean(x,1))
     xol=x;
@@ -549,12 +579,16 @@ for days=1:length(folders)
         %x(i) = median(abs(tmp));
         tmp = stats_cl(i).stab;        
         tmp=zscore(tmp(1:end));        
-        x(i) = sum(tmp>0.0)/length(tmp);
+        %x(i) = sum(tmp>0.0)/length(tmp);
+        out = wave_stability_detect(tmp);
+        %x(i) = mean(out);
+        x(i) = sum(out)/length(tmp);
     end
     xcl=x;
 
-    [p,h] = ranksum(xol,xcl)
-    figure;boxplot([xol' xcl'],'notch','off')
+    % [p,h] = ranksum(xol,xcl)
+    % figure;boxplot([xol' xcl'],'notch','off')
+    % title(['Day ' num2str(days)]);
     xcl_days(days)=mean(xcl);
     xol_days(days)=mean(xol);
 end
@@ -565,11 +599,37 @@ hold on
 plot(xcl_days)
 
 figure;
-boxplot([xol_days' xcl_days'])
-[p,h] = signrank(xol_days,xcl_days)
+boxplot([xol_days' xcl_days']*20)
+[p,h] = signrank(20*xol_days,20*xcl_days)
 [h,p,tb,st]=ttest(xol_days,xcl_days)
 
+save B1_waves_stability -v7.3 % 50Hz, removing last 400ms in fitering step
+
+toc
+
+% plotting back
+xol=[];xcl=[];
+for i=1:length(stats_ol_days)
+    tmp=stats_ol_days{i}.stab;
+    tmp = zscore(tmp);
+    out = wave_stability_detect(tmp);
+    xol(i) = mean(out)*20;
+
+    tmp=stats_cl_days{i}.stab;
+    tmp = zscore(tmp);
+    out = wave_stability_detect(tmp);
+    xcl(i) = mean(out)*20;
+end
+
+figure;
+boxplot([xol' xcl']*20)
+[p,h] = signrank(xol.xcl)
+[h,p,tb,st]=ttest(xol_days,xcl_days)
+
+
+
 %% B6 CHECK PLANAR WAVES IN 6 BY 6 MINIGRID ROLLING AROUND THE OVERALL GRID
+%(MAIN)
 
 clc;clear
 close all
@@ -595,113 +655,99 @@ end
 
 
 
-
+% seems to be between 7 and 10Hz for arrow
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',7.5,'HalfPowerFrequency2',9.5, ...
+    'HalfPowerFrequency1',7.0,'HalfPowerFrequency2',10, ...
     'SampleRate',1e3);
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',7.5,'HalfPowerFrequency2',9.5, ...
-    'SampleRate',200);
+    'HalfPowerFrequency1',7.0,'HalfPowerFrequency2',10, ...
+    'SampleRate',50);
 
 d3 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
     'SampleRate',1e3);
 
 
-
-% hand
-folders={'20250624', '20250703', ...
-     '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
+% 
+% % hand
+% folders={'20250624', '20250703', ...
+%      '20250827', '20250903', '20250917','20250924'}; %20250708 has only imagined
 
 % robot3DArrow
 folders = {'20250530','20250610','20250624','20250703','20250708','20250717',...
     '20250917','20250924'};
 
-%folders = folders(1:6);
+imaging_B3_waves;close all
+
+hilbert_flag=1;
 xol_days=[];
 xcl_days=[];
-
+stats_ol_days={};
+stats_cl_days={};
 for days=1:length(folders)
 
-    % folderpath = fullfile(root_path,folders{days});
-    % D= dir(folderpath);
-    % D = D(3:end);
-    % imag_idx=[];
-    % online_idx=[];
-    % for j=1:length(D)
-    %     if strcmp(D(j).name,'HandImagined')
-    %         imag_idx=[imag_idx j];
-    %     elseif strcmp(D(j).name,'HandOnline')
-    %         online_idx=[online_idx j];
-    %     end
-    % end
-
     folderpath = fullfile(root_path,folders{days},'Robot3DArrow');
+    % if i<=2
+    %     folderpath = fullfile(root_path,folders_robot{i},'Robot3D');
+    % else
+    %     folderpath = fullfile(root_path,folders_robot{i},'RealRobotBatch');
+    % end
     D= dir(folderpath);
     D = D(3:end);
     imag_idx=[];
     online_idx=[];
     for j=1:length(D)
         subfoldername = dir(fullfile(folderpath,D(j).name));
-        if length(subfoldername)>2
-            if strcmp(subfoldername(3).name,'Imagined')
-                imag_idx=[imag_idx j];
-            elseif strcmp(subfoldername(3).name,'BCI_Fixed')
-                online_idx=[online_idx j];
-            end
+        if strcmp(subfoldername(3).name,'Imagined')
+            imag_idx=[imag_idx j];
+        elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+            online_idx=[online_idx j];
         end
     end
+    % imag_idx_main=imag_idx(1:3);
+    % online_idx_main=online_idx(1:3);
+    % 
+    % folders_imag =  strcmp(session_data(days).folder_type,'I');
+    % folders_online = strcmp(session_data(days).folder_type,'O');
+    % folders_batch = strcmp(session_data(days).folder_type,'B');
+    % folders_batch1 = strcmp(session_data(days).folder_type,'B1');
+    % imag_idx = find(folders_imag==1);
+    % online_idx = find(folders_online==1);
+    % batch_idx = find(folders_batch==1);
+    % batch_idx1 = find(folders_batch1==1);
+    % online_idx=[online_idx batch_idx];
+    % online_idx=[online_idx batch_idx batch_idx1];
+    %online_idx = [batch_idx batch_idx1];
 
-    
-    hilbert_flag=1;
 
 
     %%%%%% get imagined data files
     files=[];
     for ii=1:length(imag_idx)
-        imag_folderpath = fullfile(folderpath, D(imag_idx(ii)).name);
-        files = [files;findfiles('.mat',imag_folderpath,1)'];
+        imag_folderpath = fullfile(folderpath, D(imag_idx(ii)).name,'Imagined');
+        files = [files;findfiles('mat',imag_folderpath)'];
     end
-    files = remove_kf_params(files);
     
-    len = min(100,length(files));
+    len = min(150,length(files));
     idx=randperm(length(files),len);
-    stats_ol = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid);
+    stats_ol = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+        grid_layout,elecmatrix);
+    stats_ol_days{days}=stats_ol;
 
-    
+
     %%%%%% get online data files %%%%%
     files=[];
     for ii=1:length(online_idx)
-        imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name);
-        files = [files;findfiles('.mat',imag_folderpath,1)'];
+        imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
+        files = [files;findfiles('mat',imag_folderpath)'];
     end
-    files = remove_kf_params(files);
   
-    len = min(100,length(files));
+    len = min(150,length(files));
     idx=randperm(length(files),len);
-    stats_cl = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid);
-
-    %%%% get high gamma around time that waves occured
-    rows = [1 5];
-    cols = [1:4:17];
-    ii=2;%length(rows)
-    jj=2;%length(cols)
-    r = [rows(ii):rows(ii)+6];    
-    c = [cols(jj):cols(jj)+6];
-    hg_cl =  get_hg_around_waves(files(idx),d3,ecog_grid,r,c);
-
-    hg_wav=[];hg_nonwav=[];
-    for i=1:length(hg_cl)
-        hg = smooth(hg_cl{i});
-        tmp = smooth(stats_cl(i).stab);
-        tmp=zscore(tmp);
-        waves_idx  = tmp>0.5;
-        non_waves_idx = tmp<=0.5;
-        hg_wav(i) = median(hg(waves_idx));
-        hg_nonwav(i) = median(hg(non_waves_idx));
-    end
-    figure;boxplot([hg_wav' hg_nonwav'])
+    stats_cl = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+        grid_layout,elecmatrix);
+    stats_cl_days{days}=stats_cl;
 
     x=[];
     for i = 1:length(stats_ol)
@@ -712,10 +758,12 @@ for days=1:length(folders)
         %x= [x; nanmedian(tmp)];
         %x=[x;sum(isnan(tmp))/length(tmp)];
         %x(i) = median(abs(tmp));
-        tmp = stats_ol(i).stab;
-        %tmp=smooth(tmp,5);
-        tmp=zscore(tmp);
-        x(i) = sum(tmp>0.5)/length(tmp);
+        tmp = stats_ol(i).stab;        
+        tmp=zscore(tmp(1:end));
+        %x(i) = sum(tmp>0.0)/length(tmp);
+        out = wave_stability_detect(tmp);
+        x(i) = mean(out);
+        %x(i) = sum(out)/length(tmp);
     end
     %figure;plot(mean(x,1))
     xol=x;
@@ -728,15 +776,18 @@ for days=1:length(folders)
         %x(i,:) = smooth(tmp(1:500),50);
         %x=[x;sum(isnan(tmp))/length(tmp)];
         %x(i) = median(abs(tmp));
-        tmp = stats_cl(i).stab;
-        %tmp=smooth(tmp,5);
-        tmp=zscore(tmp);
-        x(i) = sum(tmp>0.5)/length(tmp);
+        tmp = stats_cl(i).stab;        
+        tmp=zscore(tmp(1:end));        
+        %x(i) = sum(tmp>0.0)/length(tmp);
+        out = wave_stability_detect(tmp);
+        x(i) = mean(out);
+        %x(i) = sum(out)/length(tmp);
     end
     xcl=x;
 
-    [p,h] = ranksum(xol,xcl)
-    figure;boxplot([xol' xcl'],'notch','off')
+    % [p,h] = ranksum(xol,xcl)
+    % figure;boxplot([xol' xcl'],'notch','off')
+    % title(['Day ' num2str(days)]);
     xcl_days(days)=mean(xcl);
     xol_days(days)=mean(xol);
 end
@@ -747,6 +798,8 @@ hold on
 plot(xcl_days)
 
 figure;
-boxplot([xol_days' xcl_days'])
-[p,h] = signrank(xol_days,xcl_days)
+boxplot([xol_days' xcl_days']*20)
+[p,h] = signrank(20*xol_days,20*xcl_days)
 [h,p,tb,st]=ttest(xol_days,xcl_days)
+
+save B6_waves_stability -v7.3 % 50Hz, removing last 400ms in fitering step
