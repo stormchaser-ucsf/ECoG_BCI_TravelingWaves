@@ -327,7 +327,9 @@ xcl_days=[];
 stats_ol_days={};
 stats_cl_days={};
 len_days = min(11,length(session_data));
-for days=1:len_days
+for days=4:len_days
+
+    disp(['Processing day ' num2str(days)])
 
     folders_imag =  strcmp(session_data(days).folder_type,'I');
     folders_online = strcmp(session_data(days).folder_type,'O');
@@ -392,8 +394,13 @@ for days=1:len_days
         tmp=zscore(tmp(1:end));
         %x(i) = sum(tmp>0.0)/length(tmp);
         out = wave_stability_detect(tmp);
-        x(i) = mean(out);
+        x(i) = median(out);
         %x(i) = sum(out)/length(tmp);
+        %x(i) = length(out)/length(tmp);
+        %t = length(tmp) * 20/1e3;
+        %f =length(out)/t; % frequency/s
+        %d = median(out) * 20/1e3; %duration in s
+        %x(i) = f*d;
     end
     %figure;plot(mean(x,1))
     xol=x;
@@ -410,11 +417,17 @@ for days=1:len_days
         tmp=zscore(tmp(1:end));
         %x(i) = sum(tmp>0.0)/length(tmp);
         out = wave_stability_detect(tmp);
-        x(i) = mean(out);
+        x(i) = median(out);
         %x(i) = sum(out)/length(tmp);
+        %x(i) = length(out)/length(tmp);
+        %t = length(tmp) * 20/1e3;
+        %f =length(out)/t; % frequency/s
+        %d = median(out) * 20/1e3; %duration in s
+        %x(i) = f*d;
     end
     xcl=x;
 
+    %xol(end+1:length(xcl))=NaN;
     %[p,h] = ranksum(xol,xcl)
     %figure;boxplot([xol' xcl'],'notch','off')
     %title(['Day ' num2str(days)]);
@@ -436,6 +449,45 @@ figure;
 boxplot([xol_days' xcl_days'])
 [p,h] = signrank(xol_days,xcl_days)
 [h,p,tb,st]=ttest(xol_days,xcl_days)
+
+% plotting back
+xol=[];xcl=[];
+for i=1:length(stats_ol_days)
+    tmp0=stats_ol_days{i};
+    x=[];
+    for j=1:length(tmp0)
+        tmp = zscore(tmp0(j).stab);
+        out = wave_stability_detect(tmp);
+        %x(j) = median(out);
+        %x(j) = sum(out)/length(tmp);
+        t = length(tmp) * 20/1e3;
+        f =length(out)/t; % frequency/s
+        d = median(out) * 20/1e3; %duration in s
+        x(j) = f*d;%duty_cycle
+    end
+    xol(i) = mean(x);
+
+    tmp0=stats_cl_days{i};
+    x=[];
+    for j=1:length(tmp0)
+        tmp = zscore(tmp0(j).stab);
+        out = wave_stability_detect(tmp);
+        %x(j) = median(out);
+        %x(j) = sum(out)/length(tmp);
+        t = length(tmp) * 20/1e3;
+        f =length(out)/t; % frequency/s
+        d = median(out) * 20/1e3; %duration in s
+        x(j) = f*d;%duty_cycle
+    end
+    xcl(i) = mean(x);
+end
+
+figure;
+%boxplot([xol' xcl']*20)
+boxplot([xol' xcl'])
+[p,h] = signrank(xol,xcl)
+[h,p,tb,st]=ttest(xol,xcl)
+
 
 %% B1 CHECK PLANAR WAVES IN 6 BY 6 MINIGRID ROLLING AROUND THE OVERALL GRID
 % (MAIN)
@@ -685,7 +737,7 @@ xol_days=[];
 xcl_days=[];
 stats_ol_days={};
 stats_cl_days={};
-for days=7:length(folders)
+for days=8:length(folders)
 
     folderpath = fullfile(root_path,folders{days},'Robot3DArrow');
     % if i<=2
@@ -794,6 +846,7 @@ for days=7:length(folders)
     xol_days(days)=mean(xol);
 
     save B6_waves_stability -v7.3 % 50Hz, removing last 400ms in fitering step
+
 end
 
 figure;
@@ -823,7 +876,7 @@ for i=1:length(stats_ol_days)
         d = median(out) * 20/1e3; %duration in s
         x(j) = f*d;%duty_cycle
     end
-    xol(i) = median(x);
+    xol(i) = mean(x);
 
     tmp0=stats_cl_days{i};
     x=[];
@@ -837,11 +890,12 @@ for i=1:length(stats_ol_days)
         d = median(out) * 20/1e3; %duration in s
         x(j) = f*d;%duty_cycle
     end
-    xcl(i) = median(x);
+    xcl(i) = mean(x);
 end
 
 figure;
-boxplot([xol' xcl']*20)
+%boxplot([xol' xcl']*20)
+boxplot([xol' xcl'])
 [p,h] = signrank(xol,xcl)
 [h,p,tb,st]=ttest(xol,xcl)
 
