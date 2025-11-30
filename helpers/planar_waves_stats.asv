@@ -61,22 +61,15 @@ for ii=1:length(files)
             % estimate planar waves across mini grid
             tmp = df(t,:);
             xph = tmp(ecog_grid);
-
-            % smooth phase new
-            % M = real(xph);
-            % N = imag(xph);
-            % tmp = smoothn({M,N},'robust');
-            % M = tmp{1}; N = tmp{2};
-            % xph = M + 1j*N;
             
             % smooth phase
             % [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
-            % M = real(xph);
-            % N = imag(xph);
-            % M = smoothn(M,'robust'); %dx
-            % N = smoothn(N,'robust'); %dy
-            % xph = M + 1j*N; % smoothed phasor field: gets smoothed estimates of phase            
-            % 
+            M = real(xph);
+            N = imag(xph);
+            M = smoothn(M,'robust'); %dx
+            N = smoothn(N,'robust'); %dy
+            xph = M + 1j*N; % smoothed phasor field: gets smoothed estimates of phase            
+            
             %planar_val = planar_stats(xph);            
 
             % estimate planar waves across the entire grid, fitting wave
@@ -117,24 +110,20 @@ end
 
 end
 
-% % 
-% % % % plotting the wave segment as arrows
-% stab=zscore(stab);
-% figure;plot(stab)
-% [out,st,stp] = wave_stability_detect(stab,0);
-% vline(st,'g')
-% vline(stp,'r')
-% hline(0)
-% for tt=92:99
-%     planar_val = squeeze(planar_val_time(tt,:,:));
-%     M = real(planar_val);
-%     N = imag(planar_val);
-%     %M = smoothn(M,'robust'); %dx
-%     %N = smoothn(N,'robust'); %dy
-%     tmp = smoothn({M,N},'robust');
-%     M = tmp{1}; N = tmp{2};
-%     [XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
-%     figure;
-%     quiver(XX,YY,M,N);axis tight
-%     title(num2str(tt))
-% end
+
+% plotting the wave segment as arrows
+stab=zscore(stab);
+figure;plot(stab)
+[out,st,stp] = wave_stability_detect((stab));
+vline(st,'g')
+vline(stp,'r')
+hline(0)
+tt=109;
+planar_val = squeeze(planar_val_time(tt,:,:));
+M = real(planar_val);
+N = imag(planar_val);
+M = smoothn(M,'robust'); %dx
+N = smoothn(N,'robust'); %dy
+[XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
+figure;
+quiver(XX,YY,M,N)

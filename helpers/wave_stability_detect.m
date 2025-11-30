@@ -1,4 +1,8 @@
-function [wav_det,wav_st,wav_stp] = wave_stability_detect(tmp)
+function [wav_det,wav_st,wav_stp] = wave_stability_detect(tmp,thresh)
+
+if nargin<2
+    thresh=0;
+end
 
 wav_det=[];
 wav_st=[];wav_stp=[];
@@ -6,7 +10,7 @@ done=0;
 k=1;
 while ~done
     start_idx=k;
-    while tmp(k)>0 && k<length(tmp)
+    while tmp(k)>thresh && k<length(tmp)
         % march forward in time
         k=k+1;                  
     end

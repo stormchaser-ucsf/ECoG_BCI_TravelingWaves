@@ -327,7 +327,7 @@ xcl_days=[];
 stats_ol_days={};
 stats_cl_days={};
 len_days = min(11,length(session_data));
-for days=4:len_days
+for days=7:len_days
 
     disp(['Processing day ' num2str(days)])
 
@@ -456,30 +456,50 @@ for i=1:length(stats_ol_days)
     tmp0=stats_ol_days{i};
     x=[];
     for j=1:length(tmp0)
-        tmp = zscore(tmp0(j).stab);
-        out = wave_stability_detect(tmp);
+        tmp_og = (tmp0(j).stab);
+        tmp=zscore(tmp_og);
+        [out,st,stp] = wave_stability_detect(tmp);
+        % s=[];
+        % for k=1:length(st)
+        %     s(k) = median(tmp_og(st(k):stp(k)));
+        % end
+        % x(j) = median(s);
+
+
         %x(j) = median(out);
         %x(j) = sum(out)/length(tmp);
+
         t = length(tmp) * 20/1e3;
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
         x(j) = f*d;%duty_cycle
+
+        
     end
-    xol(i) = mean(x);
+    xol(i) = nanmean(x);
 
     tmp0=stats_cl_days{i};
     x=[];
     for j=1:length(tmp0)
-        tmp = zscore(tmp0(j).stab);
-        out = wave_stability_detect(tmp);
+        tmp_og = (tmp0(j).stab);
+        tmp=zscore(tmp_og);
+        [out,st,stp] = wave_stability_detect(tmp);
+        % s=[];
+        % for k=1:length(st)
+        %     s(k) = median(tmp_og(st(k):stp(k)));
+        % end
+        % x(j) = median(s);
         %x(j) = median(out);
         %x(j) = sum(out)/length(tmp);
+
         t = length(tmp) * 20/1e3;
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
         x(j) = f*d;%duty_cycle
+        
+        %x(j) = median(tmp_og);
     end
-    xcl(i) = mean(x);
+    xcl(i) = nanmean(x);
 end
 
 figure;
