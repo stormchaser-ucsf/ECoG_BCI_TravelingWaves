@@ -2,7 +2,7 @@ function stats = planar_waves_stats(files,d2,...
     hilbert_flag,ecog_grid,grid_layout,elecmatrix)
 
 
-stats={};
+stats={};kk=1;
 for ii=1:length(files)
     disp(['Processing file ' num2str(ii) ' of ' num2str(length(files))])
     loaded=1;
@@ -78,6 +78,16 @@ for ii=1:length(files)
             %planar_val_time{t} = planar_val;
             planar_val_time(t,:,:) = planar_val;
         end
+
+        %%%% if performing local circular linear correlation around entire grid
+        stab=[];
+        for k=2:size(planar_val_time,1)
+            xt = planar_val_time(k,:,:);xt=xt(:);
+            xtm1 = planar_val_time(k-1,:,:);xtm1=xtm1(:);
+            stab(k-1) = - mean(abs(xt - xtm1));
+        end
+
+        stats(kk).stab = stab;kk=kk+1;
     end
 
     %%%%% if just using one grid
@@ -93,15 +103,7 @@ for ii=1:length(files)
     % end
     %figure;plot(zscore(stab))
 
-    %%%% if performing local circular linear correlation around entire grid
-    stab=[];
-    for k=2:size(planar_val_time,1)
-        xt = planar_val_time(k,:,:);xt=xt(:);
-        xtm1 = planar_val_time(k-1,:,:);xtm1=xtm1(:);
-        stab(k-1) = - mean(abs(xt - xtm1));
-    end
-
-    stats(ii).stab = stab;
+   
 
 end
 

@@ -685,7 +685,7 @@ xol_days=[];
 xcl_days=[];
 stats_ol_days={};
 stats_cl_days={};
-for days=4:length(folders)
+for days=8:length(folders)
 
     folderpath = fullfile(root_path,folders{days},'Robot3DArrow');
     % if i<=2
@@ -794,6 +794,7 @@ for days=4:length(folders)
     xol_days(days)=mean(xol);
 
     save B6_waves_stability -v7.3 % 50Hz, removing last 400ms in fitering step
+    
 end
 
 figure;
@@ -816,7 +817,12 @@ for i=1:length(stats_ol_days)
     for j=1:length(tmp0)
         tmp = zscore(tmp0(j).stab);
         out = wave_stability_detect(tmp);
-        x(j) = mean(out);
+        %x(j) = median(out);
+        %x(j) = sum(out)/length(tmp);
+        t = length(tmp) * 20/1e3;
+        f =length(out)/t; % frequency/s
+        d = median(out) * 20/1e3; %duration in s
+        x(j) = f*d;%duty_cycle
     end
     xol(i) = mean(x);
 
@@ -825,13 +831,19 @@ for i=1:length(stats_ol_days)
     for j=1:length(tmp0)
         tmp = zscore(tmp0(j).stab);
         out = wave_stability_detect(tmp);
-        x(j) = mean(out);
+        %x(j) = median(out);
+        %x(j) = sum(out)/length(tmp);
+        t = length(tmp) * 20/1e3;
+        f =length(out)/t; % frequency/s
+        d = median(out) * 20/1e3; %duration in s
+        x(j) = f*d;%duty_cycle
     end
     xcl(i) = mean(x);
 end
 
 figure;
-boxplot([xol' xcl']*20)
-[p,h] = signrank(xol.xcl)
-[h,p,tb,st]=ttest(xol_days,xcl_days)
+%boxplot([xol' xcl']*20)
+boxplot([xol' xcl'])
+[p,h] = signrank(xol,xcl)
+[h,p,tb,st]=ttest(xol,xcl)
 
