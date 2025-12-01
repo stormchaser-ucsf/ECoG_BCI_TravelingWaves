@@ -80,8 +80,12 @@ for ii=1:length(files)
 
             % estimate planar waves across the entire grid, fitting wave
             % patterns at a local subcluster around each electrode
-            planar_val = planar_stats_full(xph,grid_layout,elecmatrix);            
+            %planar_val = planar_stats_full(xph,grid_layout,elecmatrix);            
             %planar_val_time{t} = planar_val;
+            
+            planar_val = planar_stats_muller(xph);
+
+
             planar_val_time(t,:,:) = planar_val;
         end
 
@@ -119,45 +123,43 @@ end
 
 end
 
-% plotting raw data
-M = real(xph);
-N = imag(xph);
-tmp = smoothn({M,N},'robust');
-M = tmp{1}; N = tmp{2};
-[XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
-figure;
-quiver(XX,YY,M,N);axis tight
-xphs = M + 1j*N;
-
-% get the vector field per Jacobs method
-planar_val = planar_stats_full(xph,grid_layout,elecmatrix);
-
-% plotting just single mini grid
-M = real(planar_val);
-N = imag(planar_val);
-tmp = smoothn({M,N},'robust');
-M = tmp{1}; N = tmp{2};
-[XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
-figure;
-quiver(XX,YY,M,N);axis tight
-
-% comparing to gradient vector field muller method
-%M = real(xph);
-%N = imag(xph);
-%tmp = smoothn({M,N},'robust');
-%M = tmp{1}; N = tmp{2};
-%xphs = M + 1j*N;
-%xphs=xph;
-[pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphs, ...
-    1,-1);
-[XX,YY] = meshgrid( 1:size(xphs,2), 1:size(xphs,1) );
-ph=pd;
-M =  pm.*cos(ph);
-N =  pm.*sin(ph);
-tmp = smoothn({M,N},'robust');
-M = tmp{1}; N = tmp{2};
-figure;
-quiver(XX,YY,M,N);axis tight
+% % plotting raw data
+% M = real(xph);
+% N = imag(xph);
+% tmp = smoothn({M,N},'robust');
+% M = tmp{1}; N = tmp{2};
+% [XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
+% figure;
+% quiver(XX,YY,M,N);axis tight
+% xphs = M + 1j*N;
+% 
+% % get the vector field per Jacobs method
+% planar_val = planar_stats_full(xph,grid_layout,elecmatrix);
+% M = real(planar_val);
+% N = imag(planar_val);
+% tmp = smoothn({M,N},'robust');
+% M = tmp{1}; N = tmp{2};
+% [XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
+% figure;
+% quiver(XX,YY,M,N);axis tight
+% 
+% % comparing to gradient vector field muller method
+% %M = real(xph);
+% %N = imag(xph);
+% %tmp = smoothn({M,N},'robust');
+% %M = tmp{1}; N = tmp{2};
+% %xphs = M + 1j*N;
+% %xphs=xph;
+% [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphs, ...
+%     1,-1);
+% [XX,YY] = meshgrid( 1:size(xphs,2), 1:size(xphs,1) );
+% ph=pd;
+% M =  pm.*cos(ph);
+% N =  pm.*sin(ph);
+% tmp = smoothn({M,N},'robust');
+% M = tmp{1}; N = tmp{2};
+% figure;
+% quiver(XX,YY,M,N);axis tight
 
 
 
