@@ -1,7 +1,7 @@
-function stats = planar_waves_stats(files,d2,...
+function [stats] = planar_waves_stats(files,d2,...
     hilbert_flag,ecog_grid,grid_layout,elecmatrix)
 
-
+vec_field={};
 stats={};kk=1;
 for ii=1:length(files)
     disp(['Processing file ' num2str(ii) ' of ' num2str(length(files))])
@@ -92,9 +92,12 @@ for ii=1:length(files)
             xt = planar_val_time(k,:,:);xt=xt(:);
             xtm1 = planar_val_time(k-1,:,:);xtm1=xtm1(:);
             stab(k-1) = - mean(abs(xt - xtm1));
-        end
-
-        stats(kk).stab = stab;kk=kk+1;
+        end       
+        
+        stats(kk).stab = stab;
+        stats(kk).vec_field = planar_val_time;
+        
+        kk=kk+1;
     end
 
     %%%%% if just using one grid
