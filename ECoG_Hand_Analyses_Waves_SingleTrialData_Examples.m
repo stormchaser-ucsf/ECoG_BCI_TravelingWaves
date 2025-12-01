@@ -327,7 +327,7 @@ xcl_days=[];
 stats_ol_days={};
 stats_cl_days={};
 len_days = min(11,length(session_data));
-for days=7:len_days
+for days=1:len_days
 
     disp(['Processing day ' num2str(days)])
 
@@ -394,13 +394,13 @@ for days=7:len_days
         tmp=zscore(tmp(1:end));
         %x(i) = sum(tmp>0.0)/length(tmp);
         out = wave_stability_detect(tmp);
-        x(i) = median(out);
+        %x(i) = median(out);
         %x(i) = sum(out)/length(tmp);
         %x(i) = length(out)/length(tmp);
-        %t = length(tmp) * 20/1e3;
-        %f =length(out)/t; % frequency/s
-        %d = median(out) * 20/1e3; %duration in s
-        %x(i) = f*d;
+        t = length(tmp) * 20/1e3;
+        f =length(out)/t; % frequency/s
+        d = median(out) * 20/1e3; %duration in s
+        x(i) = f*d;
     end
     %figure;plot(mean(x,1))
     xol=x;
@@ -417,13 +417,13 @@ for days=7:len_days
         tmp=zscore(tmp(1:end));
         %x(i) = sum(tmp>0.0)/length(tmp);
         out = wave_stability_detect(tmp);
-        x(i) = median(out);
+        %x(i) = median(out);
         %x(i) = sum(out)/length(tmp);
         %x(i) = length(out)/length(tmp);
-        %t = length(tmp) * 20/1e3;
-        %f =length(out)/t; % frequency/s
-        %d = median(out) * 20/1e3; %duration in s
-        %x(i) = f*d;
+        t = length(tmp) * 20/1e3;
+        f =length(out)/t; % frequency/s
+        d = median(out) * 20/1e3; %duration in s
+        x(i) = f*d;
     end
     xcl=x;
 
@@ -437,7 +437,7 @@ for days=7:len_days
     %[p,h] = signrank(xol,xcl)
     %figure;boxplot([xol' xcl'],'notch','off')
 
-    save B3_waves_hand_stability -v7.3
+    save B3_waves_hand_stability_Muller -v7.3
 end
 
 figure;
