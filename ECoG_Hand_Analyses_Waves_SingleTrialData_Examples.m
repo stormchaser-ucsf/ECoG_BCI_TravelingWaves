@@ -503,6 +503,11 @@ for i=1:length(stats_ol_days)
 end
 
 figure;
+plot(xol);hold on
+plot(xcl)
+
+
+figure;
 %boxplot([xol' xcl']*20)
 boxplot([xol' xcl'])
 [p,h] = signrank(xol,xcl)
