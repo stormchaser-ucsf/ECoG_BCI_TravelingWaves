@@ -55,7 +55,7 @@ for ii=1:length(files)
         % detect planar waves across mini-grid location
         planar_val_time=[];
         parfor t=1:size(df,1)
-            %disp(t)
+            disp(t)
             
             % estimate planar waves across mini grid
             tmp = df(t,:);
@@ -78,11 +78,11 @@ for ii=1:length(files)
             %planar_val = planar_stats_muller(xph);
 
             % smoothing
-            % M = real(planar_val);
-            % N = imag(planar_val);
-            % tmp = smoothn({M,N},'robust');
-            % M = tmp{1}; N = tmp{2};
-            % planar_val = M+1j*N;
+            M = real(planar_val);
+            N = imag(planar_val);
+            tmp = smoothn({M,N},'robust');
+            M = tmp{1}; N = tmp{2};
+            planar_val = M+1j*N;
 
 
             planar_val_time(t,:,:) = planar_val;
@@ -121,84 +121,84 @@ end
 
 
 end
+
+% plotting raw data
+M = real(xph);
+N = imag(xph);
+tmp = smoothn({M,N},'robust');
+M = tmp{1}; N = tmp{2};
+[XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+figure;
+quiver(XX,YY,M,N);axis tight
+xphs = M + 1j*N;
+figure;
+imagesc(cos(angle(xphs)))
+
+% get the vector field per Jacobs method
+[planar_val,planar_reg] = planar_stats_full(xph,grid_layout,elecmatrix);
+M = real(planar_val);
+N = imag(planar_val);
+tmp = smoothn({M,N},'robust');
+M = tmp{1}; N = tmp{2};
+[XX,YY] = meshgrid( 1:size(planar_reg,2), 1:size(planar_reg,1) );
+figure;
+quiver(XX,YY,M,N);axis tight
+
+% comparing to gradient vector field muller method
+%M = real(xph);
+%N = imag(xph);
+%tmp = smoothn({M,N},'robust');
+%M = tmp{1}; N = tmp{2};
+%xphs = M + 1j*N;
+%xphs=xph;
+[pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphs, ...
+    1,-1);
+[XX,YY] = meshgrid( 1:size(xphs,2), 1:size(xphs,1) );
+ph=pd;
+M =  pm.*cos(ph);
+N =  pm.*sin(ph);
+tmp = smoothn({M,N},'robust');
+M = tmp{1}; N = tmp{2};
+figure;
+quiver(XX,YY,M,N);axis tight
+
 % 
-% % plotting raw data
-% M = real(xph);
-% N = imag(xph);
-% tmp = smoothn({M,N},'robust');
-% M = tmp{1}; N = tmp{2};
-% [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
-% figure;
-% quiver(XX,YY,M,N);axis tight
-% xphs = M + 1j*N;
-% figure;
-% imagesc(cos(angle(xphs)))
 % 
-% % get the vector field per Jacobs method
-% [planar_val,planar_reg] = planar_stats_full(xph,grid_layout,elecmatrix);
-% M = real(planar_reg);
-% N = imag(planar_reg);
-% tmp = smoothn({M,N},'robust');
-% M = tmp{1}; N = tmp{2};
-% [XX,YY] = meshgrid( 1:size(planar_reg,2), 1:size(planar_reg,1) );
-% figure;
-% quiver(XX,YY,M,N);axis tight
-% 
-% % comparing to gradient vector field muller method
-% %M = real(xph);
-% %N = imag(xph);
-% %tmp = smoothn({M,N},'robust');
-% %M = tmp{1}; N = tmp{2};
-% %xphs = M + 1j*N;
-% %xphs=xph;
-% [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphs, ...
-%     1,-1);
-% [XX,YY] = meshgrid( 1:size(xphs,2), 1:size(xphs,1) );
-% ph=pd;
-% M =  pm.*cos(ph);
-% N =  pm.*sin(ph);
-% tmp = smoothn({M,N},'robust');
-% M = tmp{1}; N = tmp{2};
-% figure;
-% quiver(XX,YY,M,N);axis tight
-% 
-% 
-% 
-% 
-% % % 
-% % % % plotting the wave segment as arrows
-% stab=zscore(stab);
-% tt=(1:length(stab))*(1e3/50);
-% figure;plot(tt,stab)
-% [out,st,stp] = wave_stability_detect(stab,0);
-% vline(tt(st),'g')
-% vline(tt(stp),'r')
-% h=hline(0);
-% h.LineWidth=2;
-% h.Color = 'k';
-% 
-% figure;
-% v = VideoWriter('wave2_grad.avi');
-% v.FrameRate = 6;
-% open(v)
-% for tt=62:76
-%     planar_val = squeeze(planar_val_time(tt,:,:));
-%     M = real(planar_val);
-%     N = imag(planar_val);
-%     tmp = smoothn({M,N},'robust');
-%     M = tmp{1}; N = tmp{2};
-% 
-%     [XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
-%     %figure;
-%     quiver(XX,YY,M,N);axis tight
-%     %title(num2str(tt))
-%     drawnow
-%     set(gca,'Ydir','reverse')
-%     frame = getframe(gcf);
-%     writeVideo(v,frame);
-% end
-% close(v)
-% 
+
+% % 
+% % % plotting the wave segment as arrows
+stab=zscore(stab);
+tt=(1:length(stab))*(1e3/50);
+figure;plot(tt,stab)
+[out,st,stp] = wave_stability_detect(stab,0);
+vline(tt(st),'g')
+vline(tt(stp),'r')
+h=hline(0);
+h.LineWidth=2;
+h.Color = 'k';
+
+figure;
+v = VideoWriter('wave2_grad.avi');
+v.FrameRate = 6;
+open(v)
+for tt=62:76
+    planar_val = squeeze(planar_val_time(tt,:,:));
+    M = real(planar_val);
+    N = imag(planar_val);
+    tmp = smoothn({M,N},'robust');
+    M = tmp{1}; N = tmp{2};
+
+    [XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
+    %figure;
+    quiver(XX,YY,M,N);axis tight
+    %title(num2str(tt))
+    drawnow
+    set(gca,'Ydir','reverse')
+    frame = getframe(gcf);
+    writeVideo(v,frame);
+end
+close(v)
+
 % % making movie
 % %tmp = df(9:32,:);
 % tmp = df(99:111,:);

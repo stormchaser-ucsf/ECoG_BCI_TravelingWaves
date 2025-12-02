@@ -10,7 +10,7 @@ planar_val=[];k=1;
 rows=size(xph,1);
 cols=size(xph,2);
 planar_reg=[];
-radius = 2;% 2 electrodes on either side for a 5 by 5 grid 
+radius = 5;% 2 electrodes on either side for a 5 by 5 grid 
 for i=1:(rows)
     for j=1:(cols)
         r_min = max(1, i - radius);
