@@ -510,6 +510,10 @@ plot(xcl)
 figure;
 %boxplot([xol' xcl']*20)
 boxplot([xol' xcl'])
+plot_beautify
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Duty Cycle')
 [p,h] = signrank(xol,xcl)
 [h,p,tb,st]=ttest(xol,xcl)
 
