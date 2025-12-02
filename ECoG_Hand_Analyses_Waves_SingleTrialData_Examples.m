@@ -569,7 +569,7 @@ xol_days=[];
 xcl_days=[];
 stats_ol_days={};
 stats_cl_days={};
-for days=3:8%length(folders)
+for days=6:8%length(folders)
 
     disp(['Processing day ' num2str(days)])
 
