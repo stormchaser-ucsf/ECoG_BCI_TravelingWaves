@@ -66,24 +66,23 @@ for ii=1:length(files)
             % N = imag(xph);
             % tmp = smoothn({M,N},'robust');
             % M = tmp{1}; N = tmp{2};
-            % xph = M + 1j*N;
+            % xph = M + 1j*N;            
             
-            % smooth phase
-            % [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
-            % M = real(xph);
-            % N = imag(xph);
-            % M = smoothn(M,'robust'); %dx
-            % N = smoothn(N,'robust'); %dy
-            % xph = M + 1j*N; % smoothed phasor field: gets smoothed estimates of phase            
-            % 
-            %planar_val = planar_stats(xph);            
+                     
 
-            % estimate planar waves across the entire grid, fitting wave
-            % patterns at a local subcluster around each electrode
-            %planar_val = planar_stats_full(xph,grid_layout,elecmatrix);            
+            %%% estimate planar waves across the entire grid, fitting wave
+            %%% patterns at a local subcluster around each electrode
+            planar_val = planar_stats_full(xph,grid_layout,elecmatrix);            
             %planar_val_time{t} = planar_val;
             
-            planar_val = planar_stats_muller(xph);
+            %planar_val = planar_stats_muller(xph);
+
+            % smoothing
+            % M = real(planar_val);
+            % N = imag(planar_val);
+            % tmp = smoothn({M,N},'robust');
+            % M = tmp{1}; N = tmp{2};
+            % planar_val = M+1j*N;
 
 
             planar_val_time(t,:,:) = planar_val;
@@ -122,24 +121,26 @@ end
 
 
 end
-
+% 
 % % plotting raw data
 % M = real(xph);
 % N = imag(xph);
 % tmp = smoothn({M,N},'robust');
 % M = tmp{1}; N = tmp{2};
-% [XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
+% [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
 % figure;
 % quiver(XX,YY,M,N);axis tight
 % xphs = M + 1j*N;
+% figure;
+% imagesc(cos(angle(xphs)))
 % 
 % % get the vector field per Jacobs method
-% planar_val = planar_stats_full(xph,grid_layout,elecmatrix);
+% [planar_val,planar_reg] = planar_stats_full(xph,grid_layout,elecmatrix);
 % M = real(planar_val);
 % N = imag(planar_val);
 % tmp = smoothn({M,N},'robust');
 % M = tmp{1}; N = tmp{2};
-% [XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
+% [XX,YY] = meshgrid( 1:size(planar_reg,2), 1:size(planar_reg,1) );
 % figure;
 % quiver(XX,YY,M,N);axis tight
 % 
