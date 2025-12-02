@@ -533,7 +533,7 @@ if ispc
     %load session_data_B3_Hand
     addpath 'C:\Users\nikic\Documents\MATLAB'
     load('ECOG_Grid_8596_000067_B3.mat')
-    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers'))
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\'))
 
 else
     %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
