@@ -173,20 +173,31 @@ figure;plot(tt,stab)
 [out,st,stp] = wave_stability_detect(stab,0);
 vline(tt(st),'g')
 vline(tt(stp),'r')
-hline(0)
-for tt=99:111
+h=hline(0);
+h.LineWidth=2;
+h.Color = 'k';
+
+figure;
+v = VideoWriter('wave2_grad.avi');
+v.FrameRate = 6;
+open(v)
+for tt=62:76
     planar_val = squeeze(planar_val_time(tt,:,:));
     M = real(planar_val);
     N = imag(planar_val);
-    %tmp = smoothn({M,N},'robust');
-    %M = tmp{1}; N = tmp{2};
+    tmp = smoothn({M,N},'robust');
+    M = tmp{1}; N = tmp{2};
 
     [XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
-    figure;
+    %figure;
     quiver(XX,YY,M,N);axis tight
-    title(num2str(tt))
+    %title(num2str(tt))
+    drawnow
     set(gca,'Ydir','reverse')
+    frame = getframe(gcf);
+    writeVideo(v,frame);
 end
+close(v)
 
 % making movie
 %tmp = df(9:32,:);
@@ -215,3 +226,8 @@ for tt=1:size(tmp1,1)
     writeVideo(v,frame);
 end
 close(v)
+
+% plotting duty cycle stats
+
+
+
