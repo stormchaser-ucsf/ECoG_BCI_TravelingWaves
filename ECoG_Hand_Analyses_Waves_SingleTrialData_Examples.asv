@@ -513,14 +513,10 @@ boxplot([xol' xcl'])
 [p,h] = signrank(xol,xcl)
 [h,p,tb,st]=ttest(xol,xcl)
 
-% when plotting duty cycle analyses,
-% B3_waves_hand_stability_Muller is significant
-% B3_waves_hand_stability approaches signficiance (median) and is
-% significat in t-test
-
 
 %% B1 CHECK PLANAR WAVES IN 6 BY 6 MINIGRID ROLLING AROUND THE OVERALL GRID
 % (MAIN)
+
 
 
 clc;clear;
@@ -530,7 +526,7 @@ if ispc
     addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
     cd(root_path)
     addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
-    %load session_data_B3_Hand
+    load session_data_B3_Hand
     addpath 'C:\Users\nikic\Documents\MATLAB'
     load('ECOG_Grid_8596_000067_B3.mat')
     addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers'))
@@ -562,15 +558,13 @@ folders={'20240515', '20240517', '20240614', ...
     '20240619', '20240621', '20240626',...
     '20240710','20240712','20240731'};
 
-%folders = folders(1:8);
+folders = folders(1:7);
 
 xol_days=[];
 xcl_days=[];
 stats_ol_days={};
 stats_cl_days={};
-for days=3:8%length(folders)
-
-    disp(['Processing day ' num2str(days)])
+for days=1:length(folders)
 
     folderpath = fullfile(root_path,folders{days},'Robot3DArrow');
     % if i<=2
@@ -614,7 +608,7 @@ for days=3:8%length(folders)
         files = [files;findfiles('mat',imag_folderpath)'];
     end
 
-    len = min(175,length(files));
+    len = min(200,length(files));
     idx=randperm(length(files),len);
     stats_ol = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
         grid_layout,elecmatrix);
@@ -628,7 +622,7 @@ for days=3:8%length(folders)
         files = [files;findfiles('mat',imag_folderpath)'];
     end
 
-    len = min(175,length(files));
+    len = min(200,length(files));
     idx=randperm(length(files),len);
     stats_cl = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
         grid_layout,elecmatrix);
@@ -691,7 +685,7 @@ for days=3:8%length(folders)
 
 end
 
-save B1_waves_stability_New -v7.3 % 50Hz, removing last 400ms in fitering step
+save B1_waves_stability_Muller -v7.3 % 50Hz, removing last 400ms in fitering step
 
 
 figure;
@@ -768,10 +762,6 @@ boxplot([xol' xcl'])
 [p,h] = signrank(xol,xcl)
 [h,p,tb,st]=ttest(xol,xcl)
 
-
-% when plotting duty cycle,
-% B1_waves_stability_Muller is significant
-% have to do analyses for B1_waves_stability (run it overnight)
 
 
 %% B6 CHECK PLANAR WAVES IN 6 BY 6 MINIGRID ROLLING AROUND THE OVERALL GRID
@@ -990,7 +980,7 @@ for i=1:length(stats_ol_days)
         t = length(tmp) * 20/1e3;
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
-        x(j) = f*d;%duty_cycle
+        x(j) = 1*d;%duty_cycle
 
         
     end
@@ -1031,7 +1021,3 @@ boxplot([xol' xcl'])
 [p,h] = signrank(xol,xcl)
 [h,p,tb,st]=ttest(xol,xcl)
 
-%when comparing the duty cycle, 
-% B6_waves_stability_Muller trending significant (also needs one more
-% session to be analyzed, load the data from box)
-% B6_waves_stability is significant

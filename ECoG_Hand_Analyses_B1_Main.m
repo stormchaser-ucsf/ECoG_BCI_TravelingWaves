@@ -116,7 +116,8 @@ save session_data_B1_Hand session_data
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20230519\HandOnline';
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20240517\Robot3DArrow';
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250115\RealRobotBatch';
-filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20210519\Robot3DArrow\';
+%filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20210519\Robot3DArrow\';
+filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/20240710/Robot3DArrow';
 
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate clicker\20250120\RealRobotBatch';
 
