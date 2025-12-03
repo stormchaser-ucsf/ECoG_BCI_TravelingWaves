@@ -315,7 +315,12 @@ d1 = designfilt('bandpassiir','FilterOrder',4, ...
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
     'SampleRate',50);
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'SampleRate',1e3);
+
 hilbert_flag=1;
+
 
 imaging_B3_waves;
 close all
@@ -327,6 +332,8 @@ xcl_days=[];
 stats_ol_days={};
 stats_cl_days={};
 len_days = min(11,length(session_data));
+stats_ol_hg_days={};
+stats_cl_hg_days={};
 for days=1:len_days
 
     disp(['Processing day ' num2str(days)])
@@ -358,9 +365,10 @@ for days=1:len_days
 
     len = min(150,length(files));
     idx=randperm(length(files),len);
-    stats_ol = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-        grid_layout,elecmatrix);
+    [stats_ol,stats_ol_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+        grid_layout,elecmatrix,bpFilt);
     stats_ol_days{days}=stats_ol;
+    stats_ol_hg_days{days} = stats_ol_hg;
 
 
 
@@ -377,9 +385,10 @@ for days=1:len_days
 
     len = min(150,length(files));
     idx=randperm(length(files),len);
-    stats_cl = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-        grid_layout,elecmatrix);
+     [stats_cl,stats_cl_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+        grid_layout,elecmatrix,bpFilt);
     stats_cl_days{days}=stats_cl;
+    stats_cl_hg_days{days}=stats_cl_hg;
 
     x=[];
     for i = 1:length(stats_ol)
@@ -436,9 +445,10 @@ for days=1:len_days
 
     %[p,h] = signrank(xol,xcl)
     %figure;boxplot([xol' xcl'],'notch','off')
-
-    save B3_waves_hand_stability_Muller -v7.3
+    
 end
+
+save B3_waves_hand_stability_Muller_hG -v7.3
 
 figure;
 plot(xol_days)
@@ -523,6 +533,64 @@ ylabel('Duty Cycle')
 % significat in t-test
 
 
+
+% looking at hg differences between two conditions, wave vs. non wave
+res=[];
+parfor days=1:length(stats_cl_hg_days)
+    stats_cl_hg = stats_cl_hg_days{days};
+    D_wave=[];D_nonwave=[];
+    for tid0=1:12
+        act1=[];act1_nonwave=[];
+         for i=1:length(stats_cl_hg)
+                if stats_cl_hg(i).target_id ==tid0
+                    tmp = stats_cl_hg(i).hg_wave;
+                    tmp = cell2mat(tmp');
+                    act1 = [act1;tmp];
+
+                    tmp = stats_cl_hg(i).hg_nonwave;
+                    tmp = cell2mat(tmp');
+                    act1_nonwave = [act1_nonwave;tmp];
+                end
+         end
+        for tid=tid0+1:12            
+            act2=[];act2_nonwave=[];
+            for i=1:length(stats_cl_hg)
+                % if stats_cl_hg(i).target_id ==tid0
+                %     tmp = stats_cl_hg(i).hg_wave;
+                %     tmp = cell2mat(tmp');
+                %     act1 = [act1;tmp];
+                % 
+                %     tmp = stats_cl_hg(i).hg_nonwave;
+                %     tmp = cell2mat(tmp');
+                %     act1_nonwave = [act1_nonwave;tmp];
+                % end
+                if stats_cl_hg(i).target_id ==tid
+                    tmp = stats_cl_hg(i).hg_wave;
+                    tmp = cell2mat(tmp');
+                    act2 = [act2;tmp];
+
+                    tmp = stats_cl_hg(i).hg_nonwave;
+                    tmp = cell2mat(tmp');
+                    act2_nonwave = [act2_nonwave;tmp];
+                end
+            end
+            d1 = mahal2(act1,act2,2);
+            d2 = mahal2(act1_nonwave,act2_nonwave,2);
+            D_wave = [D_wave d1];
+            D_nonwave = [D_nonwave d2];
+        end
+    end
+    res(days,:) = [median(D_wave) median(D_nonwave)];
+end
+figure;
+boxplot(res)
+[p,h] = signrank(res(:,1),res(:,2))
+xticks(1:2)
+xticklabels({'Wave epochs','Non wave epochs'})
+ylabel('Pairwise Mahalanobis dist.')
+title('hG Decoding Information')
+plot_beautify
+
 %% B1 CHECK PLANAR WAVES IN 6 BY 6 MINIGRID ROLLING AROUND THE OVERALL GRID
 % (MAIN)
 
@@ -557,6 +625,9 @@ d1 = designfilt('bandpassiir','FilterOrder',4, ...
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
     'SampleRate',50);
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'SampleRate',1e3);
 hilbert_flag=1;
 
 
@@ -572,7 +643,9 @@ xol_days=[];
 xcl_days=[];
 stats_ol_days={};
 stats_cl_days={};
-for days=6:8%length(folders)
+stats_ol_hg_days={};
+stats_cl_hg_days={};
+for days=1:8%length(folders)
 
     disp(['Processing day ' num2str(days)])
 
@@ -620,9 +693,10 @@ for days=6:8%length(folders)
 
     len = min(175,length(files));
     idx=randperm(length(files),len);
-    stats_ol = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-        grid_layout,elecmatrix);
+    [stats_ol,stats_ol_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+        grid_layout,elecmatrix,bpFilt);
     stats_ol_days{days}=stats_ol;
+    stats_ol_hg_days{days} = stats_ol_hg;
 
 
     %%%%%% get online data files %%%%%
@@ -634,9 +708,10 @@ for days=6:8%length(folders)
 
     len = min(175,length(files));
     idx=randperm(length(files),len);
-    stats_cl = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-        grid_layout,elecmatrix);
+    [stats_cl,stats_cl_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+        grid_layout,elecmatrix,bpFilt);
     stats_cl_days{days}=stats_cl;
+    stats_cl_hg_days{days}=stats_cl_hg;
 
     
     x=[];
@@ -695,7 +770,8 @@ for days=6:8%length(folders)
 
 end
 
-save B1_waves_stability_New -v7.3 % 50Hz, removing last 400ms in fitering step
+%save B1_waves_stability_New -v7.3 % 50Hz, removing last 400ms in fitering step
+save B1_waves_stability_hG -v7.3 % 50Hz, removing last 400ms in fitering step
 
 
 figure;
@@ -704,7 +780,7 @@ hold on
 plot(xcl_days)
 
 figure;
-boxplot([xol_days' xcl_days']*20)
+boxplot([xol_days' xcl_days']*1)
 [p,h] = signrank(1*xol_days,1*xcl_days)
 [h,p,tb,st]=ttest(xol_days,xcl_days)
 
@@ -731,7 +807,7 @@ for i=1:length(stats_ol_days)
         t = length(tmp) * 20/1e3;
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
-        x(j) = f*d;%duty_cycle
+        x(j) = f*1;%duty_cycle
 
         
     end
@@ -754,7 +830,7 @@ for i=1:length(stats_ol_days)
         t = length(tmp) * 20/1e3;
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
-        x(j) = f*d;%duty_cycle
+        x(j) = f*1;%duty_cycle
         
         %x(j) = median(tmp_og);
     end
@@ -767,7 +843,7 @@ plot(xcl)
 
 
 figure;
-%boxplot([xol' xcl']*20)
+boxplot([xol' xcl']*1e3)
 boxplot([xol' xcl'])
 [p,h] = signrank(xol,xcl)
 [h,p,tb,st]=ttest(xol,xcl)
@@ -776,6 +852,48 @@ boxplot([xol' xcl'])
 % when plotting duty cycle,
 % B1_waves_stability_Muller is significant
 % have to do analyses for B1_waves_stability (run it overnight)
+
+
+% looking at hg differences between two conditions, wave vs. non wave
+res=[];
+parfor days=1:length(stats_cl_hg_days)
+    stats_cl_hg = stats_cl_hg_days{days};
+    D_wave=[];D_nonwave=[];
+    for tid0=1:7
+        for tid=tid0+1:7
+            act1=[];act2=[];
+            act1_nonwave=[];act2_nonwave=[];
+            for i=1:length(stats_cl_hg)
+                if stats_cl_hg(i).target_id ==tid0
+                    tmp = stats_cl_hg(i).hg_wave;
+                    tmp = cell2mat(tmp');
+                    act1 = [act1;tmp];
+
+                    tmp = stats_cl_hg(i).hg_nonwave;
+                    tmp = cell2mat(tmp');
+                    act1_nonwave = [act1_nonwave;tmp];
+                end
+                if stats_cl_hg(i).target_id ==tid
+                    tmp = stats_cl_hg(i).hg_wave;
+                    tmp = cell2mat(tmp');
+                    act2 = [act2;tmp];
+
+                    tmp = stats_cl_hg(i).hg_nonwave;
+                    tmp = cell2mat(tmp');
+                    act2_nonwave = [act2_nonwave;tmp];
+                end
+            end
+            d1 = mahal2(act1,act2,2);
+            d2 = mahal2(act1_nonwave,act2_nonwave,2);
+            D_wave = [D_wave d1];
+            D_nonwave = [D_nonwave d2];
+        end
+    end
+    res(days,:) = [median(D_wave) median(D_nonwave)];
+end
+figure;
+boxplot(res)
+[p,h] = signrank(res(:,1),res(:,2))
 
 
 %% B6 CHECK PLANAR WAVES IN 6 BY 6 MINIGRID ROLLING AROUND THE OVERALL GRID
@@ -818,6 +936,11 @@ d3 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
     'SampleRate',1e3);
 
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'SampleRate',1e3);
+
+
 
 %
 % % hand
@@ -835,6 +958,8 @@ xol_days=[];
 xcl_days=[];
 stats_ol_days={};
 stats_cl_days={};
+stats_ol_hg_days={};
+stats_cl_hg_days={};
 for days=1:length(folders)-1
 
     disp(['Processing day ' num2str(days)])
@@ -883,11 +1008,12 @@ for days=1:length(folders)-1
         files = [files;findfiles('mat',imag_folderpath)'];
     end
 
-    len = min(150,length(files));
+    len = min(200,length(files));
     idx=randperm(length(files),len);
-    stats_ol = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-        grid_layout,elecmatrix);
+    [stats_ol,stats_ol_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+        grid_layout,elecmatrix,bpFilt);
     stats_ol_days{days}=stats_ol;
+    stats_ol_hg_days{days} = stats_ol_hg;
 
 
     %%%%%% get online data files %%%%%
@@ -897,11 +1023,12 @@ for days=1:length(folders)-1
         files = [files;findfiles('mat',imag_folderpath)'];
     end
 
-    len = min(150,length(files));
+    len = min(200,length(files));
     idx=randperm(length(files),len);
-    stats_cl = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-        grid_layout,elecmatrix);
+    [stats_cl,stats_cl_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+        grid_layout,elecmatrix,bpFilt);
     stats_cl_days{days}=stats_cl;
+    stats_cl_hg_days{days}=stats_cl_hg;
 
     x=[];
     for i = 1:length(stats_ol)
@@ -970,7 +1097,7 @@ boxplot([xol_days' xcl_days']*1)
 [p,h] = signrank(1*xol_days,1*xcl_days)
 [h,p,tb,st]=ttest(xol_days,xcl_days)
 
-save B6_waves_stability_Muller -v7.3 % 50Hz, removing last 400ms in fitering step
+save B6_waves_stability_Muller_hG -v7.3 % 50Hz, removing last 400ms in fitering step
 
 % plotting back
 xol=[];xcl=[];
@@ -1039,3 +1166,47 @@ boxplot([xol' xcl'])
 % B6_waves_stability_Muller trending significant (also needs one more
 % session to be analyzed, load the data from box)
 % B6_waves_stability is significant
+
+
+
+
+% looking at hg differences between two conditions, wave vs. non wave
+res=[];
+parfor days=1:length(stats_cl_hg_days)
+    stats_cl_hg = stats_cl_hg_days{days};
+    D_wave=[];D_nonwave=[];
+    for tid0=1:7
+        for tid=tid0+1:7
+            act1=[];act2=[];
+            act1_nonwave=[];act2_nonwave=[];
+            for i=1:length(stats_cl_hg)
+                if stats_cl_hg(i).target_id ==tid0
+                    tmp = stats_cl_hg(i).hg_wave;
+                    tmp = cell2mat(tmp');
+                    act1 = [act1;tmp];
+
+                    tmp = stats_cl_hg(i).hg_nonwave;
+                    tmp = cell2mat(tmp');
+                    act1_nonwave = [act1_nonwave;tmp];
+                end
+                if stats_cl_hg(i).target_id ==tid
+                    tmp = stats_cl_hg(i).hg_wave;
+                    tmp = cell2mat(tmp');
+                    act2 = [act2;tmp];
+
+                    tmp = stats_cl_hg(i).hg_nonwave;
+                    tmp = cell2mat(tmp');
+                    act2_nonwave = [act2_nonwave;tmp];
+                end
+            end
+            d1 = mahal2(act1,act2,2);
+            d2 = mahal2(act1_nonwave,act2_nonwave,2);
+            D_wave = [D_wave d1];
+            D_nonwave = [D_nonwave d2];
+        end
+    end
+    res(days,:) = [median(D_wave) median(D_nonwave)];
+end
+figure;boxplot(res)
+[p,h] = signrank(res(:,1),res(:,2))
+

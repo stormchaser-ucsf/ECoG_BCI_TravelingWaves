@@ -1,8 +1,12 @@
-function [stats] = planar_waves_stats(files,d2,...
-    hilbert_flag,ecog_grid,grid_layout,elecmatrix)
+function [stats,stats_hg] = planar_waves_stats(files,d2,...
+    hilbert_flag,ecog_grid,grid_layout,elecmatrix,bpFilt)
 
+good_ch=ones(256,1);
+good_ch([108 113 118])=0;
+good_ch = logical(good_ch);
 vec_field={};
 stats={};kk=1;
+stats_hg={};
 for ii=1:length(files)
     disp(['Processing file ' num2str(ii) ' of ' num2str(length(files))])
     loaded=1;
@@ -35,6 +39,12 @@ for ii=1:length(files)
         l22=floor(l2/ds_fac); % length of the down sampled signal
         l11=floor(l1/ds_fac); % length of the down sampled signal
 
+        % get the hG envelope
+        hg = filtfilt(bpFilt,data);
+        hg = abs(hilbert(hg));
+        % downsample to 50Hz
+        hg = resample(hg,d2.SampleRate,1e3);
+
         % get the hG signal downsampled to 200Hz
         % data_hg = filtfilt(d3,data);
         % data_hg = abs(hilbert(data_hg));
@@ -48,14 +58,17 @@ for ii=1:length(files)
         if hilbert_flag
             df= hilbert(df);
         end
+
+        % remove non-task periods
         df = df(l11+1:end-40,:);%remove last 800ms
+        hg = hg(l11+1:end-40,:);%remove last 800ms
 
         
 
         % detect planar waves across mini-grid location
         planar_val_time=[];
         parfor t=1:size(df,1)
-            disp(t)
+            %disp(t)
             
             % estimate planar waves across mini grid
             tmp = df(t,:);
@@ -72,17 +85,17 @@ for ii=1:length(files)
 
             %%% estimate planar waves across the entire grid, fitting wave
             %%% patterns at a local subcluster around each electrode
-            planar_val = planar_stats_full(xph,grid_layout,elecmatrix);            
+            %planar_val = planar_stats_full(xph,grid_layout,elecmatrix);            
             %planar_val_time{t} = planar_val;
             
-            %planar_val = planar_stats_muller(xph);
+            planar_val = planar_stats_muller(xph);
 
             % smoothing
-            M = real(planar_val);
-            N = imag(planar_val);
-            tmp = smoothn({M,N},'robust');
-            M = tmp{1}; N = tmp{2};
-            planar_val = M+1j*N;
+            % M = real(planar_val);
+            % N = imag(planar_val);
+            % tmp = smoothn({M,N},'robust');
+            % M = tmp{1}; N = tmp{2};
+            % planar_val = M+1j*N;
 
 
             planar_val_time(t,:,:) = planar_val;
@@ -97,8 +110,35 @@ for ii=1:length(files)
         end       
         
         stats(kk).stab = stab;
-        stats(kk).vec_field = planar_val_time;
+        stats(kk).vec_field = planar_val_time;        
         
+
+        %%%% extract hg envelope only around waves
+        stab = zscore(stab);
+        [out,st,stp] = wave_stability_detect(stab);
+        tmp={};        
+        for k=1:length(st)
+            tmp{k} = hg(st(k):stp(k),good_ch);
+        end
+        stats_hg(kk).hg_wave = tmp;
+        stats_hg(kk).target_id = TrialData.TargetID;
+
+        %%%% extract hg envelope around non wave regions
+        % till the first start
+        tmp={};
+        if st>1
+            tmp = cat(2,tmp,hg(1:(st(k)-1),good_ch));            
+        end
+        % everything in between
+        for j=1:length(stp)-1
+            tmp = cat(2,tmp,hg((stp(j)+1) : (st(j+1)-1), good_ch));            
+        end
+        % get the last bit
+        if stp(end) < size(df,1)
+            tmp = cat(2,tmp, hg((stp(end)+1):end,good_ch));
+        end
+        stats_hg(kk).hg_nonwave = tmp;
+
         kk=kk+1;
     end
 
@@ -121,83 +161,83 @@ end
 
 
 end
-
-% plotting raw data
-M = real(xph);
-N = imag(xph);
-tmp = smoothn({M,N},'robust');
-M = tmp{1}; N = tmp{2};
-[XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
-figure;
-quiver(XX,YY,M,N);axis tight
-xphs = M + 1j*N;
-figure;
-imagesc(cos(angle(xphs)))
-
-% get the vector field per Jacobs method
-[planar_val,planar_reg] = planar_stats_full(xph,grid_layout,elecmatrix);
-M = real(planar_val);
-N = imag(planar_val);
-tmp = smoothn({M,N},'robust');
-M = tmp{1}; N = tmp{2};
-[XX,YY] = meshgrid( 1:size(planar_reg,2), 1:size(planar_reg,1) );
-figure;
-quiver(XX,YY,M,N);axis tight
-
-% comparing to gradient vector field muller method
-%M = real(xph);
-%N = imag(xph);
-%tmp = smoothn({M,N},'robust');
-%M = tmp{1}; N = tmp{2};
-%xphs = M + 1j*N;
-%xphs=xph;
-[pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphs, ...
-    1,-1);
-[XX,YY] = meshgrid( 1:size(xphs,2), 1:size(xphs,1) );
-ph=pd;
-M =  pm.*cos(ph);
-N =  pm.*sin(ph);
-tmp = smoothn({M,N},'robust');
-M = tmp{1}; N = tmp{2};
-figure;
-quiver(XX,YY,M,N);axis tight
-
 % 
+% % plotting raw data
+% M = real(xph);
+% N = imag(xph);
+% tmp = smoothn({M,N},'robust');
+% M = tmp{1}; N = tmp{2};
+% [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+% figure;
+% quiver(XX,YY,M,N);axis tight
+% xphs = M + 1j*N;
+% figure;
+% imagesc(cos(angle(xphs)))
 % 
-
+% % get the vector field per Jacobs method
+% [planar_val,planar_reg] = planar_stats_full(xph,grid_layout,elecmatrix);
+% M = real(planar_val);
+% N = imag(planar_val);
+% tmp = smoothn({M,N},'robust');
+% M = tmp{1}; N = tmp{2};
+% [XX,YY] = meshgrid( 1:size(planar_reg,2), 1:size(planar_reg,1) );
+% figure;
+% quiver(XX,YY,M,N);axis tight
+% 
+% % comparing to gradient vector field muller method
+% %M = real(xph);
+% %N = imag(xph);
+% %tmp = smoothn({M,N},'robust');
+% %M = tmp{1}; N = tmp{2};
+% %xphs = M + 1j*N;
+% %xphs=xph;
+% [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN( xphs, ...
+%     1,-1);
+% [XX,YY] = meshgrid( 1:size(xphs,2), 1:size(xphs,1) );
+% ph=pd;
+% M =  pm.*cos(ph);
+% N =  pm.*sin(ph);
+% tmp = smoothn({M,N},'robust');
+% M = tmp{1}; N = tmp{2};
+% figure;
+% quiver(XX,YY,M,N);axis tight
+% 
 % % 
-% % % plotting the wave segment as arrows
-stab=zscore(stab);
-tt=(1:length(stab))*(1e3/50);
-figure;plot(tt,stab)
-[out,st,stp] = wave_stability_detect(stab,0);
-vline(tt(st),'g')
-vline(tt(stp),'r')
-h=hline(0);
-h.LineWidth=2;
-h.Color = 'k';
-
-figure;
-v = VideoWriter('wave2_grad.avi');
-v.FrameRate = 6;
-open(v)
-for tt=62:76
-    planar_val = squeeze(planar_val_time(tt,:,:));
-    M = real(planar_val);
-    N = imag(planar_val);
-    tmp = smoothn({M,N},'robust');
-    M = tmp{1}; N = tmp{2};
-
-    [XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
-    %figure;
-    quiver(XX,YY,M,N);axis tight
-    %title(num2str(tt))
-    drawnow
-    set(gca,'Ydir','reverse')
-    frame = getframe(gcf);
-    writeVideo(v,frame);
-end
-close(v)
+% % 
+% 
+% % % 
+% % % % plotting the wave segment as arrows
+% stab=zscore(stab);
+% tt=(1:length(stab))*(1e3/50);
+% figure;plot(tt,stab)
+% [out,st,stp] = wave_stability_detect(stab,0);
+% vline(tt(st),'g')
+% vline(tt(stp),'r')
+% h=hline(0);
+% h.LineWidth=2;
+% h.Color = 'k';
+% 
+% figure;
+% v = VideoWriter('wave2_grad.avi');
+% v.FrameRate = 6;
+% open(v)
+% for tt=62:76
+%     planar_val = squeeze(planar_val_time(tt,:,:));
+%     M = real(planar_val);
+%     N = imag(planar_val);
+%     tmp = smoothn({M,N},'robust');
+%     M = tmp{1}; N = tmp{2};
+% 
+%     [XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
+%     %figure;
+%     quiver(XX,YY,M,N);axis tight
+%     %title(num2str(tt))
+%     drawnow
+%     set(gca,'Ydir','reverse')
+%     frame = getframe(gcf);
+%     writeVideo(v,frame);
+% end
+% close(v)
 
 % % making movie
 % %tmp = df(9:32,:);
