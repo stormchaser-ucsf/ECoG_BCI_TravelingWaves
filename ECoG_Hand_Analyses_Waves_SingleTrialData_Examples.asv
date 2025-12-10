@@ -1296,6 +1296,3 @@ parfor days =1:length(stats_ol_days)
 end
 
 
-figure;
-boxplot(res_days)
-

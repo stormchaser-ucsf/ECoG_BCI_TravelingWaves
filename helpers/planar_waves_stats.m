@@ -44,6 +44,9 @@ for ii=1:length(files)
         hg = abs(hilbert(hg));
         % downsample to 50Hz
         hg = resample(hg,d2.SampleRate,1e3);
+        % get the mu signal phase of hG
+        hg_mu = filtfilt(d2,hg);
+        hg_mu = (hilbert(hg_mu));
 
         % get the hG signal downsampled to 200Hz
         % data_hg = filtfilt(d3,data);
@@ -62,6 +65,7 @@ for ii=1:length(files)
         % remove non-task periods
         df = df(l11+1:end-40,:);%remove last 800ms
         hg = hg(l11+1:end-40,:);%remove last 800ms
+        hg_mu = hg_mu(l11+1:end-40,:);
 
         
 
@@ -116,34 +120,40 @@ for ii=1:length(files)
         %%%% extract hg envelope and mu only around waves
         stab = zscore(stab);
         [out,st,stp] = wave_stability_detect(stab);
-        tmp={};tmp_mu={};        
+        tmp={};tmp_mu={};tmp_hg_mu={};        
         for k=1:length(st)
             tmp{k} = hg(st(k):stp(k),good_ch);
             tmp_mu{k} = df(st(k):stp(k),good_ch);
+            tmp_hg_mu{k} = hg_mu(st(k):stp(k),good_ch);
         end
         stats_hg(kk).hg_wave = tmp;
         stats_hg(kk).mu_wave = tmp_mu;
+        stats_hg(kk).hg_mu_wave = tmp_hg_mu;
         stats_hg(kk).target_id = TrialData.TargetID;
 
         %%%% extract hg envelope around non wave regions
         % till the first start
-        tmp={};tmp_mu={};     
+        tmp={};tmp_mu={}; tmp_hg_mu={};            
         if st>1
             tmp = cat(2,tmp,hg(1:(st(k)-1),good_ch));            
             tmp_mu = cat(2,tmp_mu,df(1:(st(k)-1),good_ch));            
+            tmp_hg_mu = cat(2,tmp_hg_mu,hg_mu(1:(st(k)-1),good_ch));            
         end
         % everything in between
         for j=1:length(stp)-1
             tmp = cat(2,tmp,hg((stp(j)+1) : (st(j+1)-1), good_ch));            
             tmp_mu = cat(2,tmp_mu,df((stp(j)+1) : (st(j+1)-1), good_ch));            
+            tmp_hg_mu = cat(2,tmp_hg_mu,hg_mu((stp(j)+1) : (st(j+1)-1), good_ch));            
         end
         % get the last bit
         if stp(end) < size(df,1)
             tmp = cat(2,tmp, hg((stp(end)+1):end,good_ch));
             tmp_mu = cat(2,tmp_mu, df((stp(end)+1):end,good_ch));
+            tmp_hg_mu = cat(2,tmp_hg_mu, hg_mu((stp(end)+1):end,good_ch));
         end
         stats_hg(kk).hg_nonwave = tmp;
         stats_hg(kk).mu_nonwave = tmp_mu;
+        stats_hg(kk).hg_mu_nonwave = tmp_hg_mu;
 
         
 
