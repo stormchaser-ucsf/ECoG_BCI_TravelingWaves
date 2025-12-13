@@ -1246,7 +1246,8 @@ load load B1_waves_stability_hG
 % so do cICA on each day. Find components within top 20 with curl greater
 % than 0.5. Compare its weight for each of the OL and CL cases
 res_days=[];
-parfor days =1:length(stats_ol_days)
+for days =5:length(stats_ol_days)
+    disp(num2str(days))
     stats_ol = stats_ol_days{days};
     stats_cl = stats_cl_days{days};
     x=[];
@@ -1287,15 +1288,42 @@ parfor days =1:length(stats_ol_days)
         N = imag(xph);
         [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
         [d,c]= curl(XX,YY,M,N);
+        [div]=divergence(XX,YY,M,N);
         if max(d(:)) > 0.5
             a = abs(z(i,:));
             res=  [res;[ mean(a(1:l)) mean(a(l+1:end))]];
         end
     end
-    res_days = [res_days;mean(res)];
+    res_days = [res_days;mean(res,1)];
 end
 
 
 figure;
 boxplot(res_days)
+
+
+
+% compute variances per components
+% model is X = A*s where s is sources (along each row)
+
+% preprocess
+X=x;
+X = X-mean(X,2);
+% [N,T] = size(X);
+% % remove DC
+% Xmean=mean(X,2);
+% X = X - Xmean*ones(1,T);    
+% % spatio pre-whitening 1 
+% R = X*X'/T;                 
+% P = inv_sqrtmH(R);  %P = inv(sqrtm(R));
+% X = P*X;
+
+vaf=[];
+norm_x = norm(X,'fro');
+for i=1:size(Ahat,1)
+    tmp = Ahat(:,i) * Shat(i,:);
+    vaf(i) = norm(tmp,'fro') / norm_x;
+end
+
+
 

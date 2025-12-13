@@ -54,7 +54,7 @@ real_nf8 = nf8;
 
 % here begins the sea algorithm to provide the initial guess
 W = randn(N)+sqrt(-1)*randn(N);
-W = inv(sqrtm(W*W'))*W;
+W = inv(sqrtm(W*W'))*W;   
 last_W = W;
 C = Xc*Xc.'/T;      % C is the pseudo covariance matrix
 maxiter_sea = 100;
@@ -247,12 +247,13 @@ W = W*P;
 Ahat = inv(W);
 Shat = W*X;
 
-if show_cost
-    file_name='/Users/fugs/Dropbox/fgs/ICA/CERBM/Latest/result/Latest/CostCEBM';
-    print('-depsc', file_name);
-    eps2pdf([file_name, '.eps'], '/usr/local/bin/gs');
-    hgsave(file_name);
-end
+% 
+% if show_cost
+%     file_name='/Users/fugs/Dropbox/fgs/ICA/CERBM/Latest/result/Latest/CostCEBM';
+%     print('-depsc', file_name);
+%     eps2pdf([file_name, '.eps'], '/usr/local/bin/gs');
+%     hgsave(file_name);
+% end
 
 
 
