@@ -115,6 +115,7 @@ for ii=1:length(files)
         
         stats(kk).stab = stab;
         stats(kk).vec_field = planar_val_time;        
+        stats(kk).target_id = TrialData.TargetID;
         
 
         %%%% extract hg envelope and mu only around waves
