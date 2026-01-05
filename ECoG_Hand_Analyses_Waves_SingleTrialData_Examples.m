@@ -617,71 +617,77 @@ boxplot(res)
 
 % build a classifer to differentiate conditions by their traveling waves
 % right thumb vs. power grasp 
+% 
+% A=[];
+% B=[];
+% for days =1:length(stats_cl_hg_days)
+%     stats_cl_hg = stats_cl_hg_days{days};
+%     for i=1:length(stats_cl_hg)
+%         if stats_cl_hg(i).target_id==1
+%             tmp = stats_cl_hg(i).mu_wave;
+%             for j=1:length(tmp)
+%                 a = tmp{j};
+%                 a = mean(a,1);
+%                 A = [A ;a];
+%             end
+%         elseif stats_cl_hg(i).target_id==2
+%             tmp = stats_cl_hg(i).mu_wave;
+%             for j=1:length(tmp)
+%                 b = tmp{j};
+%                 b = mean(b,1);
+%                 B = [B ;b];
+%             end
+%         end
+%     end
+% end
+% 
+% if size(B,1) > size(A,1)
+%     len = size(A,1);
+%     idx = randperm(size(B,1),len);
+%     B = B(idx,:);
+% elseif size(B,1) < size(A,1)
+%     len = size(B,1);
+%     idx = randperm(size(A,1),len);
+%     A = A(idx,:);
+% end
+% 
+% X = [real(A) imag(A) ; real(B) imag(B)];
+% Y = [zeros(size(A,1),1); ones(size(B,1),1)];
+% 
+% cv = cvpartition(Y, 'HoldOut', 0.2); % Hold out 30% for testing
+% 
+% idxTrain = cv.training;
+% idxTest = cv.test;
+% 
+% XTrain = X(idxTrain,:);
+% YTrain = Y(idxTrain,:);
+% XTest = X(idxTest,:);
+% YTest = Y(idxTest,:);
+% 
+% % 2. Train the Linear SVM model
+% % Use the 'Linear' kernel option to specify a linear SVM.
+% disp('Training linear SVM model...');
+% Mdl = fitcsvm(XTrain, YTrain, 'KernelFunction', 'Linear', 'Standardize', true);
+% disp('Model trained.');
+% 
+% % 3. Use the trained model to predict new data
+% % The 'predict' function returns the predicted labels.
+% [label, score] = predict(Mdl, XTest);
+% 
+% % 4. Evaluate the model (optional)
+% % Calculate the accuracy of the predictions on the test set.
+% confusion_matrix = confusionmat(YTest, label);
+% accuracy = sum(diag(confusion_matrix)) / sum(confusion_matrix(:));
+% fprintf('Accuracy on test set: %.2f%%\n', accuracy * 100);
+% 
+% 
+% mdl = fitclinear(X,Y,'CrossVal','on','Leaveout','on');
 
-A=[];
-B=[];
-for days =1:length(stats_cl_hg_days)
-    stats_cl_hg = stats_cl_hg_days{days};
-    for i=1:length(stats_cl_hg)
-        if stats_cl_hg(i).target_id==1
-            tmp = stats_cl_hg(i).mu_wave;
-            for j=1:length(tmp)
-                a = tmp{j};
-                a = mean(a,1);
-                A = [A ;a];
-            end
-        elseif stats_cl_hg(i).target_id==2
-            tmp = stats_cl_hg(i).mu_wave;
-            for j=1:length(tmp)
-                b = tmp{j};
-                b = mean(b,1);
-                B = [B ;b];
-            end
-        end
-    end
-end
 
-if size(B,1) > size(A,1)
-    len = size(A,1);
-    idx = randperm(size(B,1),len);
-    B = B(idx,:);
-elseif size(B,1) < size(A,1)
-    len = size(B,1);
-    idx = randperm(size(A,1),len);
-    A = A(idx,:);
-end
-
-X = [real(A) imag(A) ; real(B) imag(B)];
-Y = [zeros(size(A,1),1); ones(size(B,1),1)];
-
-cv = cvpartition(Y, 'HoldOut', 0.2); % Hold out 30% for testing
-
-idxTrain = cv.training;
-idxTest = cv.test;
-
-XTrain = X(idxTrain,:);
-YTrain = Y(idxTrain,:);
-XTest = X(idxTest,:);
-YTest = Y(idxTest,:);
-
-% 2. Train the Linear SVM model
-% Use the 'Linear' kernel option to specify a linear SVM.
-disp('Training linear SVM model...');
-Mdl = fitcsvm(XTrain, YTrain, 'KernelFunction', 'Linear', 'Standardize', true);
-disp('Model trained.');
-
-% 3. Use the trained model to predict new data
-% The 'predict' function returns the predicted labels.
-[label, score] = predict(Mdl, XTest);
-
-% 4. Evaluate the model (optional)
-% Calculate the accuracy of the predictions on the test set.
-confusion_matrix = confusionmat(YTest, label);
-accuracy = sum(diag(confusion_matrix)) / sum(confusion_matrix(:));
-fprintf('Accuracy on test set: %.2f%%\n', accuracy * 100);
+% examinining whether there are divergence and curl differences between OL
+% and CL across days and trials from the stable wave epochs
 
 
-mdl = fitclinear(X,Y,'CrossVal','on','Leaveout','on');
 
 
 %% B1 CHECK PLANAR WAVES IN 6 BY 6 MINIGRID ROLLING AROUND THE OVERALL GRID
@@ -923,7 +929,7 @@ for i=1:length(stats_ol_days)
         t = length(tmp) * 20/1e3;
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
-        x(j) = f*1;%duty_cycle
+        x(j) = f*d;%duty_cycle
 
         
     end
@@ -946,7 +952,7 @@ for i=1:length(stats_ol_days)
         t = length(tmp) * 20/1e3;
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
-        x(j) = f*1;%duty_cycle
+        x(j) = f*d;%duty_cycle
         
         %x(j) = median(tmp_og);
     end
@@ -1007,10 +1013,88 @@ parfor days=1:length(stats_cl_hg_days)
     end
     res(days,:) = [median(D_wave) median(D_nonwave)];
 end
+
 figure;
 boxplot(res)
 [p,h] = signrank(res(:,1),res(:,2))
+xticks(1:2)
+xticklabels({'Wave epochs','Non wave epochs'})
+ylabel('Pairwise Mahalanobis dist.')
+title('hG Decoding Information')
+plot_beautify
 
+
+% DIFFERENCES BETWEEN OL AND CL STABLE EPOCHS IN TERMS OF ROTATIONS AND
+% CONTRACTIONS/EXPANSIONS
+xol=[];xcl=[];
+for i=1:length(stats_ol_days)
+    tmp0=stats_ol_days{i};
+    x=[];
+    for j=1:length(tmp0)
+        tmp_og = (tmp0(j).stab);
+        tmp=zscore(tmp_og);
+        [out,st,stp] = wave_stability_detect(tmp);
+        for k=1:length(st)
+            tmp = tmp0(j).vec_field(st(k):stp(k),:,:);
+            tmp = squeeze(mean(tmp,1));
+            tmp = tmp./max(abs(tmp(:)));
+            [XX,YY] = meshgrid( 1:size(tmp,2), 1:size(tmp,1) );
+            M=real(tmp);
+            N=imag(tmp);
+            [C] = divergence(XX,YY,M,N);
+            x = [x max(abs(C(:)))];
+        end
+    end
+    xol(i) = nanmean(x);
+
+    tmp0=stats_cl_days{i};
+    x=[];
+    for j=1:length(tmp0)
+        tmp_og = (tmp0(j).stab);
+        tmp=zscore(tmp_og);
+        [out,st,stp] = wave_stability_detect(tmp);
+        for k=1:length(st)
+            tmp = tmp0(j).vec_field(st(k):stp(k),:,:);
+            tmp = squeeze(mean(tmp,1));
+            tmp = tmp./max(abs(tmp(:)));
+            [XX,YY] = meshgrid( 1:size(tmp,2), 1:size(tmp,1) );
+            M=real(tmp);
+            N=imag(tmp);
+            [C] = divergence(XX,YY,M,N);
+            x = [x max(abs(C(:)))];
+        end
+    end    
+    xcl(i) = nanmean(x);
+end
+
+figure;
+plot(xol);hold on
+plot(xcl)
+
+
+figure;
+boxplot([xol' xcl']*1e3)
+boxplot([xol' xcl'])
+[p,h] = signrank(xol,xcl)
+[h,p,tb,st]=ttest(xol,xcl)
+
+
+for i=1:size(tmp,1)
+    tmp0 = squeeze(tmp(i,:,:));
+    figure;
+    M = real(tmp0);
+    N = imag(tmp0);
+    quiver(XX,YY,M,N);axis tight
+end
+
+figure;
+[XX,YY] = meshgrid( 1:size(tmp,2), 1:size(tmp,1) );
+tmp = tmp./max(abs(tmp(:)));
+M = real(tmp);
+N = imag(tmp);
+quiver(XX,YY,M,N);axis tight
+[C,cav] = curl(XX,YY,M,N);
+figure;imagesc(C)
 
 %% B6 CHECK PLANAR WAVES IN 6 BY 6 MINIGRID ROLLING AROUND THE OVERALL GRID
 %(MAIN)
@@ -1389,6 +1473,7 @@ for days =5:length(stats_ol_days)
     end
     res_days = [res_days;mean(res,1)];
 end
+
 
 
 figure;
