@@ -34,6 +34,8 @@ for ii=1:length(files)
         l1 = length(data1);
 
         data = [data1;data2;data3;data4];
+        data_main=data;
+        tmain = 1:size(data,1); % in ms the true time
         %data = [data1;data2;data3];
         ds_fac=1e3/d2.SampleRate;
         l22=floor(l2/ds_fac); % length of the down sampled signal
@@ -67,10 +69,12 @@ for ii=1:length(files)
         hg = hg(l11+1:end-40,:);%remove last 800ms
         hg_mu = hg_mu(l11+1:end-40,:);
 
-        
+        % keep track of time
+        tcut = tmain(l1+20:end-800); % what is being taken
+        tcut = tcut(1:20:end);% down sampled to 50Hz        
 
         % detect planar waves across mini-grid location
-        planar_val_time=[];
+        planar_val_time=[];planar_val_time_hg=[];
         parfor t=1:size(df,1)
             %disp(t)
             
@@ -103,14 +107,24 @@ for ii=1:length(files)
 
 
             planar_val_time(t,:,:) = planar_val;
+
+            % wave detection for hg mu signal
+            tmp = hg_mu(t,:);
+            xph = tmp(ecog_grid);
+            planar_val = planar_stats_muller(xph);
+            planar_val_time_hg(t,:,:) = planar_val;
         end
 
         %%%% if performing local circular linear correlation around entire grid
-        stab=[];
+        stab=[];stab_hg=[];
         for k=2:size(planar_val_time,1)
             xt = planar_val_time(k,:,:);xt=xt(:);
             xtm1 = planar_val_time(k-1,:,:);xtm1=xtm1(:);
             stab(k-1) = - mean(abs(xt - xtm1));
+
+            xt = planar_val_time_hg(k,:,:);xt=xt(:);
+            xtm1 = planar_val_time_hg(k-1,:,:);xtm1=xtm1(:);
+            stab_hg(k-1) = - mean(abs(xt - xtm1));
         end       
         
         stats(kk).stab = stab;
@@ -118,9 +132,26 @@ for ii=1:length(files)
         stats(kk).target_id = TrialData.TargetID;
         
 
-        %%%% extract hg envelope and mu only around waves
+        %%%%% STABILITY AND WAVE DETECTION 
         stab = zscore(stab);
         [out,st,stp] = wave_stability_detect(stab);
+
+        %%% DMD analyses or PAC along waves
+        % get hG envelope first
+        data_hg=filtfilt(bpFilt,data_main);
+        data_hg = abs(hilbert(data_hg));
+        for k=1:length(st)
+            tst = tcut(st(k));
+            tstp = tcut(stp(k));
+            [aa bb] = min(abs(tmain-tst));
+            tst = tmain(bb);
+            [aa bb] = min(abs(tmain-tstp));
+            tstp = tmain(bb);
+            X = data_hg(tst:tstp,good_ch);
+            X = zscore(X);
+        end
+
+        %%%% extract hg envelope and mu only around waves
         tmp={};tmp_mu={};tmp_hg_mu={};        
         for k=1:length(st)
             tmp{k} = hg(st(k):stp(k),good_ch);

@@ -21,7 +21,7 @@ while ~done
     end
     
     len = end_idx-1-start_idx;
-    if len >= 3 %50Hz -> greater than 60ms
+    if len >= 3 %50Hz -> greater than 60ms, 3 samples. 
         wav_det = [wav_det len];
         wav_st = [wav_st start_idx];
         wav_stp = [wav_stp end_idx-1];

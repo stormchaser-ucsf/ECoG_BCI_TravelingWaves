@@ -908,10 +908,10 @@ boxplot([xol_days' xcl_days']*1)
 
 
 % plotting back
-xol=[];xcl=[];
+xol=[];xcl=[];xold=[];xolf=[];xcld=[];xclf=[];
 for i=1:length(stats_ol_days)
     tmp0=stats_ol_days{i};
-    x=[];
+    x=[];xf=[];xd=[];
     for j=1:length(tmp0)
         tmp_og = (tmp0(j).stab);
         tmp=zscore(tmp_og);
@@ -930,13 +930,17 @@ for i=1:length(stats_ol_days)
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
         x(j) = f*d;%duty_cycle
+        xf(j) = f;
+        xd(j) = d;
 
         
     end
     xol(i) = nanmean(x);
+    xolf(i) = nanmean(xf);
+    xold(i) = nanmean(xd);
 
     tmp0=stats_cl_days{i};
-    x=[];
+     x=[];xf=[];xd=[];
     for j=1:length(tmp0)
         tmp_og = (tmp0(j).stab);
         tmp=zscore(tmp_og);
@@ -953,10 +957,14 @@ for i=1:length(stats_ol_days)
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
         x(j) = f*d;%duty_cycle
+        xf(j) = f;
+        xd(j) = d;
         
         %x(j) = median(tmp_og);
     end
     xcl(i) = nanmean(x);
+    xclf(i) = nanmean(xf);
+    xcld(i) = nanmean(xd);
 end
 
 figure;
@@ -964,9 +972,30 @@ plot(xol);hold on
 plot(xcl)
 
 
+xol=log(xol);
+xcl=log(xcl);
+figure;
+%boxplot([xol' xcl']*20)
+boxplot([xol' xcl'])
+[p,h] = signrank(xol,xcl)
+[h,p,tb,st]=ttest(xol,xcl)
+
+
+figure;
+hold on
+plot(xolf,xold,'.b','MarkerSize',15)
+plot(xclf,xcld,'.r','MarkerSize',15)
+
+
+
 figure;
 boxplot([xol' xcl']*1e3)
 boxplot([xol' xcl'])
+xticks(1:2)
+xticklabels({'OL','CL'})
+ylabel('Duty Cycle')
+title('Mu wave property - B1')
+plot_beautify
 [p,h] = signrank(xol,xcl)
 [h,p,tb,st]=ttest(xol,xcl)
 
@@ -1020,7 +1049,7 @@ boxplot(res)
 xticks(1:2)
 xticklabels({'Wave epochs','Non wave epochs'})
 ylabel('Pairwise Mahalanobis dist.')
-title('hG Decoding Information')
+title('B1 hG Decoding Information')
 plot_beautify
 
 
@@ -1116,8 +1145,8 @@ else
     root_path='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6';
     cd(root_path)
     %load session_data_B3_Hand
-    load('ECOG_Grid_8596_000067_B3.mat')
-    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/helpers'))
+    load('ECOG_Grid_8596_000067_B3.mat')    
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 
 end
 
@@ -1149,8 +1178,8 @@ bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
 
 % robot3DArrow
 folders = {'20250530','20250610','20250624','20250703','20250708','20250717',...
-    '20250917','20250924'};
-
+    '20250917','20250924','20251210'};
+%20250924 seems to have no closed loop data? 
 imaging_B3_waves;close all
 
 hilbert_flag=1;
@@ -1300,10 +1329,10 @@ boxplot([xol_days' xcl_days']*1)
 save B6_waves_stability_Muller_hG -v7.3 % 50Hz, removing last 400ms in fitering step
 
 % plotting back
-xol=[];xcl=[];
+xol=[];xcl=[];xold=[];xolf=[];xcld=[];xclf=[];
 for i=1:length(stats_ol_days)
     tmp0=stats_ol_days{i};
-    x=[];
+    x=[];xf=[];xd=[];
     for j=1:length(tmp0)
         tmp_og = (tmp0(j).stab);
         tmp=zscore(tmp_og);
@@ -1322,13 +1351,17 @@ for i=1:length(stats_ol_days)
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
         x(j) = f*d;%duty_cycle
+        xf(j) = f;
+        xd(j) = d;
 
         
     end
     xol(i) = nanmean(x);
+    xolf(i) = nanmean(xf);
+    xold(i) = nanmean(xd);
 
     tmp0=stats_cl_days{i};
-    x=[];
+     x=[];xf=[];xd=[];
     for j=1:length(tmp0)
         tmp_og = (tmp0(j).stab);
         tmp=zscore(tmp_og);
@@ -1345,10 +1378,14 @@ for i=1:length(stats_ol_days)
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
         x(j) = f*d;%duty_cycle
+        xf(j) = f;
+        xd(j) = d;
         
         %x(j) = median(tmp_og);
     end
     xcl(i) = nanmean(x);
+    xclf(i) = nanmean(xf);
+    xcld(i) = nanmean(xd);
 end
 
 figure;
@@ -1356,16 +1393,25 @@ plot(xol);hold on
 plot(xcl)
 
 
+xol=log(xol);
+xcl=log(xcl);
 figure;
 %boxplot([xol' xcl']*20)
 boxplot([xol' xcl'])
 [p,h] = signrank(xol,xcl)
 [h,p,tb,st]=ttest(xol,xcl)
 
+
+figure;
+hold on
+plot(xolf,xold,'.b','MarkerSize',15)
+plot(xclf,xcld,'.r','MarkerSize',15)
+
+
 %when comparing the duty cycle, 
 % B6_waves_stability_Muller trending significant (also needs one more
 % session to be analyzed, load the data from box)
-% B6_waves_stability is significant
+% B6_waves_stability is significant -> this is the non mueller step
 
 
 
@@ -1409,15 +1455,25 @@ parfor days=1:length(stats_cl_hg_days)
 end
 figure;boxplot(res)
 [p,h] = signrank(res(:,1),res(:,2))
-
+xticks(1:2)
+xticklabels({'Wave epochs','Non wave epochs'})
+ylabel('Pairwise Mahalanobis dist.')
+title('B6 hG Decoding Information')
+plot_beautify
 
 
 %% RUN COMPLEX VALUED ICA ON THE STABLE EPOCH VECTOR FIELDS
 
+
+% High performance brain computer interace control is
+% associated with mu band traveling waves
+
 clc;
 clear;
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
-load load B1_waves_stability_hG
+load B1_waves_stability_hG
+
+addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 
 % get the mean vector field whenever a stable epoch is found 
 % so do cICA on each day. Find components within top 20 with curl greater
@@ -1440,7 +1496,11 @@ for days =5:length(stats_ol_days)
         end
     end
 
+    [W, min_cost, Ahat, Shat] = complex_ICA_EBM(x);
+    z = W*x;
+
     l = size(x,2);
+    x=[];
     for i=1:length(stats_cl)
         tmp = (stats_cl(i).stab);
         v = stats_cl(i).vec_field;
@@ -1453,11 +1513,11 @@ for days =5:length(stats_ol_days)
         end
     end
 
-    [W, min_cost, Ahat, Shat] = complex_ICA_EBM(x);
-    z = W*x;
+    [W_cl, min_cost, Ahat_cl, Shat_cl] = complex_ICA_EBM(x);
+    z_cl = W_cl*x;
 
     res=[];
-    for i=1:15 % first 15 components
+    for i=1:10 % first 15 components
         xph = Ahat(:,i);
         xph = reshape(xph,11,23);
         xph = xph./max(abs(xph(:)));
@@ -1466,19 +1526,20 @@ for days =5:length(stats_ol_days)
         [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
         [d,c]= curl(XX,YY,M,N);
         [div]=divergence(XX,YY,M,N);
-        if max(d(:)) > 0.5
+        figure;plot(d(:),div(:),'.','MarkerSize',20);xlim([-1 1]);ylim([-1 1]);hline(0);vline(0);
+        xlabel('Curl')
+        ylabel('Div')
+        title(num2str(i))
+        %if max(d(:)) > 0.5
             a = abs(z(i,:));
             res=  [res;[ mean(a(1:l)) mean(a(l+1:end))]];
-        end
+        %end
     end
     res_days = [res_days;mean(res,1)];
 end
 
-
-
 figure;
 boxplot(res_days)
-
 
 
 % compute variances per components
@@ -1487,14 +1548,14 @@ boxplot(res_days)
 % preprocess
 X=x;
 X = X-mean(X,2);
-% [N,T] = size(X);
-% % remove DC
-% Xmean=mean(X,2);
-% X = X - Xmean*ones(1,T);    
-% % spatio pre-whitening 1 
-% R = X*X'/T;                 
-% P = inv_sqrtmH(R);  %P = inv(sqrtm(R));
-% X = P*X;
+[N,T] = size(X);
+% remove DC
+Xmean=mean(X,2);
+X = X - Xmean*ones(1,T);    
+% spatio pre-whitening 1 
+R = X*X'/T;                 
+P = inv_sqrtmH(R);  %P = inv(sqrtm(R));
+X = P*X;
 
 vaf=[];
 norm_x = norm(X,'fro');
@@ -1502,6 +1563,9 @@ for i=1:size(Ahat,1)
     tmp = Ahat(:,i) * Shat(i,:);
     vaf(i) = norm(tmp,'fro') / norm_x;
 end
-
+[aa bb]=sort(vaf,'descend');
+vaf=vaf(bb);
+figure;stem(vaf)
+figure;stem(cumsum(vaf)./sum(vaf))
 
 
