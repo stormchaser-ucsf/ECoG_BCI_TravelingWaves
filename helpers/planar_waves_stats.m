@@ -109,10 +109,10 @@ for ii=1:length(files)
             planar_val_time(t,:,:) = planar_val;
 
             % wave detection for hg mu signal
-            tmp = hg_mu(t,:);
-            xph = tmp(ecog_grid);
-            planar_val = planar_stats_muller(xph);
-            planar_val_time_hg(t,:,:) = planar_val;
+            % tmp = hg_mu(t,:);
+            % xph = tmp(ecog_grid);
+            % planar_val = planar_stats_muller(xph);
+            % planar_val_time_hg(t,:,:) = planar_val;
         end
 
         %%%% if performing local circular linear correlation around entire grid
@@ -122,9 +122,9 @@ for ii=1:length(files)
             xtm1 = planar_val_time(k-1,:,:);xtm1=xtm1(:);
             stab(k-1) = - mean(abs(xt - xtm1));
 
-            xt = planar_val_time_hg(k,:,:);xt=xt(:);
-            xtm1 = planar_val_time_hg(k-1,:,:);xtm1=xtm1(:);
-            stab_hg(k-1) = - mean(abs(xt - xtm1));
+            % xt = planar_val_time_hg(k,:,:);xt=xt(:);
+            % xtm1 = planar_val_time_hg(k-1,:,:);xtm1=xtm1(:);
+            % stab_hg(k-1) = - mean(abs(xt - xtm1));
         end       
         
         stats(kk).stab = stab;
@@ -138,18 +138,18 @@ for ii=1:length(files)
 
         %%% DMD analyses or PAC along waves
         % get hG envelope first
-        data_hg=filtfilt(bpFilt,data_main);
-        data_hg = abs(hilbert(data_hg));
-        for k=1:length(st)
-            tst = tcut(st(k));
-            tstp = tcut(stp(k));
-            [aa bb] = min(abs(tmain-tst));
-            tst = tmain(bb);
-            [aa bb] = min(abs(tmain-tstp));
-            tstp = tmain(bb);
-            X = data_hg(tst:tstp,good_ch);
-            X = zscore(X);
-        end
+        % data_hg=filtfilt(bpFilt,data_main);
+        % data_hg = abs(hilbert(data_hg));
+        % for k=1:length(st)
+        %     tst = tcut(st(k));
+        %     tstp = tcut(stp(k));
+        %     [aa bb] = min(abs(tmain-tst));
+        %     tst = tmain(bb);
+        %     [aa bb] = min(abs(tmain-tstp));
+        %     tstp = tmain(bb);
+        %     X = data_hg(tst:tstp,good_ch);
+        %     X = zscore(X);
+        % end
 
         %%%% extract hg envelope and mu only around waves
         tmp={};tmp_mu={};tmp_hg_mu={};        
@@ -162,6 +162,12 @@ for ii=1:length(files)
         stats_hg(kk).mu_wave = tmp_mu;
         stats_hg(kk).hg_mu_wave = tmp_hg_mu;
         stats_hg(kk).target_id = TrialData.TargetID;
+
+        % perform PLV analyses 
+        tmp_mu = angle(cell2mat(tmp_mu'));
+        tmp_hg_mu = angle(cell2mat(tmp_hg_mu'));
+        res_wave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
+        
 
         %%%% extract hg envelope around non wave regions
         % till the first start
@@ -187,8 +193,15 @@ for ii=1:length(files)
         stats_hg(kk).mu_nonwave = tmp_mu;
         stats_hg(kk).hg_mu_nonwave = tmp_hg_mu;
 
-        
+        % perform PLV analyses 
+        tmp_mu = angle(cell2mat(tmp_mu'));
+        tmp_hg_mu = angle(cell2mat(tmp_hg_mu'));
+        res_nonwave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
 
+        % contrast
+        %figure;boxplot([abs(res_wave)' abs(res_nonwave)'])
+        stats_hg(kk).plv_nonwave = res_nonwave;
+        stats_hg(kk).plv_wave = res_wave;
 
         kk=kk+1;
     end

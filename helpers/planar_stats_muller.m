@@ -17,8 +17,10 @@ tmp = smoothn({M,N},'robust');
 M = tmp{1}; N = tmp{2};
 planar_val = M + 1j*N;
 
-
-%[XX,YY] = meshgrid( 1:size(xphs,2), 1:size(xphs,1) );
-%figure;
-%quiver(XX,YY,M,N);axis tight
+% 
+% M = real(planar_val);
+% N = imag(planar_val);
+% [XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
+% figure;
+% quiver(XX,YY,M,N);axis tight
 

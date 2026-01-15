@@ -1244,6 +1244,39 @@ for days=1:length(folders)-1
     stats_ol_days{days}=stats_ol;
     stats_ol_hg_days{days} = stats_ol_hg;
 
+    % stats on PLV
+    wave_plv=[];nonwave_plv=[];wave_len=[];nonwave_len=[];nonwave_len_corr=[];
+    wave_angle=[];nonwave_angle=[];
+    for i=1:length(stats_ol_hg)
+        %%% just straight up average plv across grid
+        a=stats_ol_hg(i).plv_wave;
+        wave_len(i) = size(a,1);
+        wave_plv(i) = mean(abs(mean(a)));
+
+        a = stats_ol_hg(i).plv_nonwave;
+        nonwave_len(i) = size(a,1);
+        if nonwave_len(i) > wave_len(i)
+            idx = randperm(size(a,1),wave_len(i));
+            a = a(idx,:);
+        end          
+        nonwave_len_corr(i) = size(a,1);
+        nonwave_plv(i) = mean(abs(mean(a)));
+
+        %%% based on phase consistency across trials
+        % a=stats_ol_hg(i).plv_wave;
+        % wave_angle(i,:)=angle(mean(a));
+        % a=stats_ol_hg(i).plv_nonwave;
+        % nonwave_angle(i,:)=angle(mean(a));
+    end
+    figure;boxplot([wave_plv' nonwave_plv']);
+    [p,h]=signrank(wave_plv,nonwave_plv)
+
+    % wave_angle = mean(exp(1i.*wave_angle),1);
+    % nonwave_angle = mean(exp(1i.*nonwave_angle),1);
+
+
+
+
 
     %%%%%% get online data files %%%%%
     files=[];
@@ -1259,6 +1292,16 @@ for days=1:length(folders)-1
     stats_cl_days{days}=stats_cl;
     stats_cl_hg_days{days}=stats_cl_hg;
 
+    % stats on PLV
+    wave_plv=[];nonwave_plv=[];
+    for i=1:length(stats_cl_hg)
+        a=stats_cl_hg(i).plv_wave;
+        wave_plv(i) = mean(abs(mean(a)));
+
+        a=stats_cl_hg(i).plv_nonwave;
+        nonwave_plv(i) = mean(abs(mean(a)));
+    end
+
     x=[];
     for i = 1:length(stats_ol)
         %tmp = stats_ol(i).size;
@@ -1271,7 +1314,7 @@ for days=1:length(folders)-1
         tmp = (stats_ol(i).stab);
         tmp=zscore(tmp(1:end));
         %x(i) = sum(tmp>0.0)/length(tmp);
-        out = wave_stability_detect(tmp);
+        [out,st,stp] = wave_stability_detect(tmp);
         %x(i) = median(out);
         %x(i) = sum(out)/length(tmp);
         %x(i) = length(out)/length(tmp);
@@ -1279,6 +1322,8 @@ for days=1:length(folders)-1
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
         x(i) = f*d;
+
+        % stability values
     end
     %figure;plot(mean(x,1))
     xol=x;
@@ -1568,4 +1613,19 @@ vaf=vaf(bb);
 figure;stem(vaf)
 figure;stem(cumsum(vaf)./sum(vaf))
 
+% perform k means on the dataset
+X=x;
+for i=1:size(X,2)
+    X(:,i) = X(:,i)./norm(X(:,i));
+end
+X=X';
+X = [real(X) imag(X)];
+
+res=[];
+for k=2:30
+    [idx, C, sumd] = kmeans(X, k);
+    wcss= mean(sumd);
+    res=[res;wcss];
+end
+figure;plot(res)
 
