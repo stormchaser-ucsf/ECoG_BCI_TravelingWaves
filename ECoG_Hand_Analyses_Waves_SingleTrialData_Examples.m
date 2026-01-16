@@ -370,6 +370,35 @@ for days=1:len_days
     stats_ol_days{days}=stats_ol;
     stats_ol_hg_days{days} = stats_ol_hg;
 
+     % stats on PLV, OL
+    wave_plv=[];nonwave_plv=[];wave_len=[];nonwave_len=[];nonwave_len_corr=[];
+    wave_angle=[];nonwave_angle=[];
+    for i=1:length(stats_ol_hg)
+        %%% just straight up average plv across grid
+        a=stats_ol_hg(i).plv_wave;
+        wave_len(i) = size(a,1);
+        wave_plv(i) = mean(abs(mean(a)));
+
+        a = stats_ol_hg(i).plv_nonwave;
+        nonwave_len(i) = size(a,1);
+        if nonwave_len(i) > wave_len(i)
+            idx = randperm(size(a,1),wave_len(i));
+            a = a(idx,:);
+        end          
+        nonwave_len_corr(i) = size(a,1);
+        nonwave_plv(i) = mean(abs(mean(a)));
+
+        %%% based on phase consistency across trials
+        % a=stats_ol_hg(i).plv_wave;
+        % wave_angle(i,:)=angle(mean(a));
+        % a=stats_ol_hg(i).plv_nonwave;
+        % nonwave_angle(i,:)=angle(mean(a));
+    end
+    figure;boxplot([wave_plv' nonwave_plv']);
+    xticks(1:2)
+    xticklabels({'Wave epochs','Non wave epochs'})
+    [p,h]=signrank(wave_plv,nonwave_plv)
+
 
 
     %%%%%% get online data files %%%%%
@@ -389,6 +418,35 @@ for days=1:len_days
         grid_layout,elecmatrix,bpFilt);
     stats_cl_days{days}=stats_cl;
     stats_cl_hg_days{days}=stats_cl_hg;
+
+     % stats on PLV, CL
+    wave_plv=[];nonwave_plv=[];wave_len=[];nonwave_len=[];nonwave_len_corr=[];
+    wave_angle=[];nonwave_angle=[];
+    for i=1:length(stats_cl_hg)
+        %%% just straight up average plv across grid
+        a=stats_cl_hg(i).plv_wave;
+        wave_len(i) = size(a,1);
+        wave_plv(i) = mean(abs(mean(a)));
+
+        a = stats_cl_hg(i).plv_nonwave;
+        nonwave_len(i) = size(a,1);
+        if nonwave_len(i) > wave_len(i)
+            idx = randperm(size(a,1),wave_len(i));
+            a = a(idx,:);
+        end          
+        nonwave_len_corr(i) = size(a,1);
+        nonwave_plv(i) = mean(abs(mean(a)));
+
+        %%% based on phase consistency across trials
+        % a=stats_ol_hg(i).plv_wave;
+        % wave_angle(i,:)=angle(mean(a));
+        % a=stats_ol_hg(i).plv_nonwave;
+        % nonwave_angle(i,:)=angle(mean(a));
+    end
+    figure;boxplot([wave_plv' nonwave_plv']);
+    xticks(1:2)
+    xticklabels({'Wave epochs','Non wave epochs'})
+    [p,h]=signrank(wave_plv,nonwave_plv)
 
     x=[];
     for i = 1:length(stats_ol)
@@ -797,6 +855,39 @@ for days=1:8%length(folders)
     stats_ol_days{days}=stats_ol;
     stats_ol_hg_days{days} = stats_ol_hg;
 
+     % stats on PLV, OL
+    wave_plv=[];nonwave_plv=[];wave_len=[];nonwave_len=[];nonwave_len_corr=[];
+    wave_angle=[];nonwave_angle=[];
+    for i=1:length(stats_ol_hg)
+        %%% just straight up average plv across grid
+        a=stats_ol_hg(i).plv_wave;
+        wave_len(i) = size(a,1);
+        wave_plv(i) = mean(abs(mean(a)));
+
+        a = stats_ol_hg(i).plv_nonwave;
+        nonwave_len(i) = size(a,1);
+        if nonwave_len(i) > wave_len(i)
+            idx = randperm(size(a,1),wave_len(i));
+            a = a(idx,:);
+        end          
+        nonwave_len_corr(i) = size(a,1);
+        nonwave_plv(i) = mean(abs(mean(a)));
+
+        %%% based on phase consistency across trials
+        % a=stats_ol_hg(i).plv_wave;
+        % wave_angle(i,:)=angle(mean(a));
+        % a=stats_ol_hg(i).plv_nonwave;
+        % nonwave_angle(i,:)=angle(mean(a));
+    end
+    wave_plv_ol = wave_plv;
+    nonwave_plv_ol= nonwave_plv;
+    figure;boxplot([wave_plv' nonwave_plv']);
+    xticks(1:2)
+    xticklabels({'Wave epochs','Non wave epochs'})
+    [p,h]=signrank(wave_plv,nonwave_plv)
+    ylabel('Grid-wise PAC between high gamma and mu')
+
+
 
     %%%%%% get online data files %%%%%
     files=[];
@@ -811,6 +902,46 @@ for days=1:8%length(folders)
         grid_layout,elecmatrix,bpFilt);
     stats_cl_days{days}=stats_cl;
     stats_cl_hg_days{days}=stats_cl_hg;
+
+
+     % stats on PLV, CL
+    wave_plv=[];nonwave_plv=[];wave_len=[];nonwave_len=[];nonwave_len_corr=[];
+    wave_angle=[];nonwave_angle=[];
+    for i=1:length(stats_cl_hg)
+        %%% just straight up average plv across grid
+        a=stats_cl_hg(i).plv_wave;
+        wave_len(i) = size(a,1);
+        wave_plv(i) = mean(abs(mean(a)));
+
+        a = stats_cl_hg(i).plv_nonwave;
+        nonwave_len(i) = size(a,1);
+        if nonwave_len(i) > wave_len(i)
+            idx = randperm(size(a,1),wave_len(i));
+            a = a(idx,:);
+        end          
+        nonwave_len_corr(i) = size(a,1);
+        nonwave_plv(i) = mean(abs(mean(a)));
+
+        %%% based on phase consistency across trials
+        % a=stats_ol_hg(i).plv_wave;
+        % wave_angle(i,:)=angle(mean(a));
+        % a=stats_ol_hg(i).plv_nonwave;
+        % nonwave_angle(i,:)=angle(mean(a));
+    end
+    wave_plv_cl = wave_plv;
+    nonwave_plv_cl= nonwave_plv;
+    figure;boxplot([wave_plv' nonwave_plv']);
+    xticks(1:2)
+    xticklabels({'Wave epochs','Non wave epochs'})
+    [p,h]=signrank(wave_plv,nonwave_plv)
+    ylabel('Grid-wise PAC between high gamma and mu')
+
+    figure;boxplot([wave_plv_ol' nonwave_plv_ol' wave_plv_cl' nonwave_plv_cl']);
+    xticks(1:4)
+    xticklabels({'OL Wave epochs','OL Non wave epochs',...
+        'CL Wave epochs','CL Non wave epochs'})
+   
+
 
     
     x=[];
