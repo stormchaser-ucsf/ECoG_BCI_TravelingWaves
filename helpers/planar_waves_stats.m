@@ -1,5 +1,5 @@
 function [stats,stats_hg] = planar_waves_stats(files,d2,...
-    hilbert_flag,ecog_grid,grid_layout,elecmatrix,bpFilt)
+    hilbert_flag,ecog_grid,grid_layout,elecmatrix,bpFilt,d1)
 
 good_ch=ones(256,1);
 good_ch([108 113 118])=0;
@@ -70,7 +70,7 @@ for ii=1:length(files)
         hg_mu = hg_mu(l11+1:end-40,:);
 
         % keep track of time
-        tcut = tmain(l1+20:end-800); % what is being taken
+        tcut = tmain(l1:end-800); % what is being taken
         tcut = tcut(1:20:end);% down sampled to 50Hz        
 
         % detect planar waves across mini-grid location
@@ -136,20 +136,89 @@ for ii=1:length(files)
         stab = zscore(stab);
         [out,st,stp] = wave_stability_detect(stab);
 
-        %%% DMD analyses or PAC along waves
-        % get hG envelope first
-        % data_hg=filtfilt(bpFilt,data_main);
-        % data_hg = abs(hilbert(data_hg));
-        % for k=1:length(st)
-        %     tst = tcut(st(k));
-        %     tstp = tcut(stp(k));
-        %     [aa bb] = min(abs(tmain-tst));
-        %     tst = tmain(bb);
-        %     [aa bb] = min(abs(tmain-tstp));
-        %     tstp = tmain(bb);
-        %     X = data_hg(tst:tstp,good_ch);
-        %     X = zscore(X);
-        % end
+        %%% Phase phase coupling between mu and high gamma only around
+        %%% waves
+        %get hG 
+        data_hg=filtfilt(bpFilt,data_main);        
+        ph_hg = angle(hilbert(data_hg));
+        % get mu 
+        data_mu=filtfilt(d1,data_main);     
+        ph_mu = angle(hilbert(data_mu));
+        x={};y={};
+        for k=1:length(st)
+            tst = tcut(st(k));
+            tstp = tcut(stp(k));
+            [aa bb] = min(abs(tmain-tst));
+            tst = tmain(bb);
+            [aa bb] = min(abs(tmain-tstp));
+            tstp = tmain(bb);
+            %X = data_hg(tst:tstp,good_ch);
+            %X = zscore(X);
+            x{k} = ph_hg(tst:tstp,good_ch);
+            y{k} = ph_mu(tst:tstp,good_ch);
+        end
+
+        % computing phase phase coupling
+        x=cell2mat(x'); % hg
+        y=cell2mat(y'); % mu 
+        % multiply mu by factor 12
+        sc=11;
+        y1 = wrapToPi(sc*y);
+        ppc_wave = (exp(1i .* (y1 -x)));
+
+        %%%%% phase phase coupling around non wave regions
+        x={};y={}; % for phase phase coupling
+        % till the first start        
+        if st>1
+            tst = tcut(1);
+            tstp = tcut(st(1))-1;
+            [aa bb] = min(abs(tmain-tst));
+            tst = tmain(bb);
+            [aa bb] = min(abs(tmain-tstp));
+            tstp = tmain(bb);
+
+            x=cat(2,x,ph_hg(tst:tstp,good_ch));
+            y=cat(2,y,ph_mu(tst:tstp,good_ch));
+        end
+
+        % everything in between 
+        for j=1:length(stp)-1
+            tst = tcut(stp(j))+1;
+            tstp = tcut(st(j+1))-1;
+            [aa bb] = min(abs(tmain-tst));
+            tst = tmain(bb);
+            [aa bb] = min(abs(tmain-tstp));
+            tstp = tmain(bb);
+            x=cat(2,x,ph_hg(tst:tstp,good_ch));
+            y=cat(2,y,ph_mu(tst:tstp,good_ch));
+        end
+
+        % get the last bit
+        if stp(end) < size(df,1)
+            tst = tcut(stp(end))+1;
+            tstp = tcut(end);
+            [aa bb] = min(abs(tmain-tst));
+            tst = tmain(bb);
+            [aa bb] = min(abs(tmain-tstp));
+            tstp = tmain(bb);
+            x=cat(2,x,ph_hg(tst:tstp,good_ch));
+            y=cat(2,y,ph_mu(tst:tstp,good_ch));
+        end
+
+        % computing phase phase coupling
+        x=cell2mat(x'); % hg
+        y=cell2mat(y'); % mu 
+        % multiply mu by factor 12
+        sc=11;
+        y1 = wrapToPi(sc*y);
+        ppc_nonwave = (exp(1i .* (y1 -x)));
+        
+        % store
+        stats_hg(kk).ppc_wave = ppc_wave;
+        stats_hg(kk).ppc_nonwave = ppc_nonwave;
+
+
+
 
         %%%% extract hg envelope and mu only around waves
         tmp={};tmp_mu={};tmp_hg_mu={};        
@@ -167,15 +236,15 @@ for ii=1:length(files)
         tmp_mu = angle(cell2mat(tmp_mu'));
         tmp_hg_mu = angle(cell2mat(tmp_hg_mu'));
         res_wave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
-        
+
 
         %%%% extract hg envelope around non wave regions
         % till the first start
-        tmp={};tmp_mu={}; tmp_hg_mu={};            
+        tmp={};tmp_mu={}; tmp_hg_mu={};k=1;           
         if st>1
             tmp = cat(2,tmp,hg(1:(st(k)-1),good_ch));            
             tmp_mu = cat(2,tmp_mu,df(1:(st(k)-1),good_ch));            
-            tmp_hg_mu = cat(2,tmp_hg_mu,hg_mu(1:(st(k)-1),good_ch));            
+            tmp_hg_mu = cat(2,tmp_hg_mu,hg_mu(1:(st(k)-1),good_ch));  
         end
         % everything in between
         for j=1:length(stp)-1
