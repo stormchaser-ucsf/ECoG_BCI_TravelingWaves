@@ -579,10 +579,10 @@ for i=1:length(stats_ol_days)
         [out,st,stp] = wave_stability_detect(tmp);
         s=[];
         % wave epochs
-        for k=1:length(st)
-            %s(k) = median(tmp_og(st(k):stp(k)));
-            s(k) = var(tmp_og(st(k):stp(k)));
-        end
+        % for k=1:length(st)
+        %     %s(k) = median(tmp_og(st(k):stp(k)));
+        %     s(k) = sum(tmp_og(st(k):stp(k)));
+        % end
 
         % nonwave epochs
         % for k=1:length(st)-1
@@ -592,8 +592,8 @@ for i=1:length(stats_ol_days)
 
 
         %x(j) = median(s);
-        x(j) = sum(s);
-        %x(j) = sum(tmp_og);
+        %x(j) = sum(s);
+        x(j) = sum(tmp_og);
 
 
         %x(j) = median(out);
@@ -618,11 +618,11 @@ for i=1:length(stats_ol_days)
         [out,st,stp] = wave_stability_detect(tmp);
 
         s=[];
-        %wave epochs
-        for k=1:length(st)
-            s(k) = median(tmp_og(st(k):stp(k)));
-            %s(k) = var(tmp_og(st(k):stp(k)));
-        end
+        % wave epochs
+        % for k=1:length(st)
+        %     %s(k) = median(tmp_og(st(k):stp(k)));
+        %     s(k) = sum(tmp_og(st(k):stp(k)));
+        % end
 
         % nonwave epochs
         % for k=1:length(st)-1
@@ -1263,7 +1263,7 @@ for i=1:length(stats_ol_days)
             s(k) = sum(tmp_og(st(k):stp(k)));
         end
         %x(j) = median(s);
-        %x(j) = sum(s);
+        x(j) = sum(s);
 
 
         %x(j) = median(out);
@@ -1272,7 +1272,7 @@ for i=1:length(stats_ol_days)
         t = length(tmp) * 20/1e3;
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
-        x(j) = f*d;%duty_cycle
+        %x(j) = f*d;%duty_cycle
         xf(j) = f;
         xd(j) = d;
     end
@@ -1292,12 +1292,12 @@ for i=1:length(stats_ol_days)
             s(k) = sum(tmp_og(st(k):stp(k)));
         end
         %x(j) = median(s);
-        %x(j) = sum(s);
+        x(j) = sum(s);
 
         t = length(tmp) * 20/1e3;
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
-        x(j) = f*d;%duty_cycle
+        %x(j) = f*d;%duty_cycle
         xf(j) = f;
         xd(j) = d;
 
@@ -1324,14 +1324,8 @@ boxplot([xol' xcl'])
 
 figure;
 hold on
-plot3(xolf(1:5),xold(1:5),xol(1:5),'.b','MarkerSize',15)
-plot3(xclf(1:5),xcld(1:5),xcl(1:5),'.r','MarkerSize',15)
-plot3(xolf(6:end),xold(6:end),xol(6:end),'ob','MarkerSize',15)
-plot3(xclf(6:end),xcld(6:end),xcl(6:end),'or','MarkerSize',15)
-grid on
-xlabel('No. of Waves/s')
-ylabel('Duration')
-zlabel('Duty cycle')
+plot(xolf,xold,'.b','MarkerSize',15)
+plot(xclf,xcld,'.r','MarkerSize',15)
 
 
 
