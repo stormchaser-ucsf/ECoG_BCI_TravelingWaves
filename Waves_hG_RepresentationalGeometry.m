@@ -1,8 +1,12 @@
 %% LOOKING AT HOW REPRESENTATIONAL GEOMETRY OF HG CHANGES DURING
 %  WAVE EPOCHS COMPARED TO NON WAVE EPOCHS
 
+%% WAVE PROCESSING SUBJECTS' DATA
+
+
+
 %% load subjects' data
-clear
+clear;close all
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 subj ='B3';
 %parpool('threads')
@@ -11,7 +15,8 @@ if strcmp(subj,'B1')
     root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/';
     cd(root_path)
     load('ECOG_Grid_8596_000067_B3.mat')
-    load B1_waves_stability_hG
+    %load B1_waves_stability_hG
+    load B1_waves_stability_hG_plv
     num_targets=7;
 
 elseif strcmp(subj,'B3')
@@ -22,7 +27,8 @@ elseif strcmp(subj,'B3')
     %load session_data_B3
     load('ECOG_Grid_8596_000067_B3.mat')
     addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
-    load B3_waves_hand_stability_Muller_hG
+    %load B3_waves_hand_stability_Muller_hG
+    load B3_waves_hand_stability_Muller_hG_plv
 
 
 elseif strcmp(subj,'B6')
@@ -32,13 +38,164 @@ elseif strcmp(subj,'B6')
     %load session_data_B3_Hand
     load('ECOG_Grid_8596_000067_B3.mat')
     addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
-    load('B6_waves_stability_Muller_hG')
+    %load('B6_waves_stability_Muller_hG')
+    load B6_waves_stability_hg_PLV
 end
 
-%% ANALYSIS 0 
-% Look at the mahalanobis distance between movements during wave epochs,
-% non wave epochs, OL and CL 
+%% ANALYSIS -2 
+%MAHAB Distances
+% B3 -> flipud 
 
+% looking at hg differences between two conditions, wave vs. non wave
+res=[];
+for days=1:length(stats_cl_hg_days)
+    stats_cl_hg = stats_cl_hg_days{days};
+    stats_cl = stats_cl_days{days};
+    D_wave=[];D_nonwave=[];
+    for tid0=1:7
+        for tid=tid0+1:7
+            act1=[];act2=[];
+            act1_nonwave=[];act2_nonwave=[];
+            for i=1:length(stats_cl_hg)
+                if stats_cl_hg(i).target_id ==tid0 
+                    tmp = stats_cl_hg(i).hg_wave;
+                    tmp = cell2mat(tmp');
+
+                    %if stats_cl(i).accuracy==0
+                        act1 = [act1;tmp];
+                    %end
+
+                    tmp = stats_cl_hg(i).hg_nonwave;
+                    tmp = cell2mat(tmp');
+                    act1_nonwave = [act1_nonwave;tmp];
+                end
+                if stats_cl_hg(i).target_id ==tid 
+                    tmp = stats_cl_hg(i).hg_wave;
+                    tmp = cell2mat(tmp');
+                    %if stats_cl(i).accuracy==0
+                        act2 = [act2;tmp];
+                    %end
+
+                    tmp = stats_cl_hg(i).hg_nonwave;
+                    tmp = cell2mat(tmp');
+                    act2_nonwave = [act2_nonwave;tmp];
+                end
+            end
+            d1 = mahal2(act1,act2,2);
+            d2 = mahal2(act1_nonwave,act2_nonwave,2);
+            D_wave = [D_wave d1];
+            D_nonwave = [D_nonwave d2];
+        end
+    end
+    res(days,:) = [median(D_wave) median(D_nonwave)];
+end
+figure;boxplot(res)
+[p,h] = signrank(res(:,1),res(:,2))
+xticks(1:2)
+xticklabels({'Wave epochs','Non wave epochs'})
+ylabel('Pairwise Mahalanobis dist.')
+title(subj)
+plot_beautify
+
+figure;plot(res)
+
+%% ANALYSIS -1 
+% PLV between mu and hg
+
+
+%%%%%% JUST FOR CLOSED LOOP, TRIAL LENGTH MATCHING
+elec_list=[14	8	2	130	136	142	147	151	18	13	7	1	129	135	141	146
+    10	4	132	138	144	149	153	156	158	27	24	20	15	9	3	131
+    189	192	32	31	29	26	22	17	11	5	133	139	145	150	154	157
+    169	173	177	181	185	188	191	64	61	58	54	50	46	42	12	6
+    40	37	34	162	165	168	172	176	180	184	187	190	63	60	57	53
+    89	55	51	47	43	39	36	33	161	164	167	171	175	179	183	217
+    212	215	219	223	94	90	86	83	80	77	73	69	65	193	197	201
+    195	199	203	207	210	213	216	220	224	95	91	87	84	81	78	74
+    114	109	76	72	68	196	200	204	237	242	247	251	254	256	96	92
+    244	249	253	127	124	120	115	110	105	101	97	225	229	233	238	243
+    122	117	112	107	103	99	227	231	235	240	245	250	125	121	116	111];
+
+for i=1:numel(elec_list)
+    %disp([i elec_list(i)])
+    if elec_list(i)>=109 && elec_list(i)<=112
+        elec_list(i) = elec_list(i)-1;
+    elseif elec_list(i)>=114 && elec_list(i)<=117
+        elec_list(i) = elec_list(i)-2;
+    elseif elec_list(i)>=119
+        elec_list(i) = elec_list(i)-3;
+    end
+end
+
+res_days=[];
+parfor days=1:length(stats_cl_hg_days)
+    stats_cl_hg = stats_ol_hg_days{days};
+    wave_len_cl=[];
+    nonwave_len_cl=[];
+    wave_plv=[];
+    nonwave_plv=[];
+    for i=1:length(stats_cl_hg)
+        %%% just straight up average plv across grid
+        a=stats_cl_hg(i).plv_wave;
+        %a=a(:,elec_list);
+        wave_len_cl(i) = size(a,1);
+
+        b = stats_cl_hg(i).plv_nonwave;
+        %b=b(:,elec_list);
+        nonwave_len_cl(i) = size(b,1);
+
+        % nonwave_plv(i) = mean(abs(mean(b)));
+        % wave_plv(i) = mean(abs(mean(a)));
+
+        if wave_len_cl(i)<nonwave_len_cl(i)
+            wave_plv(i) = mean(abs(mean(a)));
+
+            len = min(30,nonwave_len_cl(i) -  wave_len_cl(i));
+            idx=randperm(nonwave_len_cl(i) -  wave_len_cl(i),len);
+            plv_tmp=[];
+            for j=1:length(idx)
+                tmp = b(idx(j):idx(j)+wave_len_cl(i)-1,:);
+                plv_tmp(j) = mean(abs(mean(tmp,1)));
+            end
+            nonwave_plv(i) = mean(plv_tmp);
+
+        elseif wave_len_cl(i)>nonwave_len_cl(i)
+            nonwave_plv(i) = mean(abs(mean(b)));
+
+            len = min(30,wave_len_cl(i) -  nonwave_len_cl(i));
+            idx=randperm(wave_len_cl(i) -  nonwave_len_cl(i),len);
+            plv_tmp=[];
+            for j=1:length(idx)
+                tmp = a(idx(j):idx(j)+nonwave_len_cl(i)-1,:);
+                plv_tmp(j) = mean(abs(mean(tmp,1)));
+            end
+            wave_plv(i) = mean(plv_tmp);
+
+        elseif wave_len_cl(i)== nonwave_len_cl(i)
+            nonwave_plv(i) = mean(abs(mean(b)));
+            wave_plv(i) = mean(abs(mean(a)));
+        end
+    end
+    res_days(days,:) = [mean(wave_plv) mean(nonwave_plv)];
+end
+% figure;
+% boxplot([wave_plv' nonwave_plv'])
+% xticks(1:2)
+% xticklabels({'Wave epochs','Non wave epochs'})
+% plot_beautify
+% [p,h] = signrank(wave_plv,nonwave_plv);
+% title(num2str(p))
+
+figure;
+boxplot(res_days)
+xticks(1:2)
+xticklabels({'Wave epochs','Non wave epochs'})
+plot_beautify
+[p,h] = signrank(res_days(:,1),res_days(:,2));
+title(num2str(p))
+
+figure;plot(res_days)
+legend('Waves','Nonwaves')
 
 %% ANALYSIS 0 and 1
 % hg decouples of mu during waves as compared to non-waves. does the
@@ -51,7 +208,7 @@ end
 
 res=[];res_var=[];
 parfor days=1:length(stats_cl_hg_days)
-    stats_cl_hg = stats_cl_hg_days{days};
+    stats_cl_hg = stats_ol_hg_days{days};
     dim_wave=[];
     dim_nonwave=[];
     for tid=1:num_targets
@@ -141,14 +298,57 @@ parfor days=1:length(stats_cl_hg_days)
 end
 [p,h] = signrank(res_days(:,1),res_days(:,2))
 mean(res_days)
-figure;boxplot(res_days)
+%figure;boxplot(res_days)
+res_days_cl=res_days;
+
+res_days=[];pval=[];
+parfor days=1:length(stats_cl_hg_days)
+    stats_cl_hg = stats_ol_hg_days{days};
+    D_wave=[];D_nonwave=[];res=[];
+    for i=1:length(stats_cl_hg)
+        if stats_cl_hg(i).target_id <=1
+            tmp = stats_cl_hg(i).hg_wave;
+            tmp = cell2mat(tmp');
+            tmp = median(tmp,1);
+            D_wave = cat(1,D_wave,tmp);
+
+            tmp = stats_cl_hg(i).hg_nonwave;
+            tmp = cell2mat(tmp');
+            tmp = median(tmp,1); % or mean here 
+            D_nonwave = cat(1,D_nonwave,tmp);
+        end
+    end
+    res = log([(std(D_wave,1))' (std(D_nonwave,1))']);
+    % figure;
+    % boxplot(res)
+    [p,h] = signrank(res(:,1),res(:,2));
+    pval(days) = ((p<0.05) * (median(res(:,1)) - median(res(:,2))))
+    % xticks(1:2)
+    % xticklabels({'Wave epochs','Non wave epochs'})
+    % ylabel('Variability in mean activity across conditions')
+    res_days =[res_days ;mean(res,1)];
+    %res_days(days,:,:) = res;
+end
+[p,h] = signrank(res_days(:,1),res_days(:,2))
+mean(res_days)
+%figure;boxplot(res_days)
+res_days_ol=res_days;
+
+res=[res_days_ol res_days_cl];
+figure;boxplot(res)
+xticks(1:4)
+xticklabels({'OL wave epochs ','OL nonwave epochs','CL wave epochs',...
+    'CL nonwave epochs'})
+ylabel('Grid-wise across trial variance in mean hG (log)')
+plot_beautify
+title(subj)
 
 %% ANALYSIS 3
 % EXAMINING Representational geometry
 
 res=[];res_var=[];res_ang=[];
 parfor days=1:length(stats_cl_hg_days)
-    stats_cl_hg = stats_cl_hg_days{days};
+    stats_cl_hg = stats_ol_hg_days{days};
     D_wave=[];D_nonwave=[];
     var_wave=[];
     var_nonwave=[];
@@ -221,13 +421,13 @@ parfor days=1:length(stats_cl_hg_days)
 
             %ang_wave=[ang_wave; subspacea(v1(:,1:15),w1')];
             %ang_nonwave=[ang_wave;subspacea(v2(:,1:15),w2')];
-            ang_wave=[ang_wave; norm(w1*v1(:,1:10))];
-            ang_nonwave=[ang_wave;norm(w2*v2(:,1:10))];
+            ang_wave=[ang_wave; norm(w1*v1(:,1:50))];
+            ang_nonwave=[ang_wave;norm(w2*v2(:,1:50))];
         end
     end
-    res(days,:) = [median(D_wave) median(D_nonwave)];
-    res_var(days,:) = [median(var_wave) median(var_nonwave)];
-    res_ang(days,:) = [median(ang_wave) median(ang_nonwave)];
+    res(days,:) = [mean(D_wave) mean(D_nonwave)];
+    res_var(days,:) = [mean(var_wave) mean(var_nonwave)];
+    res_ang(days,:) = [mean(ang_wave) mean(ang_nonwave)];
 end
 
 
@@ -237,7 +437,7 @@ boxplot(res)
 xticks(1:2)
 xticklabels({'Wave epochs','Non wave epochs'})
 ylabel('Pairwise Mahalanobis dist.')
-title('B1 hG Decoding Information')
+title(subj)
 plot_beautify
 
 
@@ -248,12 +448,15 @@ boxplot(res_var)
 xticks(1:2)
 xticklabels({'Wave epochs','Non wave epochs'})
 ylabel('Task specific variance')
-title('B1 hG Decoding Information')
+title(subj)
 plot_beautify
 tmp=(res_var(:,1)-res_var(:,2))./res_var(:,1);
 [p,h]=signrank(tmp)
 figure;boxplot(tmp)
 hline(0)
+plot_beautify
+title(subj)
+ylabel('Task specific variance')
 
 figure;
 boxplot(res_ang)
@@ -268,8 +471,57 @@ tmp=(res_ang(:,1)-res_ang(:,2))./res_ang(:,1);
 [p,h]=signrank(tmp)
 figure;boxplot(tmp)
 hline(0)
+title(subj)
+plot_beautify
+ylabel('Alignment index')
 
 
+%% ANALYSIS 4   
+% duty cycle within accurate and inaccurate trials
+
+res_days=[];
+parfor days=1:length(stats_cl_days)
+    res_acc=[];dc_acc=[];
+    res_err=[];dc_err=[];
+    stats_cl = stats_cl_days{days};
+    for i=1:length(stats_cl)
+        stab = zscore(stats_cl(i).stab);
+        [out,st,stp]=wave_stability_detect(stab);
+        wav_det=zeros(length(stab),1);
+        for k=1:length(st)
+            wav_det(st(k):stp(k))=1;
+        end
+
+        output = stats_cl(i).output;
+        idx=find(output==1);
+        stab_acc = wav_det(idx);
+        prop_waves = sum(wav_det(idx))/length(idx);
+
+        % if isnan(prop_waves)
+        %     prop_waves=0;
+        % end
+
+        % duty cycle
+        tmp=stab;
+        t = length(tmp) * 20/1e3;
+        f =length(out)/t; % frequency/s
+        d = median(out) * 20/1e3; %duration in s
+        dcyc=f*d;
+
+
+        if stats_cl(i).accuracy==1
+            res_acc = [res_acc;prop_waves ];
+            dc_acc = [dc_acc;dcyc];
+        else
+            res_err = [res_err;prop_waves ];
+            dc_err = [dc_err;dcyc];
+        end
+    end
+    res_days(days,:)=[mean(dc_err) mean(dc_acc)];
+end
+
+[p,h]=signrank(res_days(:,1),res_days(:,2))
+[ h p tb st]=ttest(res_days(:,1),res_days(:,2))
 
 %%
 %%% ANALYSIS 2

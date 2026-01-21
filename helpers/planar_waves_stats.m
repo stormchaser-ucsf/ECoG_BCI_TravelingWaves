@@ -1,5 +1,5 @@
 function [stats,stats_hg] = planar_waves_stats(files,d2,...
-    hilbert_flag,ecog_grid,grid_layout,elecmatrix,bpFilt,d1)
+    hilbert_flag,ecog_grid,grid_layout,elecmatrix,bpFilt,d1,cl_chk)
 
 good_ch=ones(256,1);
 good_ch([108 113 118])=0;
@@ -24,6 +24,8 @@ for ii=1:length(files)
         kinax3 = find(TrialData.TaskState==3);
         kinax4 = find(TrialData.TaskState==4);
 
+        %tmp=cell2mat(TrialData.BroadbandData);
+
         data2 = cell2mat(TrialData.BroadbandData(kinax2)');
         l2 =  length(data2);
         data4 = cell2mat(TrialData.BroadbandData(kinax4)');
@@ -36,6 +38,23 @@ for ii=1:length(files)
         data = [data1;data2;data3;data4];
         data_main=data;
         tmain = 1:size(data,1); % in ms the true time
+
+        % constructing the output vector        
+        output = NaN(size(data,1),1);
+        if cl_chk==1
+            t3start = l1+l2+1;
+            t3end = t3start + l3;
+            k=1;
+            for t=t3start:200:(t3end-200)
+                if k>length(TrialData.ClickerState)
+                    break
+                end
+                output(t:t+199) = TrialData.ClickerState(k);
+                k=k+1;
+            end
+        end
+
+
         %data = [data1;data2;data3];
         ds_fac=1e3/d2.SampleRate;
         l22=floor(l2/ds_fac); % length of the down sampled signal
@@ -59,15 +78,22 @@ for ii=1:length(files)
         data = resample(data,d2.SampleRate,1000);
         df = filtfilt(d2,data);
 
+        %downsample output vector to 50hz
+        output = output(1:20:end);
+
         % get the hilbert transform of the signal
         if hilbert_flag
             df= hilbert(df);
         end
 
         % remove non-task periods
-        df = df(l11+1:end-40,:);%remove last 800ms
-        hg = hg(l11+1:end-40,:);%remove last 800ms
+        df = df(l11+1:end-40,:);%remove last 800ms for b1,b6, last 1000ms for b3
+        hg = hg(l11+1:end-40,:);%remove last 800ms for b1,b6, last 1000ms for b3
         hg_mu = hg_mu(l11+1:end-40,:);
+        output = output(l11+1:end-40);
+        output(isnan(output)) = 1e-6;
+        output(output~=TrialData.TargetID)=0;
+        output(output==TrialData.TargetID)=1;
 
         % keep track of time
         tcut = tmain(l1:end-800); % what is being taken
@@ -130,96 +156,145 @@ for ii=1:length(files)
         stats(kk).stab = stab;
         stats(kk).vec_field = planar_val_time;        
         stats(kk).target_id = TrialData.TargetID;
+
+        %%%%% SAVE TRIAL PERFORMANCE
+        if cl_chk==1
+            click_state = TrialData.FilteredClickerState(TrialData.FilteredClickerState>0);
+            if mode(click_state) == TrialData.TargetID
+                stats(kk).accuracy=1;
+            else
+                stats(kk).accuracy=0;
+            end
+            stats(kk).output=output;
+        else
+            stats(kk).output=0;
+            stats(kk).accuracy=NaN;
+        end
+
+        % based on the time, you can actually go back and get the neural
+        % features from TrialData.SmoothedNeuralFeatures in the high gamma
+        % range. Can do it for wave epochs as well as non wave epochs. (All
+        % the ones not selected for wave epochs will be characterized as
+        % non wave epochs).  %st*20+1000 (state 1 is 1000)
+
+
         
 
         %%%%% STABILITY AND WAVE DETECTION 
-        stab = zscore(stab);
+        stab = zscore(stab(1:end)); % 100:end for B3
         [out,st,stp] = wave_stability_detect(stab);
+        % st=st+99;%for b3
+        % stp=stp+99;%for b3
+
+        % get hg features from smoothed neural data
+        hg_feat_wave={};
+        hg_feat_nonwave={};
+        tmp=TrialData.SmoothedNeuralFeatures;
+        wav_idx=[];
+        for k=1:length(st)
+            st1 = st(k)*20+1000;
+            stp1 = stp(k)*20+1000;
+            st_bin = floor(st1/200);
+            stp_bin = ceil(stp1/200);
+            tmp_data = cell2mat(tmp(st_bin:stp_bin));
+            tmp_data = tmp_data(1537:end,:);
+            tmp_data = tmp_data(good_ch,:);
+            hg_feat_wave{k}=tmp_data;
+            wav_idx=[wav_idx st_bin:stp_bin];
+        end
+        hg_feat_wave = cell2mat(hg_feat_wave);
+
+
+        % figure;plot(stab)
+        % hline(0)
+        % vline(st,'g')
+        % vline(stp,'r')
+        % hold on
+        % plot(output,'--k','LineWidth',2)
 
         %%% Phase phase coupling between mu and high gamma only around
         %%% waves
         %get hG 
-        data_hg=filtfilt(bpFilt,data_main);        
-        ph_hg = angle(hilbert(data_hg));
-        % get mu 
-        data_mu=filtfilt(d1,data_main);     
-        ph_mu = angle(hilbert(data_mu));
-        x={};y={};
-        for k=1:length(st)
-            tst = tcut(st(k));
-            tstp = tcut(stp(k));
-            [aa bb] = min(abs(tmain-tst));
-            tst = tmain(bb);
-            [aa bb] = min(abs(tmain-tstp));
-            tstp = tmain(bb);
-            %X = data_hg(tst:tstp,good_ch);
-            %X = zscore(X);
-            x{k} = ph_hg(tst:tstp,good_ch);
-            y{k} = ph_mu(tst:tstp,good_ch);
-        end
-
-        % computing phase phase coupling
-        x=cell2mat(x'); % hg
-        y=cell2mat(y'); % mu 
-        % multiply mu by factor 12
-        sc=11;
-        y1 = wrapToPi(sc*y);
-        ppc_wave = (exp(1i .* (y1 -x)));
-
-        %%%%% phase phase coupling around non wave regions
-        x={};y={}; % for phase phase coupling
-        % till the first start        
-        if st>1
-            tst = tcut(1);
-            tstp = tcut(st(1))-1;
-            [aa bb] = min(abs(tmain-tst));
-            tst = tmain(bb);
-            [aa bb] = min(abs(tmain-tstp));
-            tstp = tmain(bb);
-
-            x=cat(2,x,ph_hg(tst:tstp,good_ch));
-            y=cat(2,y,ph_mu(tst:tstp,good_ch));
-        end
-
-        % everything in between 
-        for j=1:length(stp)-1
-            tst = tcut(stp(j))+1;
-            tstp = tcut(st(j+1))-1;
-            [aa bb] = min(abs(tmain-tst));
-            tst = tmain(bb);
-            [aa bb] = min(abs(tmain-tstp));
-            tstp = tmain(bb);
-            x=cat(2,x,ph_hg(tst:tstp,good_ch));
-            y=cat(2,y,ph_mu(tst:tstp,good_ch));
-        end
-
-        % get the last bit
-        if stp(end) < size(df,1)
-            tst = tcut(stp(end))+1;
-            tstp = tcut(end);
-            [aa bb] = min(abs(tmain-tst));
-            tst = tmain(bb);
-            [aa bb] = min(abs(tmain-tstp));
-            tstp = tmain(bb);
-            x=cat(2,x,ph_hg(tst:tstp,good_ch));
-            y=cat(2,y,ph_mu(tst:tstp,good_ch));
-        end
-
-        % computing phase phase coupling
-        x=cell2mat(x'); % hg
-        y=cell2mat(y'); % mu 
-        % multiply mu by factor 12
-        sc=11;
-        y1 = wrapToPi(sc*y);
-        ppc_nonwave = (exp(1i .* (y1 -x)));
-        
-        % store
-        stats_hg(kk).ppc_wave = ppc_wave;
-        stats_hg(kk).ppc_nonwave = ppc_nonwave;
-
-
+        % data_hg=filtfilt(bpFilt,data_main);        
+        % ph_hg = angle(hilbert(data_hg));
+        % % get mu 
+        % data_mu=filtfilt(d1,data_main);     
+        % ph_mu = angle(hilbert(data_mu));
+        % x={};y={};
+        % for k=1:length(st)
+        %     tst = tcut(st(k));
+        %     tstp = tcut(stp(k));
+        %     [aa bb] = min(abs(tmain-tst));
+        %     tst = tmain(bb);
+        %     [aa bb] = min(abs(tmain-tstp));
+        %     tstp = tmain(bb);
+        %     %X = data_hg(tst:tstp,good_ch);
+        %     %X = zscore(X);
+        %     x{k} = ph_hg(tst:tstp,good_ch);
+        %     y{k} = ph_mu(tst:tstp,good_ch);
+        % end
+        % 
+        % % computing phase phase coupling
+        % x=cell2mat(x'); % hg
+        % y=cell2mat(y'); % mu 
+        % % multiply mu by factor 12
+        % sc=11;
+        % y1 = wrapToPi(sc*y);
+        % ppc_wave = (exp(1i .* (y1 -x)));
+        % 
+        % %%%%% phase phase coupling around non wave regions
+        % x={};y={}; % for phase phase coupling
+        % % till the first start        
+        % if st>1
+        %     tst = tcut(1);
+        %     tstp = tcut(st(1))-1;
+        %     [aa bb] = min(abs(tmain-tst));
+        %     tst = tmain(bb);
+        %     [aa bb] = min(abs(tmain-tstp));
+        %     tstp = tmain(bb);
+        % 
+        %     x=cat(2,x,ph_hg(tst:tstp,good_ch));
+        %     y=cat(2,y,ph_mu(tst:tstp,good_ch));
+        % end
+        % 
+        % % everything in between 
+        % for j=1:length(stp)-1
+        %     tst = tcut(stp(j))+1;
+        %     tstp = tcut(st(j+1))-1;
+        %     [aa bb] = min(abs(tmain-tst));
+        %     tst = tmain(bb);
+        %     [aa bb] = min(abs(tmain-tstp));
+        %     tstp = tmain(bb);
+        %     x=cat(2,x,ph_hg(tst:tstp,good_ch));
+        %     y=cat(2,y,ph_mu(tst:tstp,good_ch));
+        % end
+        % 
+        % % get the last bit
+        % if stp(end) < size(df,1)
+        %     tst = tcut(stp(end))+1;
+        %     tstp = tcut(end);
+        %     [aa bb] = min(abs(tmain-tst));
+        %     tst = tmain(bb);
+        %     [aa bb] = min(abs(tmain-tstp));
+        %     tstp = tmain(bb);
+        %     x=cat(2,x,ph_hg(tst:tstp,good_ch));
+        %     y=cat(2,y,ph_mu(tst:tstp,good_ch));
+        % end
+        % 
+        % % computing phase phase coupling
+        % x=cell2mat(x'); % hg
+        % y=cell2mat(y'); % mu 
+        % % multiply mu by factor 12
+        % sc=11;
+        % y1 = wrapToPi(sc*y);
+        % ppc_nonwave = (exp(1i .* (y1 -x)));
+        % 
+        % % store
+        % stats_hg(kk).ppc_wave = ppc_wave;
+        % stats_hg(kk).ppc_nonwave = ppc_nonwave;
 
 
+        %%%% PLV analyses
         %%%% extract hg envelope and mu only around waves
         tmp={};tmp_mu={};tmp_hg_mu={};        
         for k=1:length(st)

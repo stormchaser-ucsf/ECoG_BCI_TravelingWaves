@@ -370,48 +370,48 @@ for days=1:len_days
     len = min(150,length(files));
     idx=randperm(length(files),len);
     [stats_ol,stats_ol_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-        grid_layout,elecmatrix,bpFilt);
+        grid_layout,elecmatrix,bpFilt,d1);
     stats_ol_days{days}=stats_ol;
     stats_ol_hg_days{days} = stats_ol_hg;
 
-     % stats on PLV, OL
-    wave_plv=[];nonwave_plv=[];wave_len=[];nonwave_len=[];nonwave_len_corr=[];
-    wave_angle=[];nonwave_angle=[];
-    for i=1:length(stats_ol_hg)
-        %%% just straight up average plv across grid
-        a=stats_ol_hg(i).plv_wave;
-        wave_len(i) = size(a,1);
-        wave_plv(i) = mean(abs(mean(a)));
-        %wave_plv(i,:) = ((mean(a)));
-
-        a = stats_ol_hg(i).plv_nonwave;
-        nonwave_len(i) = size(a,1);
-        if nonwave_len(i) > wave_len(i)
-            idx = randperm(size(a,1),wave_len(i));
-            %a = a(idx,:);
-            a = a(1:wave_len(i),:);
-        end          
-        nonwave_len_corr(i) = size(a,1);
-        nonwave_plv(i) = mean(abs(mean(a)));
-        %nonwave_plv(i,:) = ((mean(a)));
-
-        %%% based on phase consistency across trials
-        % a=stats_ol_hg(i).plv_wave;
-        % wave_angle(i,:)=angle(mean(a));
-        % a=stats_ol_hg(i).plv_nonwave;
-        % nonwave_angle(i,:)=angle(mean(a));
-    end
-
+    % %  % stats on PLV, OL
+    % wave_plv=[];nonwave_plv=[];wave_len=[];nonwave_len=[];nonwave_len_corr=[];
+    % wave_angle=[];nonwave_angle=[];
+    % for i=1:length(stats_ol_hg)
+    %     %%% just straight up average plv across grid
+    %     a=stats_ol_hg(i).plv_wave;
+    %     wave_len(i) = size(a,1);
+    %     wave_plv(i) = mean(abs(mean(a)));
+    %     %wave_plv(i,:) = ((mean(a)));
+    % 
+    %     a = stats_ol_hg(i).plv_nonwave;
+    %     nonwave_len(i) = size(a,1);
+    %     if nonwave_len(i) > wave_len(i)
+    %         idx = randperm(size(a,1),wave_len(i));
+    %         %a = a(idx,:);
+    %         a = a(1:wave_len(i),:);
+    %     end          
+    %     nonwave_len_corr(i) = size(a,1);
+    %     nonwave_plv(i) = mean(abs(mean(a)));
+    %     %nonwave_plv(i,:) = ((mean(a)));
+    % 
+    %     %%% based on phase consistency across trials
+    %     % a=stats_ol_hg(i).plv_wave;
+    %     % wave_angle(i,:)=angle(mean(a));
+    %     % a=stats_ol_hg(i).plv_nonwave;
+    %     % nonwave_angle(i,:)=angle(mean(a));
+    % end
+    % 
     % wave_plv =abs(mean(wave_plv,1));
     % nonwave_plv =abs(mean(nonwave_plv,1));
 
-    wave_plv_ol = wave_plv;
-    nonwave_plv_ol= nonwave_plv;
-    figure;boxplot([wave_plv' nonwave_plv']);
-    xticks(1:2)
-    xticklabels({'Wave epochs','Non wave epochs'})
-    [p,h]=signrank(wave_plv,nonwave_plv)
-    ylabel('Grid-wise PAC between high gamma and mu')
+    % wave_plv_ol = wave_plv;
+    % nonwave_plv_ol= nonwave_plv;
+    % figure;boxplot([wave_plv' nonwave_plv']);
+    % xticks(1:2)
+    % xticklabels({'Wave epochs','Non wave epochs'})
+    % [p,h]=signrank(wave_plv,nonwave_plv)
+    % ylabel('Grid-wise PAC between high gamma and mu')
 
 
     %%%%%% get online data files %%%%%
@@ -428,73 +428,73 @@ for days=1:len_days
     len = min(150,length(files));
     idx=randperm(length(files),len);
      [stats_cl,stats_cl_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-        grid_layout,elecmatrix,bpFilt);
+        grid_layout,elecmatrix,bpFilt,d1);
     stats_cl_days{days}=stats_cl;
     stats_cl_hg_days{days}=stats_cl_hg;
 
-      % stats on PLV, CL
-    wave_plv=[];nonwave_plv=[];wave_len=[];nonwave_len=[];nonwave_len_corr=[];
-    wave_angle=[];nonwave_angle=[];
-    wave_plv_trial=[];nonwave_plv_trial=[];
-    for i=1:length(stats_cl_hg)
-        %%% just straight up average plv across grid
-        a=stats_cl_hg(i).plv_wave;
-        wave_len(i) = size(a,1);
-        wave_plv(i) = mean(abs(mean(a)));
-        wave_plv_trial(i,:) = abs(mean(a));
-        %wave_plv(i,:) = ((mean(a)));
+    %   % stats on PLV, CL
+    % wave_plv=[];nonwave_plv=[];wave_len=[];nonwave_len=[];nonwave_len_corr=[];
+    % wave_angle=[];nonwave_angle=[];
+    % wave_plv_trial=[];nonwave_plv_trial=[];
+    % for i=1:length(stats_cl_hg)
+    %     %%% just straight up average plv across grid
+    %     a=stats_cl_hg(i).plv_wave;
+    %     wave_len(i) = size(a,1);
+    %     wave_plv(i) = mean(abs(mean(a)));
+    %     wave_plv_trial(i,:) = abs(mean(a));
+    %     %wave_plv(i,:) = ((mean(a)));
+    % 
+    %     a = stats_cl_hg(i).plv_nonwave;
+    %     nonwave_len(i) = size(a,1);
+    %     if nonwave_len(i) > wave_len(i)
+    %         idx = randperm(size(a,1),wave_len(i));
+    %         %a = a(idx,:);
+    %         a = a(1:wave_len(i),:);
+    %     end          
+    %     nonwave_len_corr(i) = size(a,1);
+    %     nonwave_plv(i) = mean(abs(mean(a)));
+    %     nonwave_plv_trial(i,:) = abs(mean(a));
+    %     %nonwave_plv(i,:) = ((mean(a)));
+    % 
+    %     %%% based on phase consistency across trials
+    %     % a=stats_ol_hg(i).plv_wave;
+    %     % wave_angle(i,:)=angle(mean(a));
+    %     % a=stats_ol_hg(i).plv_nonwave;
+    %     % nonwave_angle(i,:)=angle(mean(a));
+    % end
+    % % wave_plv =abs(mean(wave_plv,1));
+    % % nonwave_plv =abs(mean(nonwave_plv,1));
+    % 
+    % wave_plv_cl = wave_plv;
+    % nonwave_plv_cl= nonwave_plv;
+    % figure;boxplot([wave_plv' nonwave_plv']);
+    % xticks(1:2)
+    % xticklabels({'Wave epochs','Non wave epochs'})
+    % [p,h]=signrank(wave_plv,nonwave_plv)
+    % ylabel('Grid-wise PAC between high gamma and mu')
 
-        a = stats_cl_hg(i).plv_nonwave;
-        nonwave_len(i) = size(a,1);
-        if nonwave_len(i) > wave_len(i)
-            idx = randperm(size(a,1),wave_len(i));
-            %a = a(idx,:);
-            a = a(1:wave_len(i),:);
-        end          
-        nonwave_len_corr(i) = size(a,1);
-        nonwave_plv(i) = mean(abs(mean(a)));
-        nonwave_plv_trial(i,:) = abs(mean(a));
-        %nonwave_plv(i,:) = ((mean(a)));
 
-        %%% based on phase consistency across trials
-        % a=stats_ol_hg(i).plv_wave;
-        % wave_angle(i,:)=angle(mean(a));
-        % a=stats_ol_hg(i).plv_nonwave;
-        % nonwave_angle(i,:)=angle(mean(a));
-    end
-    % wave_plv =abs(mean(wave_plv,1));
-    % nonwave_plv =abs(mean(nonwave_plv,1));
-
-    wave_plv_cl = wave_plv;
-    nonwave_plv_cl= nonwave_plv;
-    figure;boxplot([wave_plv' nonwave_plv']);
-    xticks(1:2)
-    xticklabels({'Wave epochs','Non wave epochs'})
-    [p,h]=signrank(wave_plv,nonwave_plv)
-    ylabel('Grid-wise PAC between high gamma and mu')
-
-
-    % store
-    wave_plv_ol_days{days} = wave_plv_ol;
-    wave_plv_cl_days{days} = wave_plv_cl;
-    nonwave_plv_ol_days{days} = nonwave_plv_ol;
-    nonwave_plv_cl_days{days} = nonwave_plv_cl;
-
-    % plotting
-    if length(wave_plv_ol) < length(wave_plv_cl)
-        wave_plv_ol(end+1:length(wave_plv_cl)) = NaN;
-        nonwave_plv_ol(end+1:length(wave_plv_cl)) = NaN;
-    elseif length(wave_plv_ol) > length(wave_plv_cl)
-        wave_plv_cl(end+1:length(wave_plv_ol)) = NaN;
-        nonwave_plv_cl(end+1:length(wave_plv_ol)) = NaN;
-    end
-    figure;boxplot([wave_plv_ol' nonwave_plv_ol' wave_plv_cl' nonwave_plv_cl']);
-    xticks(1:4)
-    xticklabels({'OL Wave epochs','OL Non wave epochs',...
-        'CL Wave epochs','CL Non wave epochs'})
-    ylabel('Grid-wise PAC between high gamma and mu')
-    plot_beautify
-    title(['Day ' num2str(days)])
+    % % store
+    % wave_plv_ol_days{days} = wave_plv_ol;
+    % wave_plv_cl_days{days} = wave_plv_cl;
+    % nonwave_plv_ol_days{days} = nonwave_plv_ol;
+    % nonwave_plv_cl_days{days} = nonwave_plv_cl;
+    % 
+    % % plotting
+    % if length(wave_plv_ol) < length(wave_plv_cl)
+    %     wave_plv_ol(end+1:length(wave_plv_cl)) = NaN;
+    %     nonwave_plv_ol(end+1:length(wave_plv_cl)) = NaN;
+    % elseif length(wave_plv_ol) > length(wave_plv_cl)
+    %     wave_plv_cl(end+1:length(wave_plv_ol)) = NaN;
+    %     nonwave_plv_cl(end+1:length(wave_plv_ol)) = NaN;
+    % end
+    % figure;boxplot([wave_plv_ol' nonwave_plv_ol' wave_plv_cl' nonwave_plv_cl']);
+    % xticks(1:4)
+    % xticklabels({'OL Wave epochs','OL Non wave epochs',...
+    %     'CL Wave epochs','CL Non wave epochs'})
+    % ylabel('Grid-wise PAC between high gamma and mu')
+    % plot_beautify
+    % title(['Day ' num2str(days)])
 
 
     x=[];
@@ -555,7 +555,8 @@ for days=1:len_days
     
 end
 
-save B3_waves_hand_stability_Muller_hG -v7.3
+%save B3_waves_hand_stability_Muller_hG -v7.3
+save B3_waves_hand_stability_Muller_hG_plv -v7.3
 
 figure;
 plot(xol_days)
@@ -575,7 +576,7 @@ for i=1:length(stats_ol_days)
     x=[];xf=[];xd=[];
     for j=1:length(tmp0)
         tmp_og = (tmp0(j).stab);
-        tmp=zscore(tmp_og);
+        tmp=zscore(tmp_og(100:end));
         [out,st,stp] = wave_stability_detect(tmp);
         s=[];
         % wave epochs
@@ -602,7 +603,7 @@ for i=1:length(stats_ol_days)
         t = length(tmp) * 20/1e3;
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
-        %x(j) = f*d;%duty_cycle
+        x(j) = f*d;%duty_cycle
         xf(j) = f;
         xd(j) = d;
     end
@@ -614,7 +615,7 @@ for i=1:length(stats_ol_days)
     x=[];xf=[];xd=[];
     for j=1:length(tmp0)
         tmp_og = (tmp0(j).stab);
-        tmp=zscore(tmp_og);
+        tmp=zscore(tmp_og(100:end));
         [out,st,stp] = wave_stability_detect(tmp);
 
         s=[];
@@ -637,7 +638,7 @@ for i=1:length(stats_ol_days)
         t = length(tmp) * 20/1e3;
         f =length(out)/t; % frequency/s
         d = median(out) * 20/1e3; %duration in s
-        %x(j) = f*d;%duty_cycle
+        x(j) = f*d;%duty_cycle
         xf(j) = f;
         xd(j) = d;
 
@@ -1857,7 +1858,7 @@ for days=1:length(folders)
     len = min(200,length(files));
     idx=randperm(length(files),len);
     [stats_ol,stats_ol_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-        grid_layout,elecmatrix,bpFilt);
+        grid_layout,elecmatrix,bpFilt,d1,1);
     stats_ol_days{days}=stats_ol;
     stats_ol_hg_days{days} = stats_ol_hg;
 
@@ -1918,7 +1919,7 @@ for days=1:length(folders)
     len = min(200,length(files));
     idx=randperm(length(files),len);
     [stats_cl,stats_cl_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-        grid_layout,elecmatrix,bpFilt);
+        grid_layout,elecmatrix,bpFilt,d1,1);
     stats_cl_days{days}=stats_cl;
     stats_cl_hg_days{days}=stats_cl_hg;
 
@@ -1970,21 +1971,21 @@ for days=1:length(folders)
     nonwave_plv_ol_days{days} = nonwave_plv_ol;
     nonwave_plv_cl_days{days} = nonwave_plv_cl;
 
-    % plotting
-    if length(wave_plv_ol) < length(wave_plv_cl)
-        wave_plv_ol(end+1:length(wave_plv_cl)) = NaN;
-        nonwave_plv_ol(end+1:length(wave_plv_cl)) = NaN;
-    elseif length(wave_plv_ol) > length(wave_plv_cl)
-        wave_plv_cl(end+1:length(wave_plv_ol)) = NaN;
-        nonwave_plv_cl(end+1:length(wave_plv_ol)) = NaN;
-    end
-    figure;boxplot([wave_plv_ol' nonwave_plv_ol' wave_plv_cl' nonwave_plv_cl']);
-    xticks(1:4)
-    xticklabels({'OL Wave epochs','OL Non wave epochs',...
-        'CL Wave epochs','CL Non wave epochs'})
-    ylabel('Grid-wise PAC between high gamma and mu')
-    plot_beautify
-    title(['Day ' num2str(days)])
+    % % plotting
+    % if length(wave_plv_ol) < length(wave_plv_cl)
+    %     wave_plv_ol(end+1:length(wave_plv_cl)) = NaN;
+    %     nonwave_plv_ol(end+1:length(wave_plv_cl)) = NaN;
+    % elseif length(wave_plv_ol) > length(wave_plv_cl)
+    %     wave_plv_cl(end+1:length(wave_plv_ol)) = NaN;
+    %     nonwave_plv_cl(end+1:length(wave_plv_ol)) = NaN;
+    % end
+    % figure;boxplot([wave_plv_ol' nonwave_plv_ol' wave_plv_cl' nonwave_plv_cl']);
+    % xticks(1:4)
+    % xticklabels({'OL Wave epochs','OL Non wave epochs',...
+    %     'CL Wave epochs','CL Non wave epochs'})
+    % ylabel('Grid-wise PAC between high gamma and mu')
+    % plot_beautify
+    % title(['Day ' num2str(days)])
 
 
     
@@ -2048,7 +2049,7 @@ for days=1:length(folders)
 
 end
 
-save B6_waves_stability_hg_PLV -v7.3 % 50Hz, removing last 400ms in fitering step
+save B6_waves_stability_hg_PLV_AccStatsCL -v7.3 % 50Hz, removing last 400ms in fitering step
 
 figure;
 plot(xol_days)
@@ -2161,27 +2162,33 @@ plot(xclf,xcld,'.r','MarkerSize',15)
 
 % looking at hg differences between two conditions, wave vs. non wave
 res=[];
-parfor days=1:length(stats_cl_hg_days)
+for days=1:length(stats_cl_hg_days)
     stats_cl_hg = stats_cl_hg_days{days};
+    stats_cl = stats_cl_days{days};
     D_wave=[];D_nonwave=[];
     for tid0=1:7
         for tid=tid0+1:7
             act1=[];act2=[];
             act1_nonwave=[];act2_nonwave=[];
             for i=1:length(stats_cl_hg)
-                if stats_cl_hg(i).target_id ==tid0
+                if stats_cl_hg(i).target_id ==tid0 
                     tmp = stats_cl_hg(i).hg_wave;
                     tmp = cell2mat(tmp');
-                    act1 = [act1;tmp];
+
+                    if stats_cl(i).accuracy==0
+                        act1 = [act1;tmp];
+                    end
 
                     tmp = stats_cl_hg(i).hg_nonwave;
                     tmp = cell2mat(tmp');
                     act1_nonwave = [act1_nonwave;tmp];
                 end
-                if stats_cl_hg(i).target_id ==tid
+                if stats_cl_hg(i).target_id ==tid 
                     tmp = stats_cl_hg(i).hg_wave;
                     tmp = cell2mat(tmp');
-                    act2 = [act2;tmp];
+                    if stats_cl(i).accuracy==0
+                        act2 = [act2;tmp];
+                    end
 
                     tmp = stats_cl_hg(i).hg_nonwave;
                     tmp = cell2mat(tmp');
@@ -2204,6 +2211,14 @@ ylabel('Pairwise Mahalanobis dist.')
 title('B6 hG Decoding Information')
 plot_beautify
 
+res_tot= [res_wave_acc res_wave];
+figure;boxplot(res)
+[p,h] = signrank(res(:,1),res(:,2))
+xticks(1:2)
+xticklabels({'Wave epochs Acc. trials','Wave epochs all trials'})
+ylabel('Pairwise Mahalanobis dist.')
+title('B6 hG Decoding Information')
+plot_beautify
 
 %% RUN COMPLEX VALUED ICA ON THE STABLE EPOCH VECTOR FIELDS
 
