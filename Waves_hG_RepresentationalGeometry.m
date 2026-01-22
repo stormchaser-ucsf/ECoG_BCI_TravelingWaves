@@ -348,7 +348,7 @@ title(subj)
 
 res=[];res_var=[];res_ang=[];
 parfor days=1:length(stats_cl_hg_days)
-    stats_cl_hg = stats_ol_hg_days{days};
+    stats_cl_hg = stats_cl_hg_days{days};
     D_wave=[];D_nonwave=[];
     var_wave=[];
     var_nonwave=[];
@@ -378,6 +378,31 @@ parfor days=1:length(stats_cl_hg_days)
                     act2_nonwave = [act2_nonwave;tmp];
                 end
             end
+            % for i=1:size(act1,1)
+            %     act1(i,:)=act1(i,:)./norm(act1(i,:));                
+            % end
+            % for i=1:size(act2,1)
+            %     act2(i,:)=act2(i,:)./norm(act2(i,:));                
+            % end
+            % for i=1:size(act1_nonwave,1)
+            %     act1_nonwave(i,:)=act1_nonwave(i,:)./norm(act1_nonwave(i,:));                
+            % end
+            % for i=1:size(act2_nonwave,1)
+            %     act2_nonwave(i,:)=act2_nonwave(i,:)./norm(act2_nonwave(i,:));                
+            % end
+
+            %if size(act1_nonwave,1) > size(act1,1)
+            act1_nonwave=act1_nonwave(1:size(act1,1),:);
+            %elseif size(act1_nonwave,1) < size(act1,1)
+            %    act1=act1(1:size(act1_nonwave,1),:);
+            %end
+
+            %if size(act2_nonwave,1) > size(act2,1)
+            act2_nonwave=act2_nonwave(1:size(act2,1),:);
+            %elseif size(act2_nonwave,1) < size(act2,1)
+            %    act2=act2(1:size(act2_nonwave,1),:);
+            %end
+
             d1 = mahal2((act1),(act2),2);
             d2 = mahal2((act1_nonwave),(act2_nonwave),2);
             D_wave = [D_wave d1];
@@ -432,7 +457,8 @@ end
 
 
 figure;
-boxplot(res)
+boxplot((res))
+%res=log(res)
 [p,h] = signrank(res(:,1),res(:,2))
 xticks(1:2)
 xticklabels({'Wave epochs','Non wave epochs'})
@@ -475,6 +501,123 @@ title(subj)
 plot_beautify
 ylabel('Alignment index')
 
+%% ANALYSIS 3   
+% continued from above
+% using LDA to see classification accuracy between two movements, trial
+% level
+
+%stats_cl=stats_cl_days{8};
+%stats_cl_hg = stats_cl_hg_days{8};
+
+res=[];
+for iter=1:100
+    A={};
+    B={};
+    for i=1:length(stats_cl)
+        if stats_cl(i).target_id == 1
+            tmp = stats_cl_hg(i).hg_wave;
+            tmp = cell2mat(tmp');
+            A = cat(1,A,tmp);
+        end
+
+        if stats_cl(i).target_id == 9
+            tmp = stats_cl_hg(i).hg_wave;
+            tmp = cell2mat(tmp');
+            B = cat(1,B,tmp);
+        end
+    end
+    % 2 vs. 6 there are 2038 wave, 3016 nonwave
+
+
+    total_trials = [A;B];
+    %total_idx=[zeros(length(A),1);ones(length(B))];
+    if length(A)<length(B)
+        aa=randperm(length(B),length(A));
+        B=B(aa);
+    elseif length(A)>length(B)
+        aa=randperm(length(A),length(B));
+        A=A(aa);
+    end
+
+    train_idx = randperm(length(A),round(0.8*(length(A))));
+    I = ones(length(A),1);
+    I(train_idx)=0;
+    test_idx = find(I==1);
+
+    trainA = A(train_idx);
+    trainA=cell2mat(trainA);
+    idxA = zeros(size(trainA,1),1);
+    trainB = B(train_idx);
+    trainB=cell2mat(trainB);
+    idxB = ones(size(trainB,1),1);
+
+    % if size(trainA,1)>size(trainB,1)
+    %     idx = randperm(size(trainA,1),size(trainB,1));
+    %     trainA = trainA(idx,:);
+    %     idxA = idxA(idx,:);
+    % elseif size(trainA,1)<size(trainB,1)
+    %     idx = randperm(size(trainB,1),size(trainA,1));
+    %     trainB = trainB(idx,:);
+    %     idxB = idxB(idx,:);
+    % end
+
+    X = [trainA;trainB];
+    Y = [idxA;idxB];
+
+    %3016 data points. Have to bring it down to 2038 (1019 per class).
+    % ca = randperm(length(idxA),1263);
+    % cb = randperm(length(idxB),1263);
+    % trainA = trainA(ca,:);
+    % trainB = trainB(ca,:);
+    % idxA = idxA(cb,:);
+    % idxB = idxB(cb,:);
+    % X = [trainA;trainB];
+    % Y = [idxA;idxB];
+
+    % aa = randperm(size(X,1),2656);
+    % X = X(aa,:);
+    % Y = Y(aa,:);
+
+    W = LDA(X,Y);
+
+    % test on held out samples
+    testA = A(test_idx);
+    testA=cell2mat(testA);
+    idxA = zeros(size(testA,1),1);
+    testB = B(test_idx);
+    testB=cell2mat(testB);
+    idxB = ones(size(testB,1),1);
+
+    Xtest = [testA;testB];
+    Ytest = [idxA;idxB];
+    len = length(Ytest);
+
+    L = [ones(len,1) Xtest] * W';
+
+    P = exp(L) ./ repmat(sum(exp(L),2),[1 2]);
+
+    decodes=[];
+    for i=1:size(P,1)
+        tmp = P(i,:);
+        [aa bb]=max(tmp);
+        decodes(i) = bb-1;
+    end
+
+    res(iter) = sum(Ytest==decodes')/length(decodes);
+    %res(iter)=calculateBalancedAccuracy(Ytest,decodes');
+end
+
+mean(res)
+
+
+k=51;
+figure;plot(zscore(stats_cl(k).stab))
+hline(0)
+hold on
+plot((stats_cl(k).output))
+[out,st,stp]=wave_stability_detect(zscore(stats_cl(k).stab))
+vline(st,'g')
+vline(stp,'r')
 
 %% ANALYSIS 4   
 % duty cycle within accurate and inaccurate trials

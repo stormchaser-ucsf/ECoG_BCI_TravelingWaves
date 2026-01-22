@@ -61,10 +61,25 @@ for ii=1:length(files)
         l11=floor(l1/ds_fac); % length of the down sampled signal
 
         % get the hG envelope
-        hg = filtfilt(bpFilt,data);
-        hg = abs(hilbert(hg));
+        % hg = filtfilt(bpFilt,data);
+        % hg = abs(hilbert(hg));
+        
+        % get hg through filter bank approach
+        Params=TrialData.Params;
+        filtered_data=[];
+        for k=9:16
+            tmp = filtfilt(Params.FilterBank(k).b, ...
+                Params.FilterBank(k).a, ...
+                data);
+            tmp=abs(hilbert(tmp));
+            filtered_data = cat(3,filtered_data,tmp);
+        end
+        hg = squeeze(mean(filtered_data,3));
+
         % downsample to 50Hz
         hg = resample(hg,d2.SampleRate,1e3);
+        
+        
         % get the mu signal phase of hG
         hg_mu = filtfilt(d2,hg);
         hg_mu = (hilbert(hg_mu));
@@ -74,7 +89,7 @@ for ii=1:length(files)
         % data_hg = abs(hilbert(data_hg));
         % data_hg = resample(data_hg,200,1000);        
 
-        % resample and filter in mu band
+        % resample and filter in mu band to get mu signal
         data = resample(data,d2.SampleRate,1000);
         df = filtfilt(d2,data);
 
@@ -181,28 +196,28 @@ for ii=1:length(files)
         
 
         %%%%% STABILITY AND WAVE DETECTION 
-        stab = zscore(stab(1:end)); % 100:end for B3
+        stab = zscore(stab(100:end)); % 100:end for B3
         [out,st,stp] = wave_stability_detect(stab);
-        % st=st+99;%for b3
-        % stp=stp+99;%for b3
+        st=st+99;%for b3
+        stp=stp+99;%for b3
 
-        % get hg features from smoothed neural data
-        hg_feat_wave={};
-        hg_feat_nonwave={};
-        tmp=TrialData.SmoothedNeuralFeatures;
-        wav_idx=[];
-        for k=1:length(st)
-            st1 = st(k)*20+1000;
-            stp1 = stp(k)*20+1000;
-            st_bin = floor(st1/200);
-            stp_bin = ceil(stp1/200);
-            tmp_data = cell2mat(tmp(st_bin:stp_bin));
-            tmp_data = tmp_data(1537:end,:);
-            tmp_data = tmp_data(good_ch,:);
-            hg_feat_wave{k}=tmp_data;
-            wav_idx=[wav_idx st_bin:stp_bin];
-        end
-        hg_feat_wave = cell2mat(hg_feat_wave);
+        % % get hg features from smoothed neural data
+        % hg_feat_wave={};
+        % hg_feat_nonwave={};
+        % tmp=TrialData.SmoothedNeuralFeatures;
+        % wav_idx=[];
+        % for k=1:length(st)
+        %     st1 = st(k)*20+1000;
+        %     stp1 = stp(k)*20+1000;
+        %     st_bin = floor(st1/200);
+        %     stp_bin = ceil(stp1/200);
+        %     tmp_data = cell2mat(tmp(st_bin:stp_bin));
+        %     tmp_data = tmp_data(1537:end,:);
+        %     tmp_data = tmp_data(good_ch,:);
+        %     hg_feat_wave{k}=tmp_data;
+        %     wav_idx=[wav_idx st_bin:stp_bin];
+        % end
+        % hg_feat_wave = cell2mat(hg_feat_wave);
 
 
         % figure;plot(stab)
@@ -295,12 +310,22 @@ for ii=1:length(files)
 
 
         %%%% PLV analyses
-        %%%% extract hg envelope and mu only around waves
+        %%%% extract hg envelope and mu only around waves and when decoder
+        %%%% acc is correct (new)
         tmp={};tmp_mu={};tmp_hg_mu={};        
         for k=1:length(st)
-            tmp{k} = hg(st(k):stp(k),good_ch);
-            tmp_mu{k} = df(st(k):stp(k),good_ch);
-            tmp_hg_mu{k} = hg_mu(st(k):stp(k),good_ch);
+            tmpp = output(st(k):stp(k));
+            if cl_chk==1
+                if sum(tmpp)/length(tmpp)>=0.5
+                    tmp{k} = hg(st(k):stp(k),good_ch);
+                    tmp_mu{k} = df(st(k):stp(k),good_ch);
+                    tmp_hg_mu{k} = hg_mu(st(k):stp(k),good_ch);
+                end
+            else
+                tmp{k} = hg(st(k):stp(k),good_ch);
+                tmp_mu{k} = df(st(k):stp(k),good_ch);
+                tmp_hg_mu{k} = hg_mu(st(k):stp(k),good_ch);
+            end
         end
         stats_hg(kk).hg_wave = tmp;
         stats_hg(kk).mu_wave = tmp_mu;

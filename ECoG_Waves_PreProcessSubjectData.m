@@ -1,6 +1,6 @@
 %% WAVE PROCESSING SUBJECTS DATA
 clear
-subj='B1';
+subj='B3';
 %% LOAD SUBJECT SPECIFIC DATA
 
 if strcmp(subj,'B3')
@@ -43,6 +43,7 @@ if strcmp(subj,'B3')
 
     imaging_B3_waves;
     len_days = min(11,length(session_data));
+    num_targets=12;
 end
 
 
@@ -394,7 +395,7 @@ wave_plv_ol_days={};
 nonwave_plv_ol_days={};
 wave_plv_cl_days={};
 nonwave_plv_cl_days={};
-for days=1:length(folders)
+for days=1:length(folders)-1 %if B1-> it is 8
 
     disp(['Processing day ' num2str(days)])
 
@@ -445,7 +446,8 @@ for days=1:length(folders)
     len = min(200,length(files));
     idx=randperm(length(files),len);
     [stats_ol,stats_ol_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-        grid_layout,elecmatrix,bpFilt,d1,1);
+         grid_layout,elecmatrix,bpFilt,d1,0);
+    %stats_ol=[];stats_ol_hg=[];
     stats_ol_days{days}=stats_ol;
     stats_ol_hg_days{days} = stats_ol_hg;
 
@@ -636,8 +638,8 @@ for days=1:length(folders)
 
 end
 
-
-save B1_waves_stability_hg_PLV_AccStatsCL -v7.3 %
+%save B1_waves_stability_hg_PLV_AccStatsCL -v7.3 %
+save B6_waves_stability_hgFilterBank_PLV_AccStatsCL -v7.3 %
 
 
 

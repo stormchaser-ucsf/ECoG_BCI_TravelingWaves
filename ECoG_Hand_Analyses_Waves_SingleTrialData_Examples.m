@@ -1057,16 +1057,16 @@ for days=1:8%length(folders)
     for i=1:length(stats_cl_hg)
         %%% just straight up average plv across grid
         a=stats_cl_hg(i).plv_wave;
-        aa=stats_cl_hg(i).ppc_wave;
+        %aa=stats_cl_hg(i).ppc_wave;
         wave_len_cl(i) = size(a,1);
 
         b = stats_cl_hg(i).plv_nonwave;
-        bb = stats_cl_hg(i).ppc_nonwave;
+        %bb = stats_cl_hg(i).ppc_nonwave;
         nonwave_len_cl(i) = size(b,1);
 
         if wave_len_cl(i)<nonwave_len_cl(i)
             wave_plv(i) = mean(abs(mean(a)));
-            wave_ppc(i) = mean(abs(mean(aa)));
+            %wave_ppc(i) = mean(abs(mean(aa)));
 
             len = min(30,nonwave_len_cl(i) -  wave_len_cl(i));
             idx=randperm(nonwave_len_cl(i) -  wave_len_cl(i),len);
@@ -1075,11 +1075,11 @@ for days=1:8%length(folders)
                 tmp = b(idx(j):idx(j)+wave_len_cl(i)-1,:);
                 plv_tmp(j) = mean(abs(mean(tmp,1)));
 
-                tmp = bb(idx(j):idx(j)+wave_len_cl(i)-1,:);
-                ppc_tmp(j) = mean(abs(mean(tmp,1)));
+                %tmp = bb(idx(j):idx(j)+wave_len_cl(i)-1,:);
+                %ppc_tmp(j) = mean(abs(mean(tmp,1)));
             end
             nonwave_plv(i) = mean(plv_tmp);
-            nonwave_ppc(i) = mean(ppc_tmp);
+            %nonwave_ppc(i) = mean(ppc_tmp);
 
         elseif wave_len_cl(i)>nonwave_len_cl(i)
             nonwave_plv(i) = mean(abs(mean(b)));
@@ -1858,7 +1858,7 @@ for days=1:length(folders)
     len = min(200,length(files));
     idx=randperm(length(files),len);
     [stats_ol,stats_ol_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-        grid_layout,elecmatrix,bpFilt,d1,1);
+        grid_layout,elecmatrix,bpFilt,d1,0);
     stats_ol_days{days}=stats_ol;
     stats_ol_hg_days{days} = stats_ol_hg;
 
@@ -2341,4 +2341,17 @@ for k=2:30
     res=[res;wcss];
 end
 figure;plot(res)
+
+% 
+% 
+% % testing 1/n bias for random means
+% am=[];bm=[];
+% for iter=1:1000
+%     a=rand(10,1);
+%     b=rand(100,1);
+%     am(iter) = mean(a);
+%     bm(iter) = mean(b);
+% end
+% figure;plot(am-bm);
+% hline(0)
 
