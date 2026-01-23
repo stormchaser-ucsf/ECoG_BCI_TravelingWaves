@@ -9,7 +9,7 @@
 clear;close all
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B3';
+subj ='B1';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -664,20 +664,10 @@ for days = 1:length(stats_cl_days)
     end
 end
 
-condn_data1={};k=1;
-for i=1:length(condn_data)
-    if ~isempty(condn_data(i).neural)
-        condn_data1(k).neural = condn_data(i).neural;
-        condn_data1(k).targetID = condn_data(i).targetID;
-        k=k+1;
-    end
-end
-condn_data=condn_data1;
-
 iterations=1;
 [acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance] = ...
-    accuracy_imagined_data_Hand_B3(condn_data, iterations);
-%accuracy_imagined_data_Hand_B3
+    accuracy_imagined_data(condn_data, iterations);
+
 
 % non wave
 condn_data={};k=1;
@@ -699,20 +689,9 @@ for days = 1:length(stats_cl_days)
     end
 end
 
-condn_data1={};k=1;
-for i=1:length(condn_data)
-    if ~isempty(condn_data(i).neural)
-        condn_data1(k).neural = condn_data(i).neural;
-        condn_data1(k).targetID = condn_data(i).targetID;
-        k=k+1;
-    end
-end
-condn_data=condn_data1;
-
 
 [acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,bino_pdf_chance] = ...
-    accuracy_imagined_data_Hand_B3(condn_data, iterations);
-%accuracy_imagined_data
+    accuracy_imagined_data(condn_data, iterations);
 
 res=[];
 for i=1:size(acc_nonwave,1)
