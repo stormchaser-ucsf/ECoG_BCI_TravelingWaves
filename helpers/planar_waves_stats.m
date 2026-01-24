@@ -102,16 +102,16 @@ for ii=1:length(files)
         end
 
         % remove non-task periods
-        df = df(l11+1:end-50,:);%remove last 800ms for b1,b6, last 1000ms for b3
-        hg = hg(l11+1:end-50,:);%remove last 800ms for b1,b6, last 1000ms for b3
-        hg_mu = hg_mu(l11+1:end-50,:);
-        output = output(l11+1:end-50);
+        df = df(l11+1:end-40,:);%remove last 800ms for b1,b6, last 1000ms for b3
+        hg = hg(l11+1:end-40,:);%remove last 800ms for b1,b6, last 1000ms for b3
+        hg_mu = hg_mu(l11+1:end-40,:);
+        output = output(l11+1:end-40);
         output(isnan(output)) = 1e-6;
         output(output~=TrialData.TargetID)=0;
         output(output==TrialData.TargetID)=1;
 
         % keep track of time
-        tcut = tmain(l1:end-1000); % what is being taken
+        tcut = tmain(l1:end-800); % what is being taken
         tcut = tcut(1:20:end);% down sampled to 50Hz        
 
         % detect planar waves across mini-grid location
@@ -196,10 +196,10 @@ for ii=1:length(files)
         
 
         %%%%% STABILITY AND WAVE DETECTION 
-        stab = zscore(stab(100:end)); % 100:end for B3
+        stab = zscore(stab(1:end)); % 100:end for B3 HAND
         [out,st,stp] = wave_stability_detect(stab);
-        st=st+99;%for b3
-        stp=stp+99;%for b3
+        %st=st+99;%for b3 hand
+        %stp=stp+99;%for b3 hand
 
         % % get hg features from smoothed neural data
         % hg_feat_wave={};

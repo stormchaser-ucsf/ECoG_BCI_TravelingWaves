@@ -7,9 +7,10 @@
 
 %% load subjects' data
 clear;close all
+clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B1';
+subj ='B3';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -21,8 +22,7 @@ if strcmp(subj,'B1')
     load B1_waves_stability_hgFilterBank_PLV_AccStatsCL
     num_targets=7;
 
-elseif strcmp(subj,'B3')
-    num_targets=12;
+elseif strcmp(subj,'B3')    
     root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
     cd(root_path)
     load session_data_B3_Hand
@@ -32,6 +32,8 @@ elseif strcmp(subj,'B3')
     %load B3_waves_hand_stability_Muller_hG
     %load B3_waves_hand_stability_Muller_hG_plv
     load B3_waves_stability_hgFilterBank_PLV_AccStatsCL
+    %load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL
+    num_targets=12;
 
 
 elseif strcmp(subj,'B6')
@@ -638,6 +640,206 @@ mean(res)
 % [out,st,stp]=wave_stability_detect(zscore(stats_cl(k).stab))
 % vline(st,'g')
 % vline(stp,'r')
+%% ANALYSIS 3.5
+% LDA across all days rather than just within day
+
+% load the data across all days
+A={};B={};
+for days=1:length(stats_cl_hg_days)
+    stats_cl = stats_cl_days{days};
+    stats_cl_hg = stats_cl_hg_days{days};
+    for i=1:length(stats_cl)
+        if stats_cl(i).target_id == 1
+            tmp = stats_cl_hg(i).hg_nonwave;
+            tmp = cell2mat(tmp');
+            A = cat(1,A,tmp);
+        end
+
+        if stats_cl(i).target_id == 6
+            tmp = stats_cl_hg(i).hg_nonwave;
+            tmp = cell2mat(tmp');
+            B = cat(1,B,tmp);
+        end
+    end    
+end
+
+res=[];
+for iter=1:25
+    total_trials = [A;B];
+    %total_idx=[zeros(length(A),1);ones(length(B))];
+    if length(A)<length(B)
+        aa=randperm(length(B),length(A));
+        B=B(aa);
+    elseif length(A)>length(B)
+        aa=randperm(length(A),length(B));
+        A=A(aa);
+    end
+
+    train_idx = randperm(length(A),round(0.8*(length(A))));
+    I = ones(length(A),1);
+    I(train_idx)=0;
+    test_idx = find(I==1);
+
+    trainA = A(train_idx);
+    trainA=cell2mat(trainA);
+    % lend = 6000-size(trainA,1);
+    % xx = randi(size(trainA,1),lend,1);
+    % tmpA = trainA(xx,:);
+    % tmpA = 0.01*randn(size(tmpA)) + tmpA;
+    % trainA = [trainA;tmpA];
+    idxA = zeros(size(trainA,1),1);
+
+    xx=zscore(var(trainA,1));
+    [aa bb]=find(abs(xx)>3);
+    trainA(:,bb) = 0.001*randn(size(trainA,1),length(bb));
+
+    trainB = B(train_idx);
+    trainB=cell2mat(trainB);
+    % lend = 5000-size(trainB,1);
+    % xx = randi(size(trainB,1),lend,1);
+    % tmpB = trainB(xx,:);
+    % tmpB = 0.01*randn(size(tmpB)) + tmpB;
+    % trainB = [trainB;tmpB];
+    idxB = ones(size(trainB,1),1);
+
+    xx=zscore(var(trainB,1));
+    [aa bb]=find(abs(xx)>3);
+    trainB(:,bb) = 0.001*randn(size(trainB,1),length(bb));
+
+    % if size(trainA,1)>size(trainB,1)
+    %     idx = randperm(size(trainA,1),size(trainB,1));
+    %     trainA = trainA(idx,:);
+    %     idxA = idxA(idx,:);
+    % elseif size(trainA,1)<size(trainB,1)
+    %     idx = randperm(size(trainB,1),size(trainA,1));
+    %     trainB = trainB(idx,:);
+    %     idxB = idxB(idx,:);
+    % end
+
+    X = [trainA;trainB];
+    Y = [idxA;idxB];
+
+    %3016 data points. Have to bring it down to 2038 (1019 per class).
+    % ca = randperm(length(idxA),1300);
+    % cb = randperm(length(idxB),1300);
+    % trainA = trainA(ca,:);
+    % trainB = trainB(ca,:);
+    % idxA = idxA(cb,:);
+    % idxB = idxB(cb,:);
+    % X = [trainA;trainB];
+    % Y = [idxA;idxB];
+
+    % aa = randperm(size(X,1),2656);
+    % X = X(aa,:);
+    % Y = Y(aa,:);
+
+    W = LDA(X,Y);
+
+    % Mdl = fitcdiscr(X, Y, ...
+    %     'DiscrimType','linear');
+
+    % test on held out samples
+    testA = A(test_idx);
+    testA=cell2mat(testA);
+    idxA = zeros(size(testA,1),1);
+    testB = B(test_idx);
+    testB=cell2mat(testB);
+    idxB = ones(size(testB,1),1);
+
+    xx=zscore(var(testA,1));
+    [aa bb]=find(abs(xx)>3);
+    testA(:,bb) = 0.001*randn(size(testA,1),length(bb));
+
+    xx=zscore(var(testB,1));
+    [aa bb]=find(abs(xx)>3);
+    testB(:,bb) = 0.001*randn(size(testB,1),length(bb));
+
+
+
+
+    Xtest = [testA;testB];
+    Ytest = [idxA;idxB];
+    len = length(Ytest);
+
+    L = [ones(len,1) Xtest] * W';
+    P = exp(L) ./ repmat(sum(exp(L),2),[1 2]);
+    decodes=[];
+    for i=1:size(P,1)
+        tmp = P(i,:);
+        [aa bb]=max(tmp);
+        decodes(i) = bb-1;
+    end
+
+    % decodes = predict(Mdl,Xtest);
+    % acc = mean(decodes==Ytest);
+
+
+    %res(iter) = sum(Ytest==decodes')/length(decodes);
+    res(iter)=calculateBalancedAccuracy(Ytest,decodes');
+
+end
+mean(res)
+
+
+%% ANALYSIS 3.75
+% participation ratio of e.values between wave and non wave epochs data,
+% condition by condition
+
+res=[];
+for condn=1:num_targets
+    A={};B={};
+    for days=1:length(stats_cl_hg_days)
+        stats_cl = stats_ol_days{days};
+        stats_cl_hg = stats_ol_hg_days{days};
+        for i=1:length(stats_cl)
+            if stats_cl(i).target_id == condn
+                tmp = stats_cl_hg(i).hg_nonwave;
+                tmp = cell2mat(tmp');
+                A = cat(1,A,tmp);
+            end
+
+            if stats_cl(i).target_id == condn
+                tmp = stats_cl_hg(i).hg_wave;
+                tmp = cell2mat(tmp');
+                B = cat(1,B,tmp);
+            end
+        end
+    end
+    A=cell2mat(A);
+    B=cell2mat(B);
+
+    xx=zscore(var(A,1));
+    [aa bb]=find(abs(xx)>3);
+    A(:,bb) = 0.001*randn(size(A,1),length(bb));
+
+    xx=zscore(var(B,1));
+    [aa bb]=find(abs(xx)>3);
+    B(:,bb) = 0.001*randn(size(B,1),length(bb));
+
+    if size(A,1) > size(B,1)
+        idx = randperm(size(A,1),size(B,1));
+        A = A(idx,:);
+        %A=A(end-size(B,1)+1:end,:);
+    elseif size(A,1) < size(B,1)
+        idx = randperm(size(B,1),size(A,1));
+        B = B(idx,:);
+    end
+
+    [c,s,l]=pca(A);
+    prA = sum(l)^2/sum(l.^2);
+
+    [c1,s1,l1]=pca(B);
+    prB = sum(l1)^2/sum(l1.^2);
+
+    res = [res;[prA prB]];
+end
+
+figure;boxplot(res)
+xticks(1:2)
+xticklabels({'Non Wave','Wave'})
+signrank(res(:,1),res(:,2))
+mean(res)
+
 
 %% ANALYSIS 4
 % build a classifer across days looking at decoding performance in hg
@@ -646,12 +848,12 @@ mean(res)
 % have to get the data into a cell array of condn_data, with target id and
 % neural features
 condn_data={};k=1;
-for days = 1:length(stats_cl_days)
-    stats_cl = stats_cl_days{days};
-    stats_cl_hg = stats_cl_hg_days{days};
+for days = 1:length(stats_ol_days)
+    stats_cl = stats_ol_days{days};
+    stats_cl_hg = stats_ol_hg_days{days};
     for i=1:length(stats_cl)
         tid=stats_cl(i).target_id;
-        if tid<=num_targets
+        if tid<=num_targets+1
             tmp = stats_cl_hg(i).hg_wave;
             tmp = cell2mat(tmp');
             for j=1:size(tmp,2)
@@ -664,19 +866,30 @@ for days = 1:length(stats_cl_days)
     end
 end
 
-iterations=1;
+condn_data1={};k=1;
+for i=1:length(condn_data)
+    if ~isempty(condn_data(i).neural)
+        condn_data1(k).neural = condn_data(i).neural;
+        condn_data1(k).targetID = condn_data(i).targetID;
+        k=k+1;
+    end
+end
+condn_data=condn_data1;
+
+iterations=10;
 [acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance] = ...
     accuracy_imagined_data(condn_data, iterations);
-
+%accuracy_imagined_data_Hand_B3
+%accuracy_imagined_data_Hand_B3
 
 % non wave
 condn_data={};k=1;
-for days = 1:length(stats_cl_days)
-    stats_cl = stats_cl_days{days};
-    stats_cl_hg = stats_cl_hg_days{days};
+for days = 1:length(stats_ol_days)
+    stats_cl = stats_ol_days{days};
+    stats_cl_hg = stats_ol_hg_days{days};
     for i=1:length(stats_cl)
         tid=stats_cl(i).target_id;
-        if tid<=num_targets
+        if tid<=num_targets+1
             tmp = stats_cl_hg(i).hg_nonwave;
             tmp = cell2mat(tmp');
             for j=1:size(tmp,2)
@@ -689,9 +902,21 @@ for days = 1:length(stats_cl_days)
     end
 end
 
+condn_data1={};k=1;
+for i=1:length(condn_data)
+    if ~isempty(condn_data(i).neural)
+        condn_data1(k).neural = condn_data(i).neural;
+        condn_data1(k).targetID = condn_data(i).targetID;
+        k=k+1;
+    end
+end
+condn_data=condn_data1;
+
 
 [acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,bino_pdf_chance] = ...
     accuracy_imagined_data(condn_data, iterations);
+%accuracy_imagined_data
+%accuracy_imagined_data_Hand_B3
 
 res=[];
 for i=1:size(acc_nonwave,1)
@@ -703,8 +928,22 @@ figure;boxplot(res)
 xticks(1:2)
 xticklabels({'Non wave epochs', 'Wave epochs'})
 signrank(res(:,1),res(:,2))
+title('Trial Level Acc.')
 
-%save hg_wave_nonwave_MLP acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
+res=[];
+for i=1:size(acc_nonwave,1)
+    tmp=squeeze((acc_bin_nonwave(i,:,:)));
+    tmp1=squeeze((acc_bin_wave(i,:,:)));
+    res(i,:) = [mean(diag(tmp)) mean(diag(tmp1))];
+end
+figure;boxplot(res)
+xticks(1:2)
+xticklabels({'Non wave epochs', 'Wave epochs'})
+signrank(res(:,1),res(:,2))
+title('Bin Level Acc.')
+
+save hg_wave_nonwave_MLP_3DArrow_OL acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
+%hg_wave_nonwave_MLP B1 and B6
 
 acc_nonwave=squeeze(mean(acc_nonwave,1));
 acc_bin_nonwave=squeeze(mean(acc_bin_nonwave,1));
@@ -718,6 +957,173 @@ acc_bin_wave=squeeze(mean(acc_bin_wave,1));
 disp([mean(diag(acc_wave)) mean(diag(acc_bin_wave))])
 disp([mean(diag(acc_nonwave)) mean(diag(acc_bin_nonwave))])
 
+
+%% ANALYSIS 4.5 WITHIN DAY VERSION OF ABOVE
+% build a classifer across days looking at decoding performance in hg
+% during wave vs. non wave epochs
+
+% have to get the data into a cell array of condn_data, with target id and
+% neural features
+
+iterations=10;
+num_targets=7;
+acc_wav_days=[];
+acc_nonwave_days=[];
+for days = 1:length(stats_cl_days)
+    stats_cl = stats_cl_days{days};
+    stats_cl_hg = stats_cl_hg_days{days};
+
+    % during wave epochs
+    condn_data={};k=1;
+    for i=1:length(stats_cl)
+        tid=stats_cl(i).target_id;
+        if tid<=num_targets+1
+            tmp = stats_cl_hg(i).hg_wave;
+            tmp = cell2mat(tmp');
+            for j=1:size(tmp,2)
+                tmp(:,j) =smooth(tmp(:,j),15);
+            end
+            condn_data(k).neural = tmp';
+            condn_data(k).targetID = tid;
+            k=k+1;
+        end
+    end
+
+    condn_data1={};k=1;
+    for i=1:length(condn_data)
+        if ~isempty(condn_data(i).neural)
+            condn_data1(k).neural = condn_data(i).neural;
+            condn_data1(k).targetID = condn_data(i).targetID;
+            k=k+1;
+        end
+    end
+    condn_data=condn_data1;
+    
+    [acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance] = ...
+        accuracy_imagined_data_8DoF(condn_data, iterations);
+    acc_wave = squeeze(nanmean(acc_wave,1));
+    acc_wave_days(:,days) = diag(acc_wave);
+
+
+    % during non wave epochs
+    condn_data={};k=1;
+    for i=1:length(stats_cl)
+        tid=stats_cl(i).target_id;
+        if tid<=num_targets+1
+            tmp = stats_cl_hg(i).hg_nonwave;
+            tmp = cell2mat(tmp');
+            for j=1:size(tmp,2)
+                tmp(:,j) =smooth(tmp(:,j),15);
+            end
+            condn_data(k).neural = tmp';
+            condn_data(k).targetID = tid;
+            k=k+1;
+        end
+    end
+
+    condn_data1={};k=1;
+    for i=1:length(condn_data)
+        if ~isempty(condn_data(i).neural)
+            condn_data1(k).neural = condn_data(i).neural;
+            condn_data1(k).targetID = condn_data(i).targetID;
+            k=k+1;
+        end
+    end
+    condn_data=condn_data1;
+
+    [acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,bino_pdf_chance] = ...
+    accuracy_imagined_data(condn_data, iterations);
+    acc_nonwave = squeeze(nanmean(acc_nonwave,1));
+    acc_nonwave_days(:,days) = diag(acc_nonwave);
+
+
+
+
+
+
+
+
+
+end
+
+
+%accuracy_imagined_data_Hand_B3
+%accuracy_imagined_data_Hand_B3
+
+% non wave
+condn_data={};k=1;
+for days = 1:length(stats_ol_days)
+    stats_cl = stats_ol_days{days};
+    stats_cl_hg = stats_ol_hg_days{days};
+    for i=1:length(stats_cl)
+        tid=stats_cl(i).target_id;
+        if tid<=num_targets+1
+            tmp = stats_cl_hg(i).hg_nonwave;
+            tmp = cell2mat(tmp');
+            for j=1:size(tmp,2)
+                tmp(:,j) =smooth(tmp(:,j),15);
+            end
+            condn_data(k).neural = tmp';
+            condn_data(k).targetID = tid;
+            k=k+1;
+        end
+    end
+end
+
+condn_data1={};k=1;
+for i=1:length(condn_data)
+    if ~isempty(condn_data(i).neural)
+        condn_data1(k).neural = condn_data(i).neural;
+        condn_data1(k).targetID = condn_data(i).targetID;
+        k=k+1;
+    end
+end
+condn_data=condn_data1;
+
+
+[acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,bino_pdf_chance] = ...
+    accuracy_imagined_data(condn_data, iterations);
+%accuracy_imagined_data
+%accuracy_imagined_data_Hand_B3
+
+res=[];
+for i=1:size(acc_nonwave,1)
+    tmp=squeeze((acc_nonwave(i,:,:)));
+    tmp1=squeeze((acc_wave(i,:,:)));
+    res(i,:) = [mean(diag(tmp)) mean(diag(tmp1))];
+end
+figure;boxplot(res)
+xticks(1:2)
+xticklabels({'Non wave epochs', 'Wave epochs'})
+signrank(res(:,1),res(:,2))
+title('Trial Level Acc.')
+
+res=[];
+for i=1:size(acc_nonwave,1)
+    tmp=squeeze((acc_bin_nonwave(i,:,:)));
+    tmp1=squeeze((acc_bin_wave(i,:,:)));
+    res(i,:) = [mean(diag(tmp)) mean(diag(tmp1))];
+end
+figure;boxplot(res)
+xticks(1:2)
+xticklabels({'Non wave epochs', 'Wave epochs'})
+signrank(res(:,1),res(:,2))
+title('Bin Level Acc.')
+
+save hg_wave_nonwave_MLP_3DArrow_OL acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
+%hg_wave_nonwave_MLP B1 and B6
+
+acc_nonwave=squeeze(mean(acc_nonwave,1));
+acc_bin_nonwave=squeeze(mean(acc_bin_nonwave,1));
+
+
+acc_wave=squeeze(mean(acc_wave,1));
+acc_bin_wave=squeeze(mean(acc_bin_wave,1));
+
+
+
+disp([mean(diag(acc_wave)) mean(diag(acc_bin_wave))])
+disp([mean(diag(acc_nonwave)) mean(diag(acc_bin_nonwave))])
 
 
 %% ANALYSIS 5   
