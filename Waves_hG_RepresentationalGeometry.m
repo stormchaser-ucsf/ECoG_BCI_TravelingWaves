@@ -6,7 +6,7 @@
 
 
 %% load subjects' data
-clear;close all
+clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
@@ -31,9 +31,9 @@ elseif strcmp(subj,'B3')
     addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
     %load B3_waves_hand_stability_Muller_hG
     %load B3_waves_hand_stability_Muller_hG_plv
-    load B3_waves_stability_hgFilterBank_PLV_AccStatsCL
-    %load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL
-    num_targets=12;
+    %load B3_waves_stability_hgFilterBank_PLV_AccStatsCL
+    load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL
+    num_targets=7;
 
 
 elseif strcmp(subj,'B6')
@@ -203,7 +203,7 @@ title(num2str(p))
 figure;plot(res_days)
 legend('Waves','Nonwaves')
 
-%% ANALYSIS 0 and 1
+%% ANALYSIS 0 and 1 -> PCA style
 % hg decouples of mu during waves as compared to non-waves. does the
 % dynamic range of hg increase during wave epochs as opposed to non wave
 % epochs? is there greater  total variance? 
@@ -214,7 +214,7 @@ legend('Waves','Nonwaves')
 
 res=[];res_var=[];
 parfor days=1:length(stats_cl_hg_days)
-    stats_cl_hg = stats_ol_hg_days{days};
+    stats_cl_hg = stats_cl_hg_days{days};
     dim_wave=[];
     dim_nonwave=[];
     for tid=1:num_targets
@@ -232,7 +232,7 @@ parfor days=1:length(stats_cl_hg_days)
                 act_nonwave = [act_nonwave;tmp];
             end
         end
-        [c,s,l]=pca(zscore(act_wave));
+        [c,s,l]=pca((act_wave));
         % dimensionality
         %pr_wave = ((sum(l))^2) / (sum(l.^2));
         vaf = cumsum(l)./sum(l);
@@ -240,11 +240,12 @@ parfor days=1:length(stats_cl_hg_days)
         pr_wave = aa(1); % z score data matrix
 
         % total variance
-        %pr_wave = sum(log(l)); % dont z-score data matrix
+        %pr_wave=sum(l)
+        pr_wave = sum(log(l(1:5))); % dont z-score data matrix
 
         % dimensionality        
         idx=randperm(size(act_nonwave,1),size(act_wave,1));
-        [c,s,l]=pca(zscore(act_nonwave(idx,:)));
+        [c,s,l]=pca((act_nonwave(idx,:)));
         %pr_nonwave = ((sum(l))^2) / (sum(l.^2));
         vaf = cumsum(l)./sum(l);
         [aa bb]=find(vaf>0.8);
@@ -252,7 +253,7 @@ parfor days=1:length(stats_cl_hg_days)
 
         % total variance
         %pr_nonwave = sum(l); % dont z-score data matrix
-        %pr_nonwave = sum(log(l)); % dont z-score data matrix
+        pr_nonwave = sum(log(l(1:5))); % dont z-score data matrix
 
 
         dim_wave=[dim_wave pr_wave];
@@ -269,62 +270,102 @@ signrank(ans)
 res(:,1)-res(:,2)
 signrank(ans)
 
-%% ANALYSIS 2
+figure;boxplot(res)
+xticks(1:2)
+xticklabels({'Wave','Non wave'})
+ylabel('Total Variance')
+
+%% ANALYSIS 2 : VARIANCE CHANNEL STYLE (MAIN)
 % hypothesis is that since hg decouples from mu, it has more expressiveness
 % do it on a channel by channel basis.
 % compute channel's mean activity within wave and nonwave epochs in single
 % trials. look at the variability across trials. 
 res_days=[];pval=[];
+res_std_days=[];
 parfor days=1:length(stats_cl_hg_days)
     stats_cl_hg = stats_cl_hg_days{days};
     D_wave=[];D_nonwave=[];res=[];
+    D_wave_total=[];D_nonwave_total=[];res_std=[];
     for i=1:length(stats_cl_hg)
-        if stats_cl_hg(i).target_id <=1
+        if stats_cl_hg(i).target_id ==4
             tmp = stats_cl_hg(i).hg_wave;
-            tmp = cell2mat(tmp');
-            tmp = median(tmp,1);
-            D_wave = cat(1,D_wave,tmp);
+            tmp = cell2mat(tmp');tmp1=tmp;
+            tmp = mean(tmp,1);
+            if ~isempty(tmp) && sum(~isnan(tmp)) == 253
+                D_wave = cat(1,D_wave,tmp);
+                D_wave_total = [D_wave_total;tmp1];
+            end
 
             tmp = stats_cl_hg(i).hg_nonwave;
-            tmp = cell2mat(tmp');
-            tmp = median(tmp,1); % or mean here 
-            D_nonwave = cat(1,D_nonwave,tmp);
+            tmp = cell2mat(tmp');tmp1=tmp;
+            tmp = mean(tmp,1); % or mean here or var
+            if ~isempty(tmp) && sum(~isnan(tmp)) == 253
+                D_nonwave = cat(1,D_nonwave,tmp);
+                D_nonwave_total = [D_nonwave_total;tmp1];
+            end
         end
     end
+    %res = ([(var(D_wave,1))' (var(D_nonwave,1))']);
     res = log([(std(D_wave,1))' (std(D_nonwave,1))']);
+    res_std = [(log(std(D_wave_total,1)))' (log(std(D_nonwave_total,1)))'];
     % figure;
     % boxplot(res)
     [p,h] = signrank(res(:,1),res(:,2));
-    pval(days) = ((p<0.05) * (median(res(:,1)) - median(res(:,2))))
+    pval(days) = ((p<0.05) * (median(res(:,1)) - median(res(:,2))));
     % xticks(1:2)
     % xticklabels({'Wave epochs','Non wave epochs'})
     % ylabel('Variability in mean activity across conditions')
     res_days =[res_days ;mean(res,1)];
+    res_std_days=[res_std_days;median(res_std,1)];
     %res_days(days,:,:) = res;
 end
 [p,h] = signrank(res_days(:,1),res_days(:,2))
 mean(res_days)
-%figure;boxplot(res_days)
+%figure;boxplot(res_days,'Notch','off')
+idx=[0.01*randn(size(res_days,1),1) + ones(size(res_days,1),1)...
+    0.01*randn(size(res_days,1),1) + 2*ones(size(res_days,1),1)];
+figure;scatter(idx,res_days)
+xlim([0.5 2.5])
+hold on
+for i=1:size(res_days,1)
+    plot([idx(i,1) idx(i,2)],[res_days(i,1) res_days(i,2)],'Color',[.5 .5 .5 .5]);
+end
 res_days_cl=res_days;
+xticks(1:2)
+xticklabels({'Wave','Non wave'})
+ylabel('Total Variance')
+
+res_std_days_cl=res_std_days;
+
 
 res_days=[];pval=[];
+res_std_days=[];
 parfor days=1:length(stats_cl_hg_days)
     stats_cl_hg = stats_ol_hg_days{days};
     D_wave=[];D_nonwave=[];res=[];
+    D_wave_total=[];D_nonwave_total=[];res_std=[];
     for i=1:length(stats_cl_hg)
-        if stats_cl_hg(i).target_id <=1
+        if stats_cl_hg(i).target_id ==4
             tmp = stats_cl_hg(i).hg_wave;
-            tmp = cell2mat(tmp');
-            tmp = median(tmp,1);
-            D_wave = cat(1,D_wave,tmp);
+            tmp = cell2mat(tmp');tmp1=tmp;
+            tmp = mean(tmp,1);
+            if ~isempty(tmp) && sum(~isnan(tmp)) == 253
+                D_wave = cat(1,D_wave,tmp);
+                D_wave_total = [D_wave_total;tmp1];
+            end
 
             tmp = stats_cl_hg(i).hg_nonwave;
-            tmp = cell2mat(tmp');
-            tmp = median(tmp,1); % or mean here 
-            D_nonwave = cat(1,D_nonwave,tmp);
+            tmp = cell2mat(tmp');tmp1=tmp;
+            tmp = mean(tmp,1); % or mean, var here
+            if ~isempty(tmp) && sum(~isnan(tmp)) == 253
+                D_nonwave = cat(1,D_nonwave,tmp);
+                D_nonwave_total = [D_nonwave_total;tmp1];
+            end
         end
     end
+    %res = ([(var(D_wave,1))' (var(D_nonwave,1))']);
     res = log([(std(D_wave,1))' (std(D_nonwave,1))']);
+    res_std = [(log(std(D_wave_total,1)))' (log(std(D_nonwave_total,1)))'];
     % figure;
     % boxplot(res)
     [p,h] = signrank(res(:,1),res(:,2));
@@ -333,12 +374,14 @@ parfor days=1:length(stats_cl_hg_days)
     % xticklabels({'Wave epochs','Non wave epochs'})
     % ylabel('Variability in mean activity across conditions')
     res_days =[res_days ;mean(res,1)];
+    res_std_days=[res_std_days;median(res_std,1)];
     %res_days(days,:,:) = res;
 end
 [p,h] = signrank(res_days(:,1),res_days(:,2))
 mean(res_days)
 %figure;boxplot(res_days)
 res_days_ol=res_days;
+res_std_days_ol=res_std_days;
 
 res=[res_days_ol res_days_cl];
 figure;boxplot(res)
@@ -348,6 +391,17 @@ xticklabels({'OL wave epochs ','OL nonwave epochs','CL wave epochs',...
 ylabel('Grid-wise across trial variance in mean hG (log)')
 plot_beautify
 title(subj)
+
+
+res=[res_std_days_ol res_std_days_cl];
+figure;boxplot(res)
+xticks(1:4)
+xticklabels({'OL wave epochs ','OL nonwave epochs','CL wave epochs',...
+    'CL nonwave epochs'})
+ylabel('Grid-wise variance (log)')
+plot_beautify
+title(subj)
+signrank([res(:,1);res(:,2)],[res(:,3);res(:,4)])
 
 %% ANALYSIS 3
 % EXAMINING Representational geometry
@@ -841,7 +895,7 @@ signrank(res(:,1),res(:,2))
 mean(res)
 
 
-%% ANALYSIS 4
+%% ANALYSIS 4 (MAIN)
 % build a classifer across days looking at decoding performance in hg
 % during wave vs. non wave epochs
 
@@ -943,7 +997,7 @@ signrank(res(:,1),res(:,2))
 title('Bin Level Acc.')
 
 save hg_wave_nonwave_MLP_3DArrow_OL acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
-%hg_wave_nonwave_MLP B1 and B6
+%hg_wave_nonwave_MLP for B1 and B6
 
 acc_nonwave=squeeze(mean(acc_nonwave,1));
 acc_bin_nonwave=squeeze(mean(acc_bin_nonwave,1));
