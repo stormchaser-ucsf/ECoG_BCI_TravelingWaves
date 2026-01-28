@@ -913,6 +913,7 @@ addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
 
 num_targets=7;
 
+% wave
 % have to get the data into a cell array of condn_data, with target id and
 % neural features
 condn_data={};k=1;
@@ -925,9 +926,9 @@ for days = 1:length(stats_cl_days)
             tmp = stats_cl_hg(i).hg_wave;
             tmp = cell2mat(tmp');
 
-            % for j=1:size(tmp,2)
-            %     tmp(:,j) =smooth(tmp(:,j),10);
-            % end
+            for j=1:size(tmp,2)
+                tmp(:,j) =smooth(tmp(:,j),10);
+            end
 
             % store wave stability values
             % stab = stats_cl(i).stab;
@@ -970,16 +971,20 @@ for days = 1:length(stats_cl_days)
             tmp = stats_cl_hg(i).hg_nonwave;
             tmp = cell2mat(tmp');
 
-            % for j=1:size(tmp,2)
-            %     tmp(:,j) =smooth(tmp(:,j),10);
-            % end
+            for j=1:size(tmp,2)
+                tmp(:,j) =smooth(tmp(:,j),10);
+            end
             % 
+            % if size(tmp,1)>62
+            %     tmp = tmp(1:62,:);
+            % end
             condn_data(k).neural = tmp';
             condn_data(k).targetID = tid;
             k=k+1;
         end
     end
 end
+
 
 condn_data1={};k=1;
 for i=1:length(condn_data)
@@ -991,23 +996,73 @@ for i=1:length(condn_data)
 end
 condn_data=condn_data1;
 
-
 [acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,bino_pdf_chance] = ...
     accuracy_imagined_data(condn_data, iterations);
+
+% % non wave, least global wave patterns
+% condn_data={};k=1;
+% for days = 1:length(stats_cl_days)
+%     stats_cl = stats_cl_days{days};
+%     stats_cl_hg = stats_cl_hg_days{days};
+%     for i=1:length(stats_cl)
+%         tid=stats_cl(i).target_id;
+%         if tid<=num_targets
+%             tmp = stats_cl_hg(i).hg_nonwave;
+%             stab = stats_cl_hg(i).nonwave_stab;
+%             stab_val=[];
+%             for j=1:length(stab)
+%                 stab_val(j) = median(cell2mat(stab(j)));
+%             end
+%             [aa bb] = sort(stab_val);
+%             len = min(3,length(bb));
+%             bb = sort(bb(1:len)); 
+% 
+%             tmp = cell2mat(tmp(bb)');
+% 
+%             for j=1:size(tmp,2)
+%                 tmp(:,j) =smooth(tmp(:,j),10);
+%             end
+%             % 
+%             condn_data(k).neural = tmp';
+%             condn_data(k).targetID = tid;
+%             k=k+1;
+%         end
+%     end
+% end
+% 
+% 
+% condn_data1={};k=1;
+% for i=1:length(condn_data)
+%     if ~isempty(condn_data(i).neural)
+%         condn_data1(k).neural = condn_data(i).neural;
+%         condn_data1(k).targetID = condn_data(i).targetID;
+%         k=k+1;
+%     end
+% end
+% condn_data=condn_data1;
+% 
+% [acc_nonwave_least,train_permutations,acc_bin_nonwave_least,...
+%     bino_pdf,bino_pdf_chance] = ...
+%     accuracy_imagined_data(condn_data, iterations);
+
+
 %accuracy_imagined_data
 %accuracy_imagined_data_Hand_B3
 
 res=[];
 for i=1:size(acc_nonwave,1)
+    %tmp0=squeeze((acc_nonwave_least(i,:,:)));
     tmp=squeeze((acc_nonwave(i,:,:)));
     tmp1=squeeze((acc_wave(i,:,:)));
-    res(i,:) = [mean(diag(tmp)) mean(diag(tmp1))];
+    %res(i,:) = [mean(diag(tmp0)) mean(diag(tmp)) mean(diag(tmp1))];
+    res(i,:) = [ mean(diag(tmp)) mean(diag(tmp1))];
 end
 figure;boxplot(res)
 xticks(1:2)
 xticklabels({'Non wave epochs', 'Wave epochs'})
-signrank(res(:,1),res(:,2))
+%xticklabels({'Most unstable nowave','Non wave epochs', 'Wave epochs'})
 title('Trial Level Acc.')
+signrank(res(:,1),res(:,2))
 
 res=[];
 for i=1:size(acc_nonwave,1)
@@ -1021,9 +1076,10 @@ xticklabels({'Non wave epochs', 'Wave epochs'})
 signrank(res(:,1),res(:,2))
 title('Bin Level Acc.')
 
-save hg_wave_nonwave_MLP_3DArrow_CL_v2 acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
+save hg_wave_nonwave_MLP_3DArrow_CL_AllData_v3_AllFolders acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
 %hg_wave_nonwave_MLP for B1 and B6
 %hg_wave_nonwave_MLP_3DArrow_CL_v2
+%hg_wave_nonwave_MLP_3DArrow_CL_v2_AllData
 
 % v2 -> using smoothed hG in trialdata, all time points (not just during
 % correct decodes)

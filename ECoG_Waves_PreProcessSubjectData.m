@@ -1,6 +1,6 @@
 %% WAVE PROCESSING SUBJECTS DATA
 clear
-subj='B1';
+subj='B6';
 %% LOAD SUBJECT SPECIFIC DATA
 
 if strcmp(subj,'B3')
@@ -139,7 +139,7 @@ if strcmp(subj,'B6')
 
     % robot3DArrow
     folders = {'20250530','20250610','20250624','20250703','20250708','20250717',...
-        '20250917','20250924','20251210'};
+        '20250917','20250924','20251203','20251204','20251210','20260116'};
     %20250924 seems to have no closed loop data?  -> have to add that in folder
     %list above
     imaging_B3_waves;
@@ -398,7 +398,7 @@ wave_plv_ol_days={};
 nonwave_plv_ol_days={};
 wave_plv_cl_days={};
 nonwave_plv_cl_days={};
-for days=1:length(folders)-1 %if B1-> it is -1
+for days=1:length(folders) %if B1-> it is -1
 
     disp(['Processing day ' num2str(days)])
 
@@ -643,7 +643,8 @@ for days=1:length(folders)-1 %if B1-> it is -1
 end
 
 %save B1_waves_stability_hg_PLV_AccStatsCL -v7.3 %
-save B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2 -v7.3 %
+%save B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2 -v7.3 %
+save B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData -v7.3 %
 
 
 %%

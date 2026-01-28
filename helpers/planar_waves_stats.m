@@ -117,6 +117,7 @@ for ii=1:length(files)
 
         % detect planar waves across mini-grid location
         planar_val_time=[];planar_val_time_hg=[];
+        planar_val_time_local=[];
         parfor t=1:size(df,1)
             %disp(t)
             
@@ -127,6 +128,9 @@ for ii=1:length(files)
             planar_val = planar_stats_muller(xph);        
             planar_val_time(t,:,:) = planar_val;
 
+            % doing it local over M1                        
+            planar_val_time_local(t,:,:) = planar_val(3:8,1:5);           
+
             % wave detection for hg mu signal
             % tmp = hg_mu(t,:);
             % xph = tmp(ecog_grid);
@@ -135,16 +139,25 @@ for ii=1:length(files)
         end
 
         %%%% if performing local circular linear correlation around entire grid
-        stab=[];stab_hg=[];
+        stab=[];stab_hg=[];stab_local=[];
         for k=2:size(planar_val_time,1)
             xt = planar_val_time(k,:,:);xt=xt(:);
             xtm1 = planar_val_time(k-1,:,:);xtm1=xtm1(:);
             stab(k-1) = - mean(abs(xt - xtm1));
 
+            xt = planar_val_time_local(k,:,:);xt=xt(:);
+            xtm1 = planar_val_time_local(k-1,:,:);xtm1=xtm1(:);
+            stab_local(k-1) = - mean(abs(xt - xtm1));
+
             % xt = planar_val_time_hg(k,:,:);xt=xt(:);
             % xtm1 = planar_val_time_hg(k-1,:,:);xtm1=xtm1(:);
             % stab_hg(k-1) = - mean(abs(xt - xtm1));
         end       
+
+        % figure;plot(zscore(stab))
+        % hline(0)
+        % hold on
+        % plot(zscore(stab_local))
         
         stats(kk).stab = stab;
         stats(kk).vec_field = planar_val_time;        
@@ -226,27 +239,31 @@ for ii=1:length(files)
 
         %%%% extract hg envelope around non wave regions
         % till the first start
-        tmp={};tmp_mu={}; tmp_hg_mu={};k=1;           
+        tmp={};tmp_mu={}; tmp_hg_mu={};tmp_wave_stab={};k=1;           
         if st(1)>15+3  %change 15 to 1 etc. depending on when wave detections start
             tmp = cat(2,tmp,hg(15:(st(k)-1),good_ch));            
             tmp_mu = cat(2,tmp_mu,df(15:(st(k)-1),good_ch));            
             tmp_hg_mu = cat(2,tmp_hg_mu,hg_mu(15:(st(k)-1),good_ch));  
+            tmp_wave_stab = cat(2,tmp_wave_stab,stab(15:(st(k)-1)));
         end
         % everything in between
         for j=1:length(stp)-1
             tmp = cat(2,tmp,hg((stp(j)+1) : (st(j+1)-1), good_ch));            
             tmp_mu = cat(2,tmp_mu,df((stp(j)+1) : (st(j+1)-1), good_ch));            
-            tmp_hg_mu = cat(2,tmp_hg_mu,hg_mu((stp(j)+1) : (st(j+1)-1), good_ch));            
+            tmp_hg_mu = cat(2,tmp_hg_mu,hg_mu((stp(j)+1) : (st(j+1)-1), good_ch));   
+            tmp_wave_stab = cat(2,tmp_wave_stab,stab((stp(j)+1) : (st(j+1)-1)));
         end
         % get the last bit
         if (3+stp(end)) < (size(df,1))
             tmp = cat(2,tmp, hg((stp(end)+1):end,good_ch));
             tmp_mu = cat(2,tmp_mu, df((stp(end)+1):end,good_ch));
             tmp_hg_mu = cat(2,tmp_hg_mu, hg_mu((stp(end)+1):end,good_ch));
+            tmp_wave_stab = cat(2,tmp_wave_stab,stab((stp(end)+1):end));
         end
         stats_hg(kk).hg_nonwave = tmp;
         stats_hg(kk).mu_nonwave = tmp_mu;
         stats_hg(kk).hg_mu_nonwave = tmp_hg_mu;
+        stats_hg(kk).nonwave_stab = tmp_wave_stab;
 
         % perform PLV analyses 
         tmp_mu = angle(cell2mat(tmp_mu'));
