@@ -10,7 +10,7 @@ clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B6';
+subj ='B3';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -19,7 +19,8 @@ if strcmp(subj,'B1')
     load('ECOG_Grid_8596_000067_B3.mat')
     %load B1_waves_stability_hG
     %load B1_waves_stability_hG_plv
-    load B1_waves_stability_hgFilterBank_PLV_AccStatsCL
+    %load B1_waves_stability_hgFilterBank_PLV_AccStatsCL
+    load B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2
     num_targets=7;
 
 elseif strcmp(subj,'B3')    
@@ -32,7 +33,8 @@ elseif strcmp(subj,'B3')
     %load B3_waves_hand_stability_Muller_hG
     %load B3_waves_hand_stability_Muller_hG_plv
     %load B3_waves_stability_hgFilterBank_PLV_AccStatsCL
-    load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL
+    %load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL
+    load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2
     num_targets=7;
 
 
@@ -45,7 +47,8 @@ elseif strcmp(subj,'B6')
     addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
     %load('B6_waves_stability_Muller_hG')
     %load B6_waves_stability_hg_PLV
-    load B6_waves_stability_hgFilterBank_PLV_AccStatsCL
+    %load B6_waves_stability_hgFilterBank_PLV_AccStatsCL
+    load B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData
 end
 
 %% ANALYSIS -2 
@@ -287,7 +290,7 @@ parfor days=1:length(stats_cl_hg_days)
     D_wave=[];D_nonwave=[];res=[];
     D_wave_total=[];D_nonwave_total=[];res_std=[];
     for i=1:length(stats_cl_hg)
-        if stats_cl_hg(i).target_id ==4
+        if stats_cl_hg(i).target_id <=7
             tmp = stats_cl_hg(i).hg_wave;
             tmp = cell2mat(tmp');tmp1=tmp;
             tmp = mean(tmp,1);
@@ -345,7 +348,7 @@ parfor days=1:length(stats_cl_hg_days)
     D_wave=[];D_nonwave=[];res=[];
     D_wave_total=[];D_nonwave_total=[];res_std=[];
     for i=1:length(stats_cl_hg)
-        if stats_cl_hg(i).target_id ==4
+        if stats_cl_hg(i).target_id <=7
             tmp = stats_cl_hg(i).hg_wave;
             tmp = cell2mat(tmp');tmp1=tmp;
             tmp = mean(tmp,1);
@@ -1187,7 +1190,92 @@ x=[1:10]';
 y = [median(acc_nonwave_days)]';
 [bhat p wh se ci t_stat]=robust_fit(x,y,2);p
 
-%% ANALYSIS 5   
+
+%% ANALYSIS 4.9 (MAIN STORING DATA FOR WAVE EPOCHS AND AE TO UNDERSTAND
+% REPRESENTATIONAL GEOMETRY OF WAVE AND NON WAVE EPOCHS). 
+
+%%%% STORING SINGLE TRIAL DATA FOR WAVES AND NON WAVES IN CL
+condn_data={};k=1;
+for days = 1:length(stats_cl_days)
+    stats_cl = stats_cl_days{days};
+    stats_cl_hg = stats_cl_hg_days{days};
+    for i=1:length(stats_cl)
+        tid=stats_cl(i).target_id;
+        acc=stats_cl(i).accuracy;
+        if tid<=num_targets
+
+            % day information
+            condn_data(k).day = days;
+
+            % trial number
+            condn_data(k).trial = k;
+
+            % target information
+            condn_data(k).targetID = tid;
+
+            % trial accuracy information 
+            condn_data(k).accuracy = acc;
+
+            % store wave data
+            tmp = stats_cl_hg(i).hg_wave;
+            tmp = cell2mat(tmp');
+            % smoothing for B6 and B1 alone
+            %if strcmp(subj,'B1') || strcmp(subj,'B6')
+            % for j=1:size(tmp,2)
+            %     tmp(:,j) =smooth(tmp(:,j),5);
+            % end
+            %end
+            condn_data(k).wave_neural = tmp';
+
+            % store nonwave data
+            tmp = stats_cl_hg(i).hg_nonwave;
+            tmp = cell2mat(tmp');
+            % smoothing for B6 and B1 alone
+            %if strcmp(subj,'B1') || strcmp(subj,'B6')
+            % for j=1:size(tmp,2)
+            %     tmp(:,j) =smooth(tmp(:,j),5);
+            % end
+            %end
+            condn_data(k).nonwave_neural = tmp';
+
+            % store wave stability values
+            % stab = stats_cl(i).stab;
+            % [out,st,stp] = wave_stability_detect(zscore(stab));
+            % wave_stab=[];
+            % for j=1:length(st)
+            %     wave_stab=[wave_stab;stab(st(k):stp(k))];
+            % end
+            
+            
+            k=k+1;
+        end
+    end
+end
+
+
+% save
+save B3_Wave_NonWave_hG_For_AE condn_data -v7.3 
+
+len=[];len1=[];
+for i=1:length(condn_data)
+    tmp=condn_data(i).wave_neural;
+    len=[len;size(tmp,2)];
+    tmp=condn_data(i).nonwave_neural;
+    len1=[len1;size(tmp,2)];
+end
+
+% % remove trials without any wave or non wave data (OPTIONAL)
+% condn_data1={};k=1;
+% for i=1:length(condn_data)
+%     if ~isempty(condn_data(i).wave_neural)
+%         condn_data1(k).neural = condn_data(i).wave_neural;
+%         condn_data1(k).targetID = condn_data(i).targetID;
+%         k=k+1;
+%     end
+% end
+% condn_data=condn_data1;
+
+%% ANALYSIS 5   (MAIN, IMPT)
 % duty cycle within accurate and inaccurate trials
 
 res_days=[];
@@ -1216,7 +1304,7 @@ parfor days=1:length(stats_cl_days)
         tmp=stab;
         t = length(tmp) * 20/1e3;
         f =length(out)/t; % frequency/s
-        d = median(out) * 20/1e3; %duration in s
+        d = mean(out) * 20/1e3; %duration in s
         dcyc=f*d;
 
 
@@ -1233,6 +1321,9 @@ end
 
 [p,h]=signrank(res_days(:,1),res_days(:,2))
 [ h p tb st]=ttest(res_days(:,1),res_days(:,2))
+figure;boxplot(res_days)
+xticks(1:2)
+xticklabels({'Error Trials','Acc. Trails'})
 
 %%
 %%% ANALYSIS 2
