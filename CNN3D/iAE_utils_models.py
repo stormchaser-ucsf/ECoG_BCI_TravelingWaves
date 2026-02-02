@@ -46,6 +46,57 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 #### UTILS SECTION
 
 
+#%% AUTOENCODER ANALYSIS FOR WAVE NONWAVES HIGH GAMMA DATA
+
+def split_dict_by_indices(data_dict, indices):
+    return {
+        k: [v[i] for i in indices]
+        for k, v in data_dict.items()
+        }
+
+def training_split_wavesAE(condn_data,prop=0.7):
+    tid = condn_data.get('targetID')
+    p = round(prop*len(tid))
+    
+    # randomly get p numbers from length tid
+    idx_train = rnd.choice(range(0,len(tid)),size=p,replace=False)
+    
+    # get the remaining numbers
+    full = set(range(0,len(tid)))
+    rem_idx = sorted(full-set(idx_train))
+    rem_idx = np.array(rem_idx)
+    
+    # split these into validation and test sets
+    q = round(0.5*len(rem_idx))
+    idx_val = rnd.choice(range(0,len(rem_idx)),size=q,replace=False)
+    full_tmp = set(range(0,len(rem_idx)))
+    idx_test = sorted(full_tmp-set(idx_val))
+    idx_val = rem_idx[idx_val]
+    idx_test = rem_idx[idx_test]
+    
+    train_data = split_dict_by_indices(condn_data, idx_train)
+    val_data   = split_dict_by_indices(condn_data, idx_val)
+    test_data  = split_dict_by_indices(condn_data, idx_test)
+    
+    return train_data,val_data,test_data
+    
+
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+
+
+
+#%%
+
+
 # get the data 
 def get_data(filename,num_classes=7):
     data_dict = mat73.loadmat(filename)
@@ -110,6 +161,16 @@ def one_hot_convert(indata):
     Y_mult = np.zeros((indata.shape[0],n))
     for i in range(indata.shape[0]):
         tmp = round(indata[i])
+        #tmp = round(indata[i][0])
+        Y_mult[i,tmp]=1
+    Y = Y_mult
+    return Y
+
+def one_hot_convert_waves(indata):
+    n = len(np.unique(indata))
+    Y_mult = np.zeros((indata.shape[0],n))
+    for i in range(indata.shape[0]):
+        tmp = round(indata[i])-1
         #tmp = round(indata[i][0])
         Y_mult[i,tmp]=1
     Y = Y_mult
@@ -623,7 +684,7 @@ class encoder(nn.Module):
         self.linear2 = nn.Linear(hidden_size,self.hidden_size2)
         self.linear3 = nn.Linear(self.hidden_size2,latent_dims)
         self.gelu = nn.ELU()
-        self.tanh = nn.Tanh()
+        #self.tanh = nn.Tanh()
         self.dropout =  nn.Dropout(p=0.3)
         #self.lnorm1 = nn.LayerNorm(latent_dims,elementwise_affine=False)
         
@@ -644,7 +705,7 @@ class latent_classifier(nn.Module):
     def __init__(self,latent_dims,num_classes):
         super(latent_classifier,self).__init__()
         self.linear1 = nn.Linear(latent_dims,num_classes)
-        self.weights = torch.randn(latent_dims,num_classes).to(device)        
+        #self.weights = torch.randn(latent_dims,num_classes).to(device)        
     
     def forward(self,x):
         x=self.linear1(x)        
@@ -659,7 +720,7 @@ class decoder(nn.Module):
         self.linear2 = nn.Linear(self.hidden_size2,hidden_size)
         self.linear3 = nn.Linear(hidden_size,input_size)
         self.gelu = nn.ELU()
-        self.relu = nn.ReLU()
+        #self.relu = nn.ReLU()
         self.dropout =  nn.Dropout(p=0.3)
         
         
@@ -3673,6 +3734,134 @@ def training_loop_mlp(model,num_epochs,batch_size,learning_rate,batch_val,
     model_goat.eval()
     return model_goat, goat_acc
 
+
+
+# waves = Xtrain["wave_neural"]
+# nonwaves = Xtrain["nonwave_neural"]
+# c=[];
+# for i in range(len(waves)):
+#     tmp = waves[i]
+#     c.append(tmp.shape[1])
+    
+#     tmp = nonwaves[i]
+#     c.append(tmp.shape[1])
+
+##### TRAINING LOOP FOR WAVE NONWAVE HIGH GAMMA AE
+
+# TRAINING LOOP
+def training_loop_iAE_waves(model,num_epochs,batch_size,learning_rate,batch_val,
+                      patience,gradient_clipping,filename,
+                      Xtrain,Xval,
+                      input_size,hidden_size,latent_dims,num_classes):
+    
+   
+    # within every epoch, perform monte carlo sampling of balanced minibatches    
+    num_batches=300
+    recon_criterion = nn.MSELoss(reduction='mean')
+    classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
+    #opt = torch.optim.Adam(model.parameters(),lr=learning_rate)
+    opt = torch.optim.AdamW(model.parameters(),lr=learning_rate,weight_decay=1e-4)
+    print('Starting training')
+    goat_loss=99999
+    counter=0
+    labels = np.array(Xtrain["targetID"])          
+    
+    model.train()
+    for epoch in range(num_epochs):
+      
+      # if epoch>round(num_epochs*0.6):
+      #     for g in opt.param_groups:
+      #         g['lr']=1e-4
+              
+     
+      for batch in range(num_batches):
+          
+          # get the batch 
+          sz=5
+          Xtrain_batch=[]
+          label_batch=np.array([])          
+          for i in np.arange(num_classes)+1:
+              aa = np.where((i)==labels)[0]
+              # get 3 random trials 
+              bb = rnd.choice(len(aa),size=3,replace=False)
+              bb = aa[bb]
+              
+              # get the hg samples from these trials both waves and non waves
+              for j in np.arange(len(bb)):
+                  tmp = np.array(Xtrain["wave_neural"][bb[j]])
+                  tmp_idx = rnd.choice(tmp.shape[1],size=sz,replace=False)
+                  Xtrain_batch.append(tmp[:,tmp_idx])
+                  label_batch= np.append(label_batch,np.repeat(i,sz),axis=0)
+                                 
+                  
+                  tmp = Xtrain["nonwave_neural"][bb[j]]
+                  tmp_idx = rnd.choice(tmp.shape[1],size=sz,replace=False)
+                  Xtrain_batch.append(tmp[:,tmp_idx])
+                  label_batch= np.append(label_batch,np.repeat(i,sz),axis=0)
+              
+          Xtrain_batch  = np.concatenate(Xtrain_batch,axis=1)
+          Ytrain_batch = label_batch-1
+                    
+          #push to gpu
+          Xtrain_batch = torch.from_numpy(Xtrain_batch).to(device).float()
+          Xtrain_batch = Xtrain_batch.t()
+          
+          #Ytrain_batch = one_hot_convert_waves(Ytrain_batch)
+          Ytrain_batch = torch.from_numpy(Ytrain_batch).to(device)     
+          Ytrain_batch = Ytrain_batch.long()
+          
+          # forward pass thru network
+          opt.zero_grad() 
+          recon,decodes = model(Xtrain_batch)
+          latent_activity = model.encoder(Xtrain_batch)      
+          
+          # get loss      
+          recon_loss = (recon_criterion(recon,Xtrain_batch))
+          classif_loss = (classif_criterion(decodes,Ytrain_batch))    
+          loss = recon_loss + classif_loss
+          total_loss = loss.item()
+          #print(classif_loss.item())
+          
+          # compute accuracy
+          #ylabels = convert_to_ClassNumbers(Ytrain_batch)        
+          ylabels = Ytrain_batch
+          ypred_labels = convert_to_ClassNumbers(decodes)     
+          accuracy = (torch.sum(ylabels == ypred_labels).item())/ylabels.shape[0]
+          
+          # backpropagate thru network 
+          loss.backward()
+          nn.utils.clip_grad_value_(model.parameters(), clip_value=gradient_clipping)
+          opt.step()
+      
+      # get validation losses
+    #   val_loss,val_acc,val_recon=validation_loss(model,Xtest,Ytest,batch_val,1)    
+    #   #val_loss,val_recon=validation_loss_regression(model,Xtest,Ytest,batch_val,1)    
+      
+      
+    #   print(f'Epoch [{epoch}/{num_epochs}], Val. Loss {val_loss:.2f}, Train Loss {total_loss:.2f}, Val. Acc {val_acc*100:.2f}, Train Acc {accuracy*100:.2f}')
+    #   #print(f'Epoch [{epoch}/{num_epochs}], Val. Loss {val_loss:.4f}, Train Loss {total_loss:.4f}')
+      
+    #   if val_loss<goat_loss:
+    #       goat_loss = val_loss
+    #       goat_acc = val_acc*100      
+    #       counter = 0
+    #       print('Goat loss, saving model')      
+    #       torch.save(model.state_dict(), filename)
+    #   else:
+    #       counter += 1
+    
+    #   if counter>=patience:
+    #       print('Early stoppping point reached')
+    #       print('Best val loss and val acc  are')
+    #       print(goat_loss,goat_acc)
+    #       break
+    # #model_goat = Autoencoder3D(ksize,num_classes,input_size,lstm_size)
+    # model_goat = iAutoencoder(input_size,hidden_size,latent_dims,num_classes)  
+    # #model_goat = iAutoencoder_B3(input_size,hidden_size,latent_dims,num_classes)
+    # model_goat.load_state_dict(torch.load(filename))
+    # model_goat=model_goat.to(device)
+    # model_goat.eval()
+    return model_goat, goat_acc
 
 
 # plotting and returning latent activations
