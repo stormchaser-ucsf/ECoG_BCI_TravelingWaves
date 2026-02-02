@@ -3764,7 +3764,8 @@ def training_loop_iAE_waves(model,num_epochs,batch_size,learning_rate,batch_val,
     print('Starting training')
     goat_loss=99999
     counter=0
-    labels = np.array(Xtrain["targetID"])          
+    labels = np.array(Xtrain["targetID"])    
+    res=[]      
     
     model.train()
     for epoch in range(num_epochs):
@@ -3777,7 +3778,7 @@ def training_loop_iAE_waves(model,num_epochs,batch_size,learning_rate,batch_val,
       for batch in range(num_batches):
           
           # get the batch 
-          sz=5
+          sz=3
           Xtrain_batch=[]
           label_batch=np.array([])          
           for i in np.arange(num_classes)+1:
@@ -3818,7 +3819,7 @@ def training_loop_iAE_waves(model,num_epochs,batch_size,learning_rate,batch_val,
           # get loss      
           recon_loss = (recon_criterion(recon,Xtrain_batch))
           classif_loss = (classif_criterion(decodes,Ytrain_batch))    
-          loss = recon_loss + classif_loss
+          loss = 2*recon_loss + classif_loss
           total_loss = loss.item()
           #print(classif_loss.item())
           
@@ -3828,11 +3829,14 @@ def training_loop_iAE_waves(model,num_epochs,batch_size,learning_rate,batch_val,
           ypred_labels = convert_to_ClassNumbers(decodes)     
           accuracy = (torch.sum(ylabels == ypred_labels).item())/ylabels.shape[0]
           
+          
           # backpropagate thru network 
           loss.backward()
           nn.utils.clip_grad_value_(model.parameters(), clip_value=gradient_clipping)
           opt.step()
+          #plt.figure();plt.plot(res)
       
+      res.append(accuracy)
       # get validation losses
     #   val_loss,val_acc,val_recon=validation_loss(model,Xtest,Ytest,batch_val,1)    
     #   #val_loss,val_recon=validation_loss_regression(model,Xtest,Ytest,batch_val,1)    

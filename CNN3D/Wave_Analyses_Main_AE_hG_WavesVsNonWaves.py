@@ -119,7 +119,7 @@ for iterr in np.arange(iterations):
     model = iAutoencoder(input_size,hidden_size,latent_dims,num_classes).to(device)        
 
     # training params 
-    num_epochs=150    
+    num_epochs=50    
     learning_rate = 1e-3
     batch_val=512
     patience=6
