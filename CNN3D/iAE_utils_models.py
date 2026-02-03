@@ -39,6 +39,11 @@ from sklearn.preprocessing import MaxAbsScaler
 import matplotlib.animation as animation
 from scipy.io import savemat
 from csaps import csaps
+from scipy.linalg import eigh
+import matplotlib.cm as cm
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.patches import Ellipse
+
 
 # setting up GPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -84,7 +89,241 @@ def training_split_wavesAE(condn_data,prop=0.7):
 
 
     
+
+
+
+def set_equal_3d_axes(ax, X):
+    """
+    Make 3D plot axes have equal scale.
+    X should be array of shape [N, 3].
+    """
+    x_limits = [X[:, 0].min(), X[:, 0].max()]
+    y_limits = [X[:, 1].min(), X[:, 1].max()]
+    z_limits = [X[:, 2].min(), X[:, 2].max()]
+
+    x_range = x_limits[1] - x_limits[0]
+    y_range = y_limits[1] - y_limits[0]
+    z_range = z_limits[1] - z_limits[0]
+
+    max_range = max(x_range, y_range, z_range) / 2.0
+
+    x_mid = np.mean(x_limits)
+    y_mid = np.mean(y_limits)
+    z_mid = np.mean(z_limits)
+
+    ax.set_xlim(x_mid - max_range, x_mid + max_range)
+    ax.set_ylim(y_mid - max_range, y_mid + max_range)
+    ax.set_zlim(z_mid - max_range, z_mid + max_range)
+
+
+def plot_movement_wave_vs_nonwave_3d(wave_dict, movement_id, n_components=3):
+    """
+    Plot latent space for ONE movement.
+    Colors: wave vs non-wave
+    """
+    # Extract data
+    wave = wave_dict["latent_wave"][movement_id - 1].T      # [trials x latent_dim]
+    nonwave = wave_dict["latent_nonwave"][movement_id - 1].T
+
+    # Stack and PCA jointly
+    X = np.vstack([wave, nonwave])
+    labels = np.array(
+        ["wave"] * wave.shape[0] + ["non-wave"] * nonwave.shape[0]
+    )
+
+    pca = PCA(n_components=n_components)
+    Z = pca.fit_transform(X)
+
+    Z_wave = Z[labels == "wave"]
+    Z_nonwave = Z[labels == "non-wave"]
+
+    # ---- Plot ----
+    fig = plt.figure(figsize=(7, 6))
+    ax = fig.add_subplot(111, projection="3d")
+
+    ax.scatter(
+        Z_wave[:, 0], Z_wave[:, 1], Z_wave[:, 2],
+        c="tab:blue", alpha=0.7, label="Wave"
+    )
+    ax.scatter(
+        Z_nonwave[:, 0], Z_nonwave[:, 1], Z_nonwave[:, 2],
+        c="tab:orange", alpha=0.7, label="Non-Wave"
+    )
+
+    ax.set_title(f"Movement {movement_id} | Latent PCA")
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    ax.set_zlabel("PC3")
+    ax.legend()
+
+    set_equal_3d_axes(ax, Z)
+    plt.tight_layout()
+    plt.show()
+
+def draw_gaussian_ellipse_2d(ax, data, color, n_std=1.5, alpha=0.25):
+    """
+    data: [N x 2]
+    """
+    mean = np.mean(data, axis=0)
+    cov = np.cov(data, rowvar=False)
+
+    # Eigen-decomposition
+    eigvals, eigvecs = eigh(cov)
+    order = eigvals.argsort()[::-1]
+    eigvals, eigvecs = eigvals[order], eigvecs[:, order]
+
+    # Width & height
+    width, height = 2 * n_std * np.sqrt(eigvals)
+
+    # Rotation angle
+    angle = np.degrees(np.arctan2(eigvecs[1, 0], eigvecs[0, 0]))
+
+    ellipse = Ellipse(
+        xy=mean,
+        width=width,
+        height=height,
+        angle=angle,
+        color=color,
+        alpha=alpha
+    )
+
+    ax.add_patch(ellipse)
+
+def draw_gaussian_ellipsoid(ax, data, color, n_std=1.5, alpha=0.2):
+    """
+    Draw a 3D Gaussian ellipsoid based on covariance
+    data: [N x 3]
+    """
     
+    data = data[:,3:]
+    mean = data.mean(axis=0)
+    cov = np.cov(data, rowvar=False)
+
+    # Eigen-decomposition
+    eigvals, eigvecs = eigh(cov)
+
+    # Sort largest → smallest
+    order = eigvals.argsort()[::-1]
+    eigvals, eigvecs = eigvals[order], eigvecs[:, order]
+
+    # Radii
+    radii = n_std * np.sqrt(eigvals)
+
+    # Sphere
+    u = np.linspace(0, 2*np.pi, 40)
+    v = np.linspace(0, np.pi, 40)
+    x = np.outer(np.cos(u), np.sin(v))
+    y = np.outer(np.sin(u), np.sin(v))
+    z = np.outer(np.ones_like(u), np.cos(v))
+
+    # Scale + rotate
+    sphere = np.stack([x, y, z], axis=-1)
+    ellipsoid = sphere @ np.diag(radii) @ eigvecs.T
+    ellipsoid += mean
+
+    ax.plot_surface(
+        ellipsoid[..., 0],
+        ellipsoid[..., 1],
+        ellipsoid[..., 2],
+        color=color,
+        alpha=alpha,
+        linewidth=0
+    )
+
+
+
+
+def plot_movement_wave_vs_nonwave_2d_with_ellipses(
+    wave_nonwave_dict,
+    movement_id,
+    n_components=2):
+    idx = wave_nonwave_dict["targetID"].index(movement_id)
+
+    # Latent: [latent_dim x n_trials] → [n_trials x latent_dim]
+    wave = wave_nonwave_dict["latent_wave"][idx].T
+    nonwave = wave_nonwave_dict["latent_nonwave"][idx].T
+
+    # PCA fit on combined data (shared axes)
+    X = np.vstack([wave, nonwave])
+    pca = PCA(n_components=n_components)
+    Z = pca.fit_transform(X)
+
+    Z_wave = Z[:wave.shape[0]]
+    Z_nonwave = Z[wave.shape[0]:]
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(7, 6))
+
+    ax.scatter(
+        Z_wave[:, 0], Z_wave[:, 1],
+        c="tab:blue", alpha=0.7, label="Wave"
+    )
+
+    ax.scatter(
+        Z_nonwave[:, 0], Z_nonwave[:, 1],
+        c="tab:orange", alpha=0.7, label="Non-Wave"
+    )
+
+    # Gaussian ellipses
+    draw_gaussian_ellipse_2d(ax, Z_wave, "tab:blue", n_std=1.5, alpha=0.25)
+    draw_gaussian_ellipse_2d(ax, Z_nonwave, "tab:orange", n_std=1.5, alpha=0.25)
+
+    ax.set_title(f"Movement {movement_id} | Latent PCA (2D)")
+    ax.set_xlabel("PC 1")
+    ax.set_ylabel("PC 2")
+    ax.legend()
+    ax.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_movement_wave_vs_nonwave_3d_with_ellipses(wave_dict, movement_id, n_components=3):
+    # Extract
+    wave = wave_dict["latent_wave"][movement_id - 1].T
+    nonwave = wave_dict["latent_nonwave"][movement_id - 1].T
+
+    # Joint PCA
+    X = np.vstack([wave, nonwave])
+    labels = np.array(
+        ["wave"] * wave.shape[0] + ["non-wave"] * nonwave.shape[0]
+    )
+
+    pca = PCA(n_components=n_components)
+    #Z = pca.fit_transform(X)
+    Z=X;
+
+    Z_wave = Z[labels == "wave"]
+    Z_nonwave = Z[labels == "non-wave"]
+
+    # ---- Plot ----
+    fig = plt.figure(figsize=(7, 6))
+    ax = fig.add_subplot(111, projection="3d")
+
+    ax.scatter(
+        Z_wave[:, 3], Z_wave[:, 4], Z_wave[:, 5],
+        c="tab:blue", alpha=0.7, label="Wave"
+    )
+    ax.scatter(
+        Z_nonwave[:, 3], Z_nonwave[:, 4], Z_nonwave[:, 5],
+        c="tab:orange", alpha=0.7, label="Non-Wave"
+    )
+
+    # Gaussian ellipsoids
+    draw_gaussian_ellipsoid(ax, Z_wave, "tab:blue", n_std=2, alpha=0.25)
+    draw_gaussian_ellipsoid(ax, Z_nonwave, "tab:orange", n_std=2, alpha=0.25)
+
+    ax.set_title(f"Movement {movement_id} | Latent PCA")
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    ax.set_zlabel("PC3")
+    ax.legend()
+    ax.view_init(elev=30,azim=345)
+
+    #set_equal_3d_axes(ax, Z)
+    plt.tight_layout()
+    plt.show()
+
     
     
     
@@ -3748,16 +3987,60 @@ def training_loop_mlp(model,num_epochs,batch_size,learning_rate,batch_val,
 
 ##### TRAINING LOOP FOR WAVE NONWAVE HIGH GAMMA AE
 
+
+def validation_loss_waves(model,val_data,val_labels,recon_criterion,classif_criterion):    
+     
+     model.eval()
+     with torch.no_grad():
+         out,ypred = model(val_data)
+         recon_val_loss = (recon_criterion(out,val_data))/val_data.shape[0]
+         classif_val_loss = classif_criterion(ypred,val_labels)
+         total_val_loss = 1*recon_val_loss + classif_val_loss
+    
+     ypred = convert_to_ClassNumbers(ypred)
+     val_acc = (torch.sum(ypred==val_labels))/len(val_labels)
+     
+     model.train()
+    
+     return recon_val_loss.item(),classif_val_loss.item(),total_val_loss.item(),val_acc.item()
+         
+         
+    
+     
+ 
 # TRAINING LOOP
-def training_loop_iAE_waves(model,num_epochs,batch_size,learning_rate,batch_val,
+def training_loop_iAE_waves(model,num_epochs,learning_rate,batch_val,
                       patience,gradient_clipping,filename,
                       Xtrain,Xval,
                       input_size,hidden_size,latent_dims,num_classes):
     
+    # parcellate the validation data
+    val_data_wave = Xval["wave_neural"]
+    val_data_nonwave = Xval["nonwave_neural"]
+    val_data_labels =  Xval["targetID"]
+    val_labels = np.array([])      
+    val_data = np.empty((253,0))
+    for i in np.arange(len(val_data_labels)):
+        tmp = val_data_wave[i].shape[1]
+        l = np.round(val_data_labels[i])-1       
+        val_labels= np.append(val_labels,np.repeat(l,tmp),axis=0)
+        val_data =  np.append(val_data,val_data_wave[i],axis=1)
+        
+        tmp = val_data_nonwave[i].shape[1]
+        l = np.round(val_data_labels[i])-1
+        val_labels= np.append(val_labels,np.repeat(l,tmp),axis=0)
+        val_data =  np.append(val_data,val_data_nonwave[i],axis=1)
+    
+    val_data = val_data.T
+    val_data =  torch.from_numpy(val_data).to(device).float()
+    val_labels = torch.from_numpy(val_labels).to(device).long()
+    
+        
+    
    
     # within every epoch, perform monte carlo sampling of balanced minibatches    
     num_batches=300
-    recon_criterion = nn.MSELoss(reduction='mean')
+    recon_criterion = nn.MSELoss(reduction='sum')
     classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
     #opt = torch.optim.Adam(model.parameters(),lr=learning_rate)
     opt = torch.optim.AdamW(model.parameters(),lr=learning_rate,weight_decay=1e-4)
@@ -3779,12 +4062,13 @@ def training_loop_iAE_waves(model,num_epochs,batch_size,learning_rate,batch_val,
           
           # get the batch 
           sz=3
+          trial_sz=3;
           Xtrain_batch=[]
           label_batch=np.array([])          
           for i in np.arange(num_classes)+1:
               aa = np.where((i)==labels)[0]
               # get 3 random trials 
-              bb = rnd.choice(len(aa),size=3,replace=False)
+              bb = rnd.choice(len(aa),size=trial_sz,replace=False)
               bb = aa[bb]
               
               # get the hg samples from these trials both waves and non waves
@@ -3817,9 +4101,9 @@ def training_loop_iAE_waves(model,num_epochs,batch_size,learning_rate,batch_val,
           latent_activity = model.encoder(Xtrain_batch)      
           
           # get loss      
-          recon_loss = (recon_criterion(recon,Xtrain_batch))
+          recon_loss = (recon_criterion(recon,Xtrain_batch))/Xtrain_batch.shape[0]
           classif_loss = (classif_criterion(decodes,Ytrain_batch))    
-          loss = 2*recon_loss + classif_loss
+          loss = 1*recon_loss + classif_loss
           total_loss = loss.item()
           #print(classif_loss.item())
           
@@ -3836,35 +4120,35 @@ def training_loop_iAE_waves(model,num_epochs,batch_size,learning_rate,batch_val,
           opt.step()
           #plt.figure();plt.plot(res)
       
-      res.append(accuracy)
-      # get validation losses
-    #   val_loss,val_acc,val_recon=validation_loss(model,Xtest,Ytest,batch_val,1)    
-    #   #val_loss,val_recon=validation_loss_regression(model,Xtest,Ytest,batch_val,1)    
+     
+      # get validation losses      
+      recon_val_loss,classif_val_loss,val_loss,val_acc=validation_loss_waves(model,
+                                                             val_data,val_labels,
+                                                             recon_criterion,classif_criterion)    
       
+      print(f'Epoch [{epoch+1}/{num_epochs}], Val. Loss {val_loss:.2f}, Train Loss {total_loss:.2f}, Val. Acc {val_acc*100:.2f}, Train Acc {accuracy*100:.2f}')    
       
-    #   print(f'Epoch [{epoch}/{num_epochs}], Val. Loss {val_loss:.2f}, Train Loss {total_loss:.2f}, Val. Acc {val_acc*100:.2f}, Train Acc {accuracy*100:.2f}')
-    #   #print(f'Epoch [{epoch}/{num_epochs}], Val. Loss {val_loss:.4f}, Train Loss {total_loss:.4f}')
-      
-    #   if val_loss<goat_loss:
-    #       goat_loss = val_loss
-    #       goat_acc = val_acc*100      
-    #       counter = 0
-    #       print('Goat loss, saving model')      
-    #       torch.save(model.state_dict(), filename)
-    #   else:
-    #       counter += 1
-    
-    #   if counter>=patience:
-    #       print('Early stoppping point reached')
-    #       print('Best val loss and val acc  are')
-    #       print(goat_loss,goat_acc)
-    #       break
-    # #model_goat = Autoencoder3D(ksize,num_classes,input_size,lstm_size)
-    # model_goat = iAutoencoder(input_size,hidden_size,latent_dims,num_classes)  
-    # #model_goat = iAutoencoder_B3(input_size,hidden_size,latent_dims,num_classes)
-    # model_goat.load_state_dict(torch.load(filename))
-    # model_goat=model_goat.to(device)
-    # model_goat.eval()
+      if val_loss<goat_loss:
+           goat_loss = val_loss
+           goat_acc = val_acc*100      
+           counter = 0
+           print('Goat loss, saving model')      
+           torch.save(model.state_dict(), filename)
+      else:
+           counter += 1
+        
+      if counter>=patience:
+           print('Early stoppping point reached')
+           print('Best val loss and val acc  are')
+           print(goat_loss,goat_acc)
+           break
+        
+     #model_goat = Autoencoder3D(ksize,num_classes,input_size,lstm_size)
+    model_goat = iAutoencoder(input_size,hidden_size,latent_dims,num_classes)  
+    #model_goat = iAutoencoder_B3(input_size,hidden_size,latent_dims,num_classes)
+    model_goat.load_state_dict(torch.load(filename))
+    model_goat=model_goat.to(device)
+    model_goat.eval()
     return model_goat, goat_acc
 
 

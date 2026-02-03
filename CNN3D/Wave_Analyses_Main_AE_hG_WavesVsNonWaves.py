@@ -37,6 +37,7 @@ import math
 import mat73
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from scipy.linalg import eigh
 
 # setting up GPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -48,9 +49,9 @@ from torch.utils.data import TensorDataset, random_split, DataLoader
 from sklearn.metrics import balanced_accuracy_score as balan_acc
 from sklearn.preprocessing import MinMaxScaler
 
-
-
-
+import matplotlib.cm as cm
+from sklearn.decomposition import PCA
+from mpl_toolkits.mplot3d import Axes3D
 
 
 #%% LOAD THE DATA 
@@ -81,6 +82,9 @@ else:
 
 data_dict = mat73.loadmat(filename)
 
+# from scipy.io import loadmat
+# data_dict = loadmat(filename)
+
 condn_data = data_dict.get('condn_data')
 
 iterations = 1
@@ -105,7 +109,7 @@ for iterr in np.arange(iterations):
     # model parameters for the MLP based autoencoder
     input_size=253
     hidden_size=96 #96 originally 
-    latent_dims=8 #3 originally 
+    latent_dims=6 #3 originally 
     num_classes = 7
     
     from iAE_utils_models import *
@@ -119,7 +123,7 @@ for iterr in np.arange(iterations):
     model = iAutoencoder(input_size,hidden_size,latent_dims,num_classes).to(device)        
 
     # training params 
-    num_epochs=50    
+    num_epochs=150    
     learning_rate = 1e-3
     batch_val=512
     patience=6
@@ -133,186 +137,228 @@ for iterr in np.arange(iterations):
     # train the model using monte carlo sampling for balanced minibatch for a set number of 
     # epochs    
     
-    # training_loop_iAE_waves
+    model,acc = training_loop_iAE_waves(model,num_epochs,learning_rate,batch_val,
+                          patience,gradient_clipping,nn_filename,
+                          Xtrain,Xval,
+                          input_size,hidden_size,latent_dims,num_classes)
     
-    
-    model,acc,recon_loss_epochs,classif_loss_epochs,total_loss_epochs = training_loop_iAE3D_Complex(model,num_epochs,batch_size,
-                            learning_rate,batch_val,patience,gradient_clipping,nn_filename,
-                            Xtrain,Ytrain,labels_train,Xval,Yval,labels_val,
-                            input_size,num_classes,ksize,lstm_size,alp_factor,aug_flag,
-                            sigma,aug_factor,model_class)
-    
-    # test the model on held out data 
-    # recon acc
-    recon_r,recon_i,decodes = test_model_complex(model,Xtest)
-    recon = recon_r + 1j*recon_i
-    dec_output = np.array(convert_to_ClassNumbers_sigmoid_list(decodes))
-    x=np.array(labels_test)[:,None]
-    decoding_accuracy.append( (np.sum(dec_output==x)/dec_output.shape[0]*100).tolist())
-    balanced_decoding_accuracy.append(balan_acc(dec_output,x)*100)
-    # get the accuracy across days 
-        
-    for i in np.arange(len(days)): # loop over the 10 days 
-        idx_days = np.where(labels_test_days == days[i])[0]
-        tmp_labels = labels_test[idx_days]
-        tmp_ydata_r,tmp_ydata_i = Ytest[idx_days,:].real, Ytest[idx_days,:].imag
-        tmp_recon_r = recon_r[idx_days,:]
-        tmp_recon_i = recon_i[idx_days,:]
-        tmp_decodes = decodes[idx_days,:]
-        #decodes1 = convert_to_ClassNumbers(tmp_decodes).cpu().detach().numpy()           
-        decodes1 = convert_to_ClassNumbers_sigmoid_list(tmp_decodes)
-        tmp_ydata = Ytest[idx_days,:]
-        tmp_recon = recon[idx_days,:]
-                
-        idx = (tmp_labels)
-        idx_cl = np.where(idx==1)[0]
-        idx_ol = np.where(idx==0)[0]
-    
-        recon_r_cl = tmp_recon_r[idx_cl,:]
-        recon_i_cl = tmp_recon_i[idx_cl,:]        
-        Ytest_r_cl = tmp_ydata_r[idx_cl,:]
-        Ytest_i_cl = tmp_ydata_i[idx_cl,:]        
-        # r_cl_error = ((recon_r_cl - Ytest_r_cl)**2).sum()/Ytest_r_cl.shape[0]
-        # i_cl_error = ((recon_i_cl - Ytest_i_cl)**2).sum()/Ytest_i_cl.shape[0]
-        r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / Ytest_r_cl.shape[0]
-        i_cl_error = (np.sum((recon_i_cl - Ytest_i_cl)**2)) / Ytest_i_cl.shape[0]
-        # r_cl_error = (np.sum((recon_r_cl - Ytest_r_cl)**2)) / np.sum((Ytest_r_cl**2))
-        # i_cl_error = (np.sum((recon_i_cl - Ytest_i_cl)**2)) / np.sum((Ytest_i_cl**2))
-        
-        cl_mse_days[iterr,i] = r_cl_error + i_cl_error
-        
-        #cl_error = lin.norm((tmp_recon[idx_cl,:] - tmp_ydata[idx_cl,:]).ravel())/lin.norm(tmp_ydata[idx_cl,:].ravel())        
-        #cl_mse_days[iterr,i]  = cl_error
-        #print(cl_error)
-        #cl_mse.append(cl_error)
-        
+    # test the model on held out data, trial level 
+    wave_nonwave_dict = {
+    "targetID": [],
+    "latent_wave": [],
+    "latent_nonwave": []
+        }
+    model.eval()    
+    labels = np.array(Xtest["targetID"])
+    for i in np.arange(1,8):
+        idx = np.where(labels==i)[0]
+        target_data =[]
+        target_data_nw=[]
+        for j in np.arange(len(idx)):
+            trial_idx = idx[j]
+            tmp = Xtest["wave_neural"][trial_idx]
+            tmp = tmp.T
+            tmp = torch.from_numpy(tmp).to(device).float()
+            with torch.no_grad():
+                latent = model.encoder(tmp)
+            latent = latent.detach().cpu().numpy()
+            latent = np.mean(latent,axis=0)[:,None]            
+            target_data.append(latent)
             
-        recon_r_ol = tmp_recon_r[idx_ol,:]
-        recon_i_ol = tmp_recon_i[idx_ol,:]        
-        Ytest_r_ol = tmp_ydata_r[idx_ol,:]
-        Ytest_i_ol = tmp_ydata_i[idx_ol,:]        
-        r_ol_error = (np.sum((recon_r_ol - Ytest_r_ol)**2)) / Ytest_r_ol.shape[0]
-        i_ol_error = (np.sum((recon_i_ol - Ytest_i_ol)**2)) / Ytest_i_ol.shape[0]
-        # r_ol_error = (np.sum((recon_r_ol - Ytest_r_ol)**2)) / np.sum((Ytest_r_ol**2))
-        # i_ol_error = (np.sum((recon_i_ol - Ytest_i_ol)**2)) / np.sum((Ytest_i_ol**2)) 
+            tmp = Xtest["nonwave_neural"][trial_idx]
+            tmp = tmp.T
+            tmp = torch.from_numpy(tmp).to(device).float()
+            with torch.no_grad():
+                latent = model.encoder(tmp)
+            latent = latent.detach().cpu().numpy()
+            latent = np.mean(latent,axis=0)[:,None]            
+            target_data_nw.append(latent)
         
-        #ol_error = lin.norm((tmp_recon[idx_ol,:] - tmp_ydata[idx_ol,:]).ravel())/lin.norm(tmp_ydata[idx_ol,:].ravel())
-        
-        ol_mse_days[iterr,i] = r_ol_error + i_ol_error
-        #ol_mse_days[iterr,i] = ol_error
-        
-                
-        # balanced accuracy
-        balanced_acc = balan_acc(idx,decodes1)
-        balanced_acc_days[iterr,i]=balanced_acc
-        #print(balanced_acc*100)
-        #balanced_decoding_acc.append(balanced_acc*100)
-        
-        # cross entropy loss
-        #classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
-        classif_criterion = nn.BCEWithLogitsLoss(reduction='mean')# input. target
-        # classif_loss = (classif_criterion(tmp_decodes,
-        #                                   torch.from_numpy(tmp_labels).to(device))).item()
-        classif_loss = (classif_criterion(torch.from_numpy(tmp_decodes.squeeze()).float(),
-                                          torch.from_numpy(tmp_labels).float())).item()
-        
-        ce_loss[iterr,i]= classif_loss
-        
-        del tmp_decodes, tmp_labels,classif_loss
+        target_data = np.concatenate(target_data,axis=1)
+        target_data_nw = np.concatenate(target_data_nw,axis=1)
+        wave_nonwave_dict["targetID"].append(i)
+        wave_nonwave_dict["latent_wave"].append(target_data)
+        wave_nonwave_dict["latent_nonwave"].append(target_data_nw)
     
-    if iterations > 1:
-        del Xtrain,Xtest,Xval,Ytrain,Ytest,Yval,labels_train,labels_test,labels_val,labels_test_days
         
+    # do PCA and plot top 3 dimensions
+    Z_wave_all = []
+    labels_wave = []
 
-# classif_loss = (classif_criterion(torch.from_numpy(tmp_labels[:1,:]).to(device),
-#                                    tmp_decodes[:1,:])).item()
-# print(classif_loss)
+    for k, m in enumerate(wave_nonwave_dict["targetID"]):
+        Z = wave_nonwave_dict["latent_wave"][k]    # [latent_dim, n_trials]
+        Z = Z.T                                    # [n_trials, latent_dim]
+    
+        Z_wave_all.append(Z)
+        labels_wave.extend([m] * Z.shape[0])
+    
+    Z_wave_all = np.vstack(Z_wave_all)              # [N_wave_trials, latent_dim]
+    labels_wave = np.array(labels_wave)
+    
+    Z_nonwave_all = []
+    labels_nonwave = []
+
+    for k, m in enumerate(wave_nonwave_dict["targetID"]):
+        Z = wave_nonwave_dict["latent_nonwave"][k]
+        Z = Z.T
+    
+        Z_nonwave_all.append(Z)
+        labels_nonwave.extend([m] * Z.shape[0])
+    
+    Z_nonwave_all = np.vstack(Z_nonwave_all)
+    labels_nonwave = np.array(labels_nonwave)
+    
+    
+
+    #pca = PCA(n_components=5)
+    #pca.fit(np.vstack([Z_wave_all, Z_nonwave_all]))
+    
+    #Z_wave_pca = pca.transform(Z_wave_all)
+    #Z_nonwave_pca = pca.transform(Z_nonwave_all)
+    Z_wave_pca = Z_wave_all
+    Z_nonwave_pca = Z_nonwave_all
+    
+    
+    ### 2D version
+    colors = cm.tab10(np.linspace(0, 1, 7))
+    
+    fig, axs = plt.subplots(1, 2, figsize=(14, 6), sharex=True, sharey=True)
+    
+    # ---- Wave ----
+    for i, m in enumerate(range(1, 8)):
+        idx = labels_wave == m
+        axs[0].scatter(
+            Z_wave_pca[idx, 0],
+            Z_wave_pca[idx, 1],
+            s=25,
+            alpha=0.7,
+            color=colors[i],
+            label=f"Move {m}"
+        )
+    
+    axs[0].set_title("Wave epochs")
+    axs[0].set_xlabel("PC1")
+    axs[0].set_ylabel("PC2")
+    axs[0].legend()
+    
+    # ---- Non-wave ----
+    for i, m in enumerate(range(1, 8)):
+        idx = labels_nonwave == m
+        axs[1].scatter(
+            Z_nonwave_pca[idx, 0],
+            Z_nonwave_pca[idx, 1],
+            s=25,
+            alpha=0.7,
+            color=colors[i]
+        )
+    
+    axs[1].set_title("Non-wave epochs")
+    axs[1].set_xlabel("PC1")
+    axs[1].set_ylabel("PC2")
+    
+    plt.tight_layout()
+    plt.show()
+
+    
+    
+    ### 3D version
+    import matplotlib.pyplot as plt
+    
+    import matplotlib.cm as cm    
+    movements_to_plot = [1,2 ,3,4,5,6, 7]
+    colors = cm.tab10(np.linspace(0, 1, 7))
+    
+    fig = plt.figure(figsize=(16, 7))
+    
+    ax1 = fig.add_subplot(121, projection='3d')
+    ax2 = fig.add_subplot(122, projection='3d')
+    
+    # ---- Wave ----
+    fig = plt.figure(figsize=(16, 7))
+    ax1 = fig.add_subplot(121, projection='3d')
+    ax2 = fig.add_subplot(122, projection='3d')
+    
+    for m in movements_to_plot:
+        color_idx = m - 1  # assuming movements are 1–7
+    
+        idx = labels_wave == m
+        ax1.scatter(
+            Z_wave_pca[idx, 3],
+            Z_wave_pca[idx, 4],
+            Z_wave_pca[idx, 5],
+            s=30,
+            alpha=0.7,
+            color=colors[color_idx],
+            label=f"Move {m}"
+        )
+    
+    ax1.set_title("Wave epochs")
+    ax1.set_xlabel("PC1")
+    ax1.set_ylabel("PC2")
+    ax1.set_zlabel("PC3")
+    ax1.legend()    
+    ax1.set_xlim(-6,8)
+    ax1.set_ylim(-8,6)
+    ax1.set_zlim(-6,8)
+    ax1.view_init(elev=30, azim=135)
+    
+    
+    # ---- Non-wave ----
+    for m in movements_to_plot:
+        color_idx = m - 1
+    
+        idx = labels_nonwave == m
+        ax2.scatter(
+            Z_nonwave_pca[idx, 0],
+            Z_nonwave_pca[idx, 1],
+            Z_nonwave_pca[idx, 2],
+            s=30,
+            alpha=0.7,
+            color=colors[color_idx]
+        )
+    
+    ax2.set_title("Non-wave epochs")
+    ax2.set_xlabel("PC1")
+    ax2.set_ylabel("PC2")
+    ax2.set_zlabel("PC3")    
+    ax2.set_xlim(-6,8)
+    ax2.set_ylim(-8,6)
+    ax2.set_zlim(-6,8)
+    ax2.view_init(elev=30, azim=135)
+    
+    
+    for m in movements_to_plot:
+        mu = Z_wave_pca[labels_wave == m].mean(axis=0)
+        ax1.scatter(mu[0], mu[1], mu[2],
+                    color=colors[m-1], s=150, marker='X')
+    
+        mu = Z_nonwave_pca[labels_nonwave == m].mean(axis=0)
+        ax2.scatter(mu[0], mu[1], mu[2],
+                    color=colors[m-1], s=150, marker='X')
 
 
-# tmp = torch.from_numpy(tmp_labels)
-# tmp1 = tmp_decodes.cpu()
-
-# classif_loss = classif_criterion(tmp1,tmp).item()
-# print(classif_loss)
-
-# val=[];
-# for i in np.arange(tmp.shape[0]):
-#     val.append(classif_criterion(tmp1[i,:],tmp[i,:]).item())
-
-# val=np.array(val)
-# print(np.mean(val))
-
-# plt.figure();
-# plt.stem(val)
-
-torch.cuda.empty_cache()
-torch.cuda.ipc_collect() 
-
-tmp = np.mean(ol_mse_days,axis=0)
-tmp1 = np.mean(cl_mse_days,axis=0)
-plt.figure();
-plt.plot(tmp)    
-plt.plot(tmp1)
-plt.show()
-
-# now same but with regression line
-from sklearn.linear_model import LinearRegression
-x = days
-x = x.reshape(-1,1)
-y = tmp
-x=x
-mdl = LinearRegression()
-mdl.fit(x,y)
-plt.figure();
-plt.scatter(x,y,color='red')
-#x = np.concatenate((np.ones((10,1)),x),axis=1)
-yhat = mdl.predict(x)
-plt.plot(x,yhat,color='red')
-y = tmp1
-mdl = LinearRegression()
-mdl.fit(x,y)
-plt.scatter(x,y,color='blue')
-#x = np.concatenate((np.ones((10,1)),x),axis=1)
-yhat = mdl.predict(x)
-plt.plot(x,yhat,color='blue')
-plt.show()
+    #set_equal_3d_axes(ax1, Z_wave_pca[ np.isin(labels_wave, movements_to_plot) ])
+    #set_equal_3d_axes(ax2, Z_nonwave_pca[ np.isin(labels_nonwave, movements_to_plot) ])    
+    
+    plt.tight_layout()
+    plt.show()
+    
+    
+    ########### movement comparison, wave and non wave
+    # plot_movement_wave_vs_nonwave_3d(wave_nonwave_dict, movement_id=1)
+    
+    plot_movement_wave_vs_nonwave_3d_with_ellipses(
+    wave_nonwave_dict, movement_id=1)       
+    
+    plot_movement_wave_vs_nonwave_2d_with_ellipses(
+    wave_nonwave_dict,
+    movement_id=2)
 
 
-tmp = np.mean(balanced_acc_days,axis=0)
-plt.figure();
-plt.plot(tmp)
-
-plt.figure();
-plt.boxplot(tmp)
-
-plt.figure();
-plt.boxplot([(ol_mse_days.flatten()),(cl_mse_days.flatten())])
 
 
-plt.figure();
-plt.boxplot([(ol_mse_days[0,:].flatten()),(cl_mse_days[0,:].flatten())])
 
-res = stats.ttest_rel(cl_mse_days, ol_mse_days,axis=1)
-print(res)
-res = stats.wilcoxon(cl_mse_days, ol_mse_days,axis=1)
-print(res)
-#print(cl_mse_days.mean() - ol_mse_days.mean())
-print(np.median(cl_mse_days[0,:]) - np.median(ol_mse_days[0,:]))
-print(np.median(cl_mse_days) - np.median(ol_mse_days))
-
-# ol_mse_days_null=ol_mse_days
-# cl_mse_days_null = cl_mse_days
-# balanced_acc_days_null = balanced_acc_days
-# cd_loss_null = ce_loss
-
-tmp = np.median(ol_mse_days,axis=1)
-tmp1 = np.median(cl_mse_days,axis=1)
-plt.figure()
-plt.boxplot([tmp,tmp1])
-res = stats.wilcoxon(tmp, tmp1)
-print(res)
-
-
+          
 #%% SAVING 
 
 np.savez('Alpha_200Hz_AllDays_B3_Complex_DataAug_1Iter_New', 
