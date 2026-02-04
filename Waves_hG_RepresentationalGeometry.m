@@ -10,7 +10,7 @@ clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B3';
+subj ='B6';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -49,6 +49,7 @@ elseif strcmp(subj,'B6')
     %load B6_waves_stability_hg_PLV
     %load B6_waves_stability_hgFilterBank_PLV_AccStatsCL
     load B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData
+    num_targets=7;
 end
 
 %% ANALYSIS -2 
@@ -1213,29 +1214,29 @@ for days = 1:length(stats_cl_days)
             % target information
             condn_data(k).targetID = tid;
 
-            % trial accuracy information 
+            % trial accuracy information
             condn_data(k).accuracy = acc;
 
             % store wave data
             tmp = stats_cl_hg(i).hg_wave;
             tmp = cell2mat(tmp');
             % smoothing for B6 and B1 alone
-            %if strcmp(subj,'B1') || strcmp(subj,'B6')
-            % for j=1:size(tmp,2)
-            %     tmp(:,j) =smooth(tmp(:,j),5);
+            % if strcmp(subj,'B1') || strcmp(subj,'B6')
+            %     for j=1:size(tmp,2)
+            %         tmp(:,j) =smooth(tmp(:,j),10);
+            %     end
             % end
-            %end
             condn_data(k).wave_neural = tmp';
 
             % store nonwave data
             tmp = stats_cl_hg(i).hg_nonwave;
             tmp = cell2mat(tmp');
             % smoothing for B6 and B1 alone
-            %if strcmp(subj,'B1') || strcmp(subj,'B6')
-            % for j=1:size(tmp,2)
-            %     tmp(:,j) =smooth(tmp(:,j),5);
+            % if strcmp(subj,'B1') || strcmp(subj,'B6')
+            %     for j=1:size(tmp,2)
+            %         tmp(:,j) =smooth(tmp(:,j),10);
+            %     end
             % end
-            %end
             condn_data(k).nonwave_neural = tmp';
 
             % store wave stability values
@@ -1245,8 +1246,8 @@ for days = 1:length(stats_cl_days)
             % for j=1:length(st)
             %     wave_stab=[wave_stab;stab(st(k):stp(k))];
             % end
-            
-            
+
+
             k=k+1;
         end
     end
@@ -1254,7 +1255,9 @@ end
 
 
 % save
-save B3_Wave_NonWave_hG_For_AE condn_data -v7.3 
+%save B3_Wave_NonWave_hG_For_AE condn_data -v7.3 
+%save B1_Wave_NonWave_hG_For_AE condn_data -v7.3 
+save B6_Wave_NonWave_hG_For_AE condn_data -v7.3 
 
 len=[];len1=[];
 for i=1:length(condn_data)
@@ -1263,6 +1266,8 @@ for i=1:length(condn_data)
     tmp=condn_data(i).nonwave_neural;
     len1=[len1;size(tmp,2)];
 end
+
+disp('Section 4.9 finished running')
 
 % % remove trials without any wave or non wave data (OPTIONAL)
 % condn_data1={};k=1;

@@ -301,11 +301,11 @@ def plot_movement_wave_vs_nonwave_3d_with_ellipses(wave_dict, movement_id, n_com
     ax = fig.add_subplot(111, projection="3d")
 
     ax.scatter(
-        Z_wave[:, 3], Z_wave[:, 4], Z_wave[:, 5],
+        Z_wave[:, 0], Z_wave[:, 1], Z_wave[:, 2],
         c="tab:blue", alpha=0.7, label="Wave"
     )
     ax.scatter(
-        Z_nonwave[:, 3], Z_nonwave[:, 4], Z_nonwave[:, 5],
+        Z_nonwave[:, 0], Z_nonwave[:, 1], Z_nonwave[:, 2],
         c="tab:orange", alpha=0.7, label="Non-Wave"
     )
 

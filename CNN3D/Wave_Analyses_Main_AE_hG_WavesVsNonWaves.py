@@ -63,12 +63,17 @@ if os.name=='nt':
     filepath = 'F:\\DATA\\ecog data\\ECoG BCI\\GangulyServer\\Multistate B3\\'
     filename = filepath + filename
 else:
-    #filepath ='/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/'
-    filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/'
-    filename = 'B3_Wave_NonWave_hG_For_AE.mat'
-    #filename = filepath + filename
-    #filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
-    #filepath = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/'
+    
+    #filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/'
+    #filename = 'B3_Wave_NonWave_hG_For_AE.mat'
+    
+    # filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/'
+    # filename = 'B1_Wave_NonWave_hG_For_AE.mat'
+    
+    filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/'
+    filename = 'B6_Wave_NonWave_hG_For_AE.mat'
+    
+    
     filename = filepath + filename
     
         
@@ -87,19 +92,23 @@ data_dict = mat73.loadmat(filename)
 
 condn_data = data_dict.get('condn_data')
 
-iterations = 1
+iterations = 5
 
 decoding_accuracy=[]
 balanced_decoding_accuracy=[]
-waves_mse=[]
-nonwaves_mse=[]
+
 
 
 
 
 #%% TRAIN MODEL
 
+waves_var=[]
+nonwaves_var=[]
+
 for iterr in np.arange(iterations):    
+    
+    print(f"Iteration number: {iterr+1} of {iterations}")
     
     
    
@@ -108,8 +117,8 @@ for iterr in np.arange(iterations):
     
     # model parameters for the MLP based autoencoder
     input_size=253
-    hidden_size=96 #96 originally 
-    latent_dims=6 #3 originally 
+    hidden_size=64 #96 originally 
+    latent_dims=2 #3 originally 
     num_classes = 7
     
     from iAE_utils_models import *
@@ -128,7 +137,7 @@ for iterr in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10    
-    nn_filename = 'iAE_B3_Waves.pth' 
+    nn_filename = 'iAE_B6_Waves.pth' 
 
     #get number of parameters
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -179,180 +188,215 @@ for iterr in np.arange(iterations):
         wave_nonwave_dict["targetID"].append(i)
         wave_nonwave_dict["latent_wave"].append(target_data)
         wave_nonwave_dict["latent_nonwave"].append(target_data_nw)
-    
         
-    # do PCA and plot top 3 dimensions
-    Z_wave_all = []
-    labels_wave = []
+    
+    # get latent variances and store results
+    wav_var=[]
+    nonwave_var=[]
+    for i in np.arange(len(wave_nonwave_dict["targetID"])):
+        tmp = wave_nonwave_dict["latent_wave"][i]
+        C = np.cov(tmp)
+        eigvals,eigvec = eigh(C)
+        wav_var.append(np.prod(eigvals))
+        
+        tmp = wave_nonwave_dict["latent_nonwave"][i]
+        C = np.cov(tmp)
+        eigvals,eigvec = eigh(C)
+        nonwave_var.append(np.prod(eigvals))
+    
+    waves_var.append(wav_var)
+    nonwaves_var.append(nonwave_var)
 
-    for k, m in enumerate(wave_nonwave_dict["targetID"]):
-        Z = wave_nonwave_dict["latent_wave"][k]    # [latent_dim, n_trials]
-        Z = Z.T                                    # [n_trials, latent_dim]
-    
-        Z_wave_all.append(Z)
-        labels_wave.extend([m] * Z.shape[0])
-    
-    Z_wave_all = np.vstack(Z_wave_all)              # [N_wave_trials, latent_dim]
-    labels_wave = np.array(labels_wave)
-    
-    Z_nonwave_all = []
-    labels_nonwave = []
+waves_var = np.vstack(waves_var)
+nonwaves_var = np.vstack(nonwaves_var)
 
-    for k, m in enumerate(wave_nonwave_dict["targetID"]):
-        Z = wave_nonwave_dict["latent_nonwave"][k]
-        Z = Z.T
-    
-        Z_nonwave_all.append(Z)
-        labels_nonwave.extend([m] * Z.shape[0])
-    
-    Z_nonwave_all = np.vstack(Z_nonwave_all)
-    labels_nonwave = np.array(labels_nonwave)
-    
-    
+plt.figure()
+#plt.boxplot((waves_var.flatten(),nonwaves_var.flatten()))
+plt.boxplot((np.mean(np.log(waves_var),axis=1),np.mean(np.log(nonwaves_var),axis=1)))
+#plt.ylim(-0.01,0.05)
+#plt.ylim(-5,-3.5)
 
-    #pca = PCA(n_components=5)
-    #pca.fit(np.vstack([Z_wave_all, Z_nonwave_all]))
-    
-    #Z_wave_pca = pca.transform(Z_wave_all)
-    #Z_nonwave_pca = pca.transform(Z_nonwave_all)
-    Z_wave_pca = Z_wave_all
-    Z_nonwave_pca = Z_nonwave_all
-    
-    
-    ### 2D version
-    colors = cm.tab10(np.linspace(0, 1, 7))
-    
-    fig, axs = plt.subplots(1, 2, figsize=(14, 6), sharex=True, sharey=True)
-    
-    # ---- Wave ----
-    for i, m in enumerate(range(1, 8)):
-        idx = labels_wave == m
-        axs[0].scatter(
-            Z_wave_pca[idx, 0],
-            Z_wave_pca[idx, 1],
-            s=25,
-            alpha=0.7,
-            color=colors[i],
-            label=f"Move {m}"
-        )
-    
-    axs[0].set_title("Wave epochs")
-    axs[0].set_xlabel("PC1")
-    axs[0].set_ylabel("PC2")
-    axs[0].legend()
-    
-    # ---- Non-wave ----
-    for i, m in enumerate(range(1, 8)):
-        idx = labels_nonwave == m
-        axs[1].scatter(
-            Z_nonwave_pca[idx, 0],
-            Z_nonwave_pca[idx, 1],
-            s=25,
-            alpha=0.7,
-            color=colors[i]
-        )
-    
-    axs[1].set_title("Non-wave epochs")
-    axs[1].set_xlabel("PC1")
-    axs[1].set_ylabel("PC2")
-    
-    plt.tight_layout()
-    plt.show()
+stat,p = stats.wilcoxon(np.mean(np.log(waves_var),axis=1),
+                        np.mean(np.log(nonwaves_var),axis=1))
+print(p)
 
+# perhaps just plot a few movements in 2d or 3d, showcasing gaussian ellipses
+# difference in trial to trial variance b/w movements wave and non wave 
+
+#%% PLOTTING
     
-    
-    ### 3D version
-    import matplotlib.pyplot as plt
-    
-    import matplotlib.cm as cm    
-    movements_to_plot = [1,2 ,3,4,5,6, 7]
-    colors = cm.tab10(np.linspace(0, 1, 7))
-    
-    fig = plt.figure(figsize=(16, 7))
-    
-    ax1 = fig.add_subplot(121, projection='3d')
-    ax2 = fig.add_subplot(122, projection='3d')
-    
-    # ---- Wave ----
-    fig = plt.figure(figsize=(16, 7))
-    ax1 = fig.add_subplot(121, projection='3d')
-    ax2 = fig.add_subplot(122, projection='3d')
-    
-    for m in movements_to_plot:
-        color_idx = m - 1  # assuming movements are 1–7
-    
-        idx = labels_wave == m
-        ax1.scatter(
-            Z_wave_pca[idx, 3],
-            Z_wave_pca[idx, 4],
-            Z_wave_pca[idx, 5],
-            s=30,
-            alpha=0.7,
-            color=colors[color_idx],
-            label=f"Move {m}"
-        )
-    
-    ax1.set_title("Wave epochs")
-    ax1.set_xlabel("PC1")
-    ax1.set_ylabel("PC2")
-    ax1.set_zlabel("PC3")
-    ax1.legend()    
-    ax1.set_xlim(-6,8)
-    ax1.set_ylim(-8,6)
-    ax1.set_zlim(-6,8)
-    ax1.view_init(elev=30, azim=135)
-    
-    
-    # ---- Non-wave ----
-    for m in movements_to_plot:
-        color_idx = m - 1
-    
-        idx = labels_nonwave == m
-        ax2.scatter(
-            Z_nonwave_pca[idx, 0],
-            Z_nonwave_pca[idx, 1],
-            Z_nonwave_pca[idx, 2],
-            s=30,
-            alpha=0.7,
-            color=colors[color_idx]
-        )
-    
-    ax2.set_title("Non-wave epochs")
-    ax2.set_xlabel("PC1")
-    ax2.set_ylabel("PC2")
-    ax2.set_zlabel("PC3")    
-    ax2.set_xlim(-6,8)
-    ax2.set_ylim(-8,6)
-    ax2.set_zlim(-6,8)
-    ax2.view_init(elev=30, azim=135)
-    
-    
-    for m in movements_to_plot:
-        mu = Z_wave_pca[labels_wave == m].mean(axis=0)
-        ax1.scatter(mu[0], mu[1], mu[2],
-                    color=colors[m-1], s=150, marker='X')
-    
-        mu = Z_nonwave_pca[labels_nonwave == m].mean(axis=0)
-        ax2.scatter(mu[0], mu[1], mu[2],
-                    color=colors[m-1], s=150, marker='X')
+# do PCA and plot top 3 dimensions
+Z_wave_all = []
+labels_wave = []
+
+for k, m in enumerate(wave_nonwave_dict["targetID"]):
+    Z = wave_nonwave_dict["latent_wave"][k]    # [latent_dim, n_trials]
+    Z = Z.T                                    # [n_trials, latent_dim]
+
+    Z_wave_all.append(Z)
+    labels_wave.extend([m] * Z.shape[0])
+
+Z_wave_all = np.vstack(Z_wave_all)              # [N_wave_trials, latent_dim]
+labels_wave = np.array(labels_wave)
+
+Z_nonwave_all = []
+labels_nonwave = []
+
+for k, m in enumerate(wave_nonwave_dict["targetID"]):
+    Z = wave_nonwave_dict["latent_nonwave"][k]
+    Z = Z.T
+
+    Z_nonwave_all.append(Z)
+    labels_nonwave.extend([m] * Z.shape[0])
+
+Z_nonwave_all = np.vstack(Z_nonwave_all)
+labels_nonwave = np.array(labels_nonwave)
 
 
-    #set_equal_3d_axes(ax1, Z_wave_pca[ np.isin(labels_wave, movements_to_plot) ])
-    #set_equal_3d_axes(ax2, Z_nonwave_pca[ np.isin(labels_nonwave, movements_to_plot) ])    
-    
-    plt.tight_layout()
-    plt.show()
-    
-    
-    ########### movement comparison, wave and non wave
-    # plot_movement_wave_vs_nonwave_3d(wave_nonwave_dict, movement_id=1)
-    
-    plot_movement_wave_vs_nonwave_3d_with_ellipses(
-    wave_nonwave_dict, movement_id=1)       
-    
-    plot_movement_wave_vs_nonwave_2d_with_ellipses(
-    wave_nonwave_dict,
-    movement_id=2)
+
+#pca = PCA(n_components=5)
+#pca.fit(np.vstack([Z_wave_all, Z_nonwave_all]))
+
+#Z_wave_pca = pca.transform(Z_wave_all)
+#Z_nonwave_pca = pca.transform(Z_nonwave_all)
+Z_wave_pca = Z_wave_all
+Z_nonwave_pca = Z_nonwave_all
+
+
+### 2D version
+colors = cm.tab10(np.linspace(0, 1, 7))
+
+fig, axs = plt.subplots(1, 2, figsize=(14, 6), sharex=True, sharey=True)
+
+# ---- Wave ----
+for i, m in enumerate(range(1, 8)):
+    idx = labels_wave == m
+    axs[0].scatter(
+        Z_wave_pca[idx, 0],
+        Z_wave_pca[idx, 1],
+        s=25,
+        alpha=0.7,
+        color=colors[i],
+        label=f"Move {m}"
+    )
+
+axs[0].set_title("Wave epochs")
+axs[0].set_xlabel("PC1")
+axs[0].set_ylabel("PC2")
+axs[0].legend()
+
+# ---- Non-wave ----
+for i, m in enumerate(range(1, 8)):
+    idx = labels_nonwave == m
+    axs[1].scatter(
+        Z_nonwave_pca[idx, 0],
+        Z_nonwave_pca[idx, 1],
+        s=25,
+        alpha=0.7,
+        color=colors[i]
+    )
+
+axs[1].set_title("Non-wave epochs")
+axs[1].set_xlabel("PC1")
+axs[1].set_ylabel("PC2")
+
+plt.tight_layout()
+plt.show()
+
+
+
+### 3D version
+import matplotlib.pyplot as plt
+
+import matplotlib.cm as cm    
+movements_to_plot = [1,2 ,3,4,5,6, 7]
+colors = cm.tab10(np.linspace(0, 1, 7))
+
+fig = plt.figure(figsize=(16, 7))
+
+ax1 = fig.add_subplot(121, projection='3d')
+ax2 = fig.add_subplot(122, projection='3d')
+
+# ---- Wave ----
+fig = plt.figure(figsize=(16, 7))
+ax1 = fig.add_subplot(121, projection='3d')
+ax2 = fig.add_subplot(122, projection='3d')
+
+for m in movements_to_plot:
+    color_idx = m - 1  # assuming movements are 1–7
+
+    idx = labels_wave == m
+    ax1.scatter(
+        Z_wave_pca[idx, 0],
+        Z_wave_pca[idx, 1],
+        Z_wave_pca[idx, 2],
+        s=30,
+        alpha=0.7,
+        color=colors[color_idx],
+        label=f"Move {m}"
+    )
+
+ax1.set_title("Wave epochs")
+ax1.set_xlabel("PC1")
+ax1.set_ylabel("PC2")
+ax1.set_zlabel("PC3")
+ax1.legend()    
+ax1.set_xlim(-6,8)
+ax1.set_ylim(-8,6)
+ax1.set_zlim(-6,8)
+ax1.view_init(elev=30, azim=135)
+
+
+# ---- Non-wave ----
+for m in movements_to_plot:
+    color_idx = m - 1
+
+    idx = labels_nonwave == m
+    ax2.scatter(
+        Z_nonwave_pca[idx, 0],
+        Z_nonwave_pca[idx, 1],
+        Z_nonwave_pca[idx, 2],
+        s=30,
+        alpha=0.7,
+        color=colors[color_idx]
+    )
+
+ax2.set_title("Non-wave epochs")
+ax2.set_xlabel("PC1")
+ax2.set_ylabel("PC2")
+ax2.set_zlabel("PC3")    
+ax2.set_xlim(-6,8)
+ax2.set_ylim(-8,6)
+ax2.set_zlim(-6,8)
+ax2.view_init(elev=30, azim=135)
+
+
+for m in movements_to_plot:
+    mu = Z_wave_pca[labels_wave == m].mean(axis=0)
+    ax1.scatter(mu[0], mu[1], mu[2],
+                color=colors[m-1], s=150, marker='X')
+
+    mu = Z_nonwave_pca[labels_nonwave == m].mean(axis=0)
+    ax2.scatter(mu[0], mu[1], mu[2],
+                color=colors[m-1], s=150, marker='X')
+
+
+#set_equal_3d_axes(ax1, Z_wave_pca[ np.isin(labels_wave, movements_to_plot) ])
+#set_equal_3d_axes(ax2, Z_nonwave_pca[ np.isin(labels_nonwave, movements_to_plot) ])    
+
+plt.tight_layout()
+plt.show()
+
+
+########### movement comparison, wave and non wave
+# plot_movement_wave_vs_nonwave_3d(wave_nonwave_dict, movement_id=1)
+
+plot_movement_wave_vs_nonwave_3d_with_ellipses(
+wave_nonwave_dict, movement_id=1)       
+
+plot_movement_wave_vs_nonwave_2d_with_ellipses(
+wave_nonwave_dict,
+movement_id=2)
 
 
 
