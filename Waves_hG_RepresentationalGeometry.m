@@ -10,7 +10,7 @@ clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B6';
+subj ='B3';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -1101,6 +1101,103 @@ disp([mean(diag(acc_wave)) mean(diag(acc_bin_wave))])
 disp([mean(diag(acc_nonwave)) mean(diag(acc_bin_nonwave))])
 
 
+%% ANALYSIS 4.1 (MAIN) -> PLOTTING RESULTS OF ABOVE
+
+%b1
+root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/';
+cd(root_path)
+load hg_wave_nonwave_MLP_3DArrow_CL_v2
+
+res=[];res_bin=[];
+for i=1:size(acc_nonwave,1)
+    %tmp0=squeeze((acc_nonwave_least(i,:,:)));
+    tmp=squeeze((acc_nonwave(i,:,:)));
+    tmp1=squeeze((acc_wave(i,:,:)));
+    %res(i,:) = [mean(diag(tmp0)) mean(diag(tmp)) mean(diag(tmp1))];
+    res(i,:) = [ mean(diag(tmp)) mean(diag(tmp1))];
+
+    tmp=squeeze((acc_bin_nonwave(i,:,:)));
+    tmp1=squeeze((acc_bin_wave(i,:,:)));
+    res_bin(i,:) = [mean(diag(tmp)) mean(diag(tmp1))];
+end
+figure;boxplot(100*res)
+xticks(1:2)
+xticklabels({'Non wave epochs', 'Wave epochs'})
+%xticklabels({'Most unstable nowave','Non wave epochs', 'Wave epochs'})
+title('B1')
+signrank(res(:,1),res(:,2))
+plot_beautify
+res_B1=res;
+ylabel('Trial level Decoding Accuracy')
+res_bin_B1= res_bin;
+
+%b3
+clearvars -except res_B3 res_B1 res_bin_B1
+root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
+cd(root_path)
+load hg_wave_nonwave_MLP_3DArrow_CL_v2
+
+res=[];res_bin=[];
+for i=1:size(acc_nonwave,1)
+    %tmp0=squeeze((acc_nonwave_least(i,:,:)));
+    tmp=squeeze((acc_nonwave(i,:,:)));
+    tmp1=squeeze((acc_wave(i,:,:)));
+    %res(i,:) = [mean(diag(tmp0)) mean(diag(tmp)) mean(diag(tmp1))];
+    res(i,:) = [ mean(diag(tmp)) mean(diag(tmp1))];
+
+    tmp=squeeze((acc_bin_nonwave(i,:,:)));
+    tmp1=squeeze((acc_bin_wave(i,:,:)));
+    res_bin(i,:) = [mean(diag(tmp)) mean(diag(tmp1))];
+end
+figure;boxplot(100*res,'Whisker',2)
+xticks(1:2)
+xticklabels({'Non wave epochs', 'Wave epochs'})
+%xticklabels({'Most unstable nowave','Non wave epochs', 'Wave epochs'})
+title('B3')
+signrank(res(:,1),res(:,2))
+plot_beautify
+res_B3=res;
+ylabel('Trial level Decoding Accuracy')
+res_bin_B3= res_bin;
+
+%b6
+clearvars -except res_B3 res_B1 res_bin_B3 res_bin_B1
+root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6';
+cd(root_path)
+load hg_wave_nonwave_MLP_3DArrow_CL_AllData_v3_AllFolders
+
+res=[];res_bin=[];
+for i=1:size(acc_nonwave,1)
+    %tmp0=squeeze((acc_nonwave_least(i,:,:)));
+    tmp=squeeze((acc_nonwave(i,:,:)));
+    tmp1=squeeze((acc_wave(i,:,:)));
+    %res(i,:) = [mean(diag(tmp0)) mean(diag(tmp)) mean(diag(tmp1))];
+    res(i,:) = [ mean(diag(tmp)) mean(diag(tmp1))];
+
+    tmp=squeeze((acc_bin_nonwave(i,:,:)));
+    tmp1=squeeze((acc_bin_wave(i,:,:)));
+    res_bin(i,:) = [mean(diag(tmp)) mean(diag(tmp1))];
+end
+figure;boxplot(100*res,'Whisker',2)
+xticks(1:2)
+xticklabels({'Non wave epochs', 'Wave epochs'})
+%xticklabels({'Most unstable nowave','Non wave epochs', 'Wave epochs'})
+title('B6')
+signrank(res(:,1),res(:,2))
+plot_beautify
+res_B6=res;
+ylabel('Trial level Decoding Accuracy')
+res_bin_B6=res_bin;
+
+
+res_bin =[res_bin_B1;res_bin_B3;res_bin_B6];
+%res_bin =[res_bin_B6];
+figure;
+boxplot(res_bin,'notch','on')
+ylim([0.475 0.625])
+signrank(res_bin(:,1),res_bin(:,2))
+
+
 %% ANALYSIS 4.5 WITHIN DAY VERSION OF ABOVE
 % build a classifer across days looking at decoding performance in hg
 % during wave vs. non wave epochs
@@ -1283,52 +1380,63 @@ disp('Section 4.9 finished running')
 %% ANALYSIS 5   (MAIN, IMPT)
 % duty cycle within accurate and inaccurate trials
 
-res_days=[];
-parfor days=1:length(stats_cl_days)
-    res_acc=[];dc_acc=[];
-    res_err=[];dc_err=[];
-    stats_cl = stats_cl_days{days};
-    for i=1:length(stats_cl)
-        stab = zscore(stats_cl(i).stab);
-        [out,st,stp]=wave_stability_detect(stab);
-        wav_det=zeros(length(stab),1);
-        for k=1:length(st)
-            wav_det(st(k):stp(k))=1;
-        end
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
+load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_days')
+[res_days_B1, res_days_f_B1, res_days_d_B1] = get_duty_cycle(stats_cl_days);
 
-        output = stats_cl(i).output;
-        idx=find(output==1);
-        stab_acc = wav_det(idx);
-        prop_waves = sum(wav_det(idx))/length(idx);
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
+load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_days')
+[res_days_B3, res_days_f_B3, res_days_d_B3] = get_duty_cycle(stats_cl_days);
 
-        % if isnan(prop_waves)
-        %     prop_waves=0;
-        % end
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
+load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat','stats_cl_days')
+[res_days_B6, res_days_f_B6, res_days_d_B6] = get_duty_cycle(stats_cl_days);
 
-        % duty cycle
-        tmp=stab;
-        t = length(tmp) * 20/1e3;
-        f =length(out)/t; % frequency/s
-        d = mean(out) * 20/1e3; %duration in s
-        dcyc=f*d;
+% res_days_B1 = log(res_days_B1);
+% res_days_B3 = log(res_days_B3);
+% res_days_B6 = log(res_days_B6);
 
-
-        if stats_cl(i).accuracy==1
-            res_acc = [res_acc;prop_waves ];
-            dc_acc = [dc_acc;dcyc];
-        else
-            res_err = [res_err;prop_waves ];
-            dc_err = [dc_err;dcyc];
-        end
-    end
-    res_days(days,:)=[mean(dc_err) mean(dc_acc)];
+res_days = [res_days_B1;res_days_B3;res_days_B6];
+figure;hold on
+%b1
+idx = [ones(size(res_days_B1,1),1) 2*ones(size(res_days_B1,1),1)];
+idx = idx + 0.05*randn(size(idx));
+scatter(idx(:,1),res_days_B1(:,1),50,'b','LineWidth',1)
+scatter(idx(:,2),res_days_B1(:,2),50,'b',"filled",'LineWidth',1)
+for i=1:size(idx,1)
+    plot([idx(i,1),idx(i,2)],[res_days_B1(i,1),res_days_B1(i,2)],...
+        'Color',[0 0 1 .25])
 end
 
-[p,h]=signrank(res_days(:,1),res_days(:,2))
-[ h p tb st]=ttest(res_days(:,1),res_days(:,2))
-figure;boxplot(res_days)
+%b3
+%figure;hold on
+idx = [ones(size(res_days_B3,1),1) 2*ones(size(res_days_B3,1),1)];
+idx = idx + 0.05*randn(size(idx));
+scatter(idx(:,1),res_days_B3(:,1),50,'r','LineWidth',1)
+scatter(idx(:,2),res_days_B3(:,2),50,'r',"filled",'LineWidth',1)
+for i=1:size(idx,1)
+    plot([idx(i,1),idx(i,2)],[res_days_B3(i,1),res_days_B3(i,2)],...
+        'Color',[1 0 0 .25])
+end
+
+%b6
+%figure;hold on
+idx = [ones(size(res_days_B6,1),1) 2*ones(size(res_days_B6,1),1)];
+idx = idx + 0.05*randn(size(idx));
+scatter(idx(:,1),res_days_B6(:,1),50,'k','LineWidth',1)
+scatter(idx(:,2),res_days_B6(:,2),50,'k',"filled",'LineWidth',1)
+for i=1:size(idx,1)
+    plot([idx(i,1),idx(i,2)],[res_days_B6(i,1),res_days_B6(i,2)],...
+        'Color',[0.25 0.25 0.25 .25])
+end
+ylim([0.32 0.46])
+xlim([.5 2.5])
 xticks(1:2)
-xticklabels({'Error Trials','Acc. Trails'})
+xticklabels({'Inaccurate Trials','Accurate Trials'})
+ylabel('Duty Cycle')
+plot_beautify
+
+[p,h] = signrank(res_days(:,1),res_days(:,2))
 
 %%
 %%% ANALYSIS 2
