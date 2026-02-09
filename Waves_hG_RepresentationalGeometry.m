@@ -10,7 +10,7 @@ clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B3';
+subj ='B1';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -207,77 +207,83 @@ title(num2str(p))
 figure;plot(res_days)
 legend('Waves','Nonwaves')
 
-%% ANALYSIS 0 and 1 -> PCA style
+%% ANALYSIS 0 and 1 -> VARIANCE, DIMENSIONAL COLLAPSE PCA style (MAIN)
 % hg decouples of mu during waves as compared to non-waves. does the
 % dynamic range of hg increase during wave epochs as opposed to non wave
 % epochs? is there greater  total variance? 
 % At same time, what does it say about the dimensionality of the manifold
 % during wave vs. non wave epochs?
 % manifold dimensionality: wave epochs have consistently lower
-% dimensionality
-
-res=[];res_var=[];
-parfor days=1:length(stats_cl_hg_days)
-    stats_cl_hg = stats_cl_hg_days{days};
-    dim_wave=[];
-    dim_nonwave=[];
-    for tid=1:num_targets
-        act_wave=[];
-        act_nonwave=[];
-        for i=1:length(stats_cl_hg)
-            if stats_cl_hg(i).target_id ==tid
-
-                tmp = stats_cl_hg(i).hg_wave;
-                tmp = cell2mat(tmp');
-                act_wave = [act_wave;tmp];
-
-                tmp = stats_cl_hg(i).hg_nonwave;
-                tmp = cell2mat(tmp');
-                act_nonwave = [act_nonwave;tmp];
-            end
-        end
-        [c,s,l]=pca((act_wave));
-        % dimensionality
-        %pr_wave = ((sum(l))^2) / (sum(l.^2));
-        vaf = cumsum(l)./sum(l);
-        [aa bb]=find(vaf>0.8);
-        pr_wave = aa(1); % z score data matrix
-
-        % total variance
-        %pr_wave=sum(l)
-        pr_wave = sum(log(l(1:5))); % dont z-score data matrix
-
-        % dimensionality        
-        idx=randperm(size(act_nonwave,1),size(act_wave,1));
-        [c,s,l]=pca((act_nonwave(idx,:)));
-        %pr_nonwave = ((sum(l))^2) / (sum(l.^2));
-        vaf = cumsum(l)./sum(l);
-        [aa bb]=find(vaf>0.8);
-        pr_nonwave = aa(1); % z score data matrix
-
-        % total variance
-        %pr_nonwave = sum(l); % dont z-score data matrix
-        pr_nonwave = sum(log(l(1:5))); % dont z-score data matrix
+% dimensionality -> there is dimensional collapse
 
 
-        dim_wave=[dim_wave pr_wave];
-        dim_nonwave=[dim_nonwave pr_nonwave];
-    end
-    res=[res;[mean(dim_wave) mean(dim_nonwave)]];
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
+load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_hg_days')
+[res_days_B1] = get_PCs_VAF_DimCollapse(stats_cl_hg_days,7)
+
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
+load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_hg_days')
+[res_days_B3] = get_PCs_VAF_DimCollapse(stats_cl_hg_days,7)
+
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
+load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat','stats_cl_hg_days')
+[res_days_B6] = get_PCs_VAF_DimCollapse(stats_cl_hg_days(1:end-1),7)
+
+
+% plotting
+
+%figure;boxplot(res)
+
+
+res_days = [res_days_B1;res_days_B3;res_days_B6];
+figure;hold on
+%b1
+idx = [ones(size(res_days_B1,1),1) 2*ones(size(res_days_B1,1),1)];
+idx = idx + 0.05*randn(size(idx));
+scatter(idx(:,1),res_days_B1(:,1),50,'b','LineWidth',1)
+scatter(idx(:,2),res_days_B1(:,2),50,'b',"filled",'LineWidth',1)
+for i=1:size(idx,1)
+    plot([idx(i,1),idx(i,2)],[res_days_B1(i,1),res_days_B1(i,2)],...
+        'Color',[0 0 1 .25])
 end
-res
-% dimensionality
-res(:,1)-res(:,2)
-signrank(ans)
 
-% total variance
-res(:,1)-res(:,2)
-signrank(ans)
+%b3
+%figure;hold on
+idx = [ones(size(res_days_B3,1),1) 2*ones(size(res_days_B3,1),1)];
+idx = idx + 0.05*randn(size(idx));
+scatter(idx(:,1),res_days_B3(:,1),50,'r','LineWidth',1)
+scatter(idx(:,2),res_days_B3(:,2),50,'r',"filled",'LineWidth',1)
+for i=1:size(idx,1)
+    plot([idx(i,1),idx(i,2)],[res_days_B3(i,1),res_days_B3(i,2)],...
+        'Color',[1 0 0 .25])
+end
 
-figure;boxplot(res)
+%b6
+%figure;hold on
+idx = [ones(size(res_days_B6,1),1) 2*ones(size(res_days_B6,1),1)];
+idx = idx + 0.05*randn(size(idx));
+scatter(idx(:,1),res_days_B6(:,1),50,'k','LineWidth',1)
+scatter(idx(:,2),res_days_B6(:,2),50,'k',"filled",'LineWidth',1)
+for i=1:size(idx,1)
+    plot([idx(i,1),idx(i,2)],[res_days_B6(i,1),res_days_B6(i,2)],...
+        'Color',[0.25 0.25 0.25 .25])
+end
+xlim([.5 2.5])
+boxplot(res_days)
 xticks(1:2)
-xticklabels({'Wave','Non wave'})
-ylabel('Total Variance')
+xticklabels({'Wave epoch hG','Nonwave epoch hG'})
+ylabel('Number of PCs for 80% VAF')
+plot_beautify
+ylim([25 70])
+
+% figure;hold on
+% stem(cumsum(l0)./sum(l0),'LineWidth',1)
+% stem(cumsum(l)./sum(l),'LineWidth',1)
+% legend({'Wave epochs','Nonwave epochs'})
+% plot_beautify
+% ylabel('VAF')
+% xlabel('PC Number')
+% hline(0.8,'--k')
 
 %% ANALYSIS 2 : VARIANCE CHANNEL STYLE (MAIN)
 % hypothesis is that since hg decouples from mu, it has more expressiveness
