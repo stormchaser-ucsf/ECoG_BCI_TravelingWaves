@@ -41,8 +41,11 @@ for days=1:length(stats_cl_hg_days)
         % dimensionality
         
         if size(act_wave,1) > size(act_nonwave,1)
-            idx=randperm(size(act_wave,1),size(act_nonwave,1));
+            %idx=randperm(size(act_wave,1),size(act_nonwave,1));
+            %idx =1:size(act_nonwave,1);
             %[c,s,l]=pca((act_nonwave(idx,:)));
+            l = size(act_wave,1) - size(act_nonwave,1);
+            idx  = l+1:size(act_wave,1) ;
             [c,s,l]=pca(zscore(act_wave(idx,:)));
         else
             [c,s,l]=pca(zscore(act_wave(:,:)));
@@ -65,8 +68,12 @@ for days=1:length(stats_cl_hg_days)
 
         % dimensionality        
         if size(act_wave,1) < size(act_nonwave,1)
-            idx=randperm(size(act_nonwave,1),size(act_wave,1));
+            %idx=randperm(size(act_nonwave,1),size(act_wave,1));
             %[c,s,l]=pca((act_nonwave(idx,:)));
+            %[c,s,l]=pca(zscore(act_nonwave(idx,:)));
+            %idx =1:size(act_wave,1);
+            l = size(act_nonwave,1) - size(act_wave,1);
+            idx  = l+1:size(act_nonwave,1) ;
             [c,s,l]=pca(zscore(act_nonwave(idx,:)));
         else
             [c,s,l]=pca(zscore(act_nonwave(:,:)));
@@ -84,7 +91,7 @@ for days=1:length(stats_cl_hg_days)
         dim_wave=[dim_wave pr_wave];
         dim_nonwave=[dim_nonwave pr_nonwave];
     end
-    res=[res;[median(dim_wave) median(dim_nonwave)]];
+    res=[res;[mean(dim_wave) mean(dim_nonwave)]];
 end
 %res
 % dimensionality
