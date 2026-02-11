@@ -52,6 +52,64 @@ elseif strcmp(subj,'B6')
     num_targets=7;
 end
 
+%% ANALYSIS -3
+% getting the wave data over to RM
+
+% have to get it from the vector field in stats_cl
+wave_data={};idx=1;
+for days=1:length(stats_cl_hg_days)
+    stats_cl_hg = stats_cl_hg_days{days};
+    stats_cl = stats_cl_days{days};
+    for i=1:length(stats_cl_hg)
+
+        stab = stats_cl(i).stab;
+        stab1 = zscore(stab(15:end));
+        [out,st,stp] = wave_stability_detect(stab1);
+        st = st+14;
+        stp = stp+14;
+        vec_field = stats_cl(i).vec_field;
+        wave_maps={};
+        for j=1:length(out)
+             tmp = vec_field(st(j):stp(j),:,:);
+             wave_maps{j} = squeeze(mean(tmp,1));
+        end
+        
+        wave_data(idx).targetID =  stats_cl(i).target_id;
+        wave_data(idx).accuracy =  stats_cl(i).accuracy;
+        wave_data(idx).wave_maps = wave_maps;
+        wave_data(idx).Day = days;
+        wave_data(idx).Context = 'CL';
+        idx=idx+1;
+    end
+
+    stats_ol_hg = stats_ol_hg_days{days};
+    stats_ol = stats_ol_days{days};
+    for i=1:length(stats_ol_hg)
+
+        stab = stats_ol(i).stab;
+        stab1 = zscore(stab(15:end));
+        [out,st,stp] = wave_stability_detect(stab1);
+        st = st+14;
+        stp = stp+14;
+        vec_field = stats_ol(i).vec_field;
+        wave_maps={};
+        for j=1:length(out)
+            tmp = vec_field(st(j):stp(j),:,:);
+            wave_maps{j} = squeeze(mean(tmp,1));
+        end
+
+        wave_data(idx).targetID =  stats_ol(i).target_id;
+        wave_data(idx).accuracy =  NaN;
+        wave_data(idx).wave_maps = wave_maps;
+        wave_data(idx).Day = days;
+        wave_data(idx).Context = 'OL';
+        idx=idx+1;
+    end
+end
+
+wave_data_B3 =wave_data;
+save wave_data_B3 wave_data_B3 -v7.3
+
 %% ANALYSIS -2 
 %MAHAB Distances
 % B3 -> flipud 
@@ -356,6 +414,32 @@ plot_beautify
 signrank(res_days(:,1),res_days(:,2))
 
 
+
+% scatter plot as percentage change
+figure;
+hold on
+a = exp(res_days_B1);
+r = 100*((a(:,1)-a(:,2))./a(:,2));
+idx = ones(size(r))+0.03*randn(size(r));
+scatter(idx,r,'b','LineWidth',1)
+a = exp(res_days_B3);
+r = 100*((a(:,1)-a(:,2))./a(:,2));
+idx = ones(size(r))+0.03*randn(size(r));
+scatter(idx,r,'r','LineWidth',1)
+a = exp(res_days_B6);
+r = 100*((a(:,1)-a(:,2))./a(:,2));
+idx = ones(size(r))+0.03*randn(size(r));
+scatter(idx,r,'k','LineWidth',1)
+ylabel('Percent Increase in Variance')
+a = exp(res_days);
+r = 100*((a(:,1)-a(:,2))./a(:,2));
+boxplot(r)
+ylim([-5 15])
+xticks ''
+plot_beautify
+xlim([0.8 1.2])
+hline(0,'--k')
+
 res_days=[];pval=[];
 res_std_days=[];
 for days=1:length(stats_cl_hg_days)
@@ -412,7 +496,6 @@ xticklabels({'Wave','Non wave'})
 ylabel('Trial to Trial Variance')
 
 res_std_days_cl=res_std_days;
-
 
 res_days=[];pval=[];
 res_std_days=[];
