@@ -64,14 +64,14 @@ if os.name=='nt':
     filename = filepath + filename
 else:
     
-    #filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/'
-    #filename = 'B3_Wave_NonWave_hG_For_AE.mat'
+    filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/'
+    filename = 'B3_Wave_NonWave_hG_For_AE.mat'
     
     # filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/'
     # filename = 'B1_Wave_NonWave_hG_For_AE.mat'
     
-    filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/'
-    filename = 'B6_Wave_NonWave_hG_For_AE.mat'
+    # filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/'
+    # filename = 'B6_Wave_NonWave_hG_For_AE.mat'
     
     
     filename = filepath + filename
@@ -92,10 +92,8 @@ data_dict = mat73.loadmat(filename)
 
 condn_data = data_dict.get('condn_data')
 
-iterations = 5
+iterations = 15
 
-decoding_accuracy=[]
-balanced_decoding_accuracy=[]
 
 
 
@@ -117,8 +115,8 @@ for iterr in np.arange(iterations):
     
     # model parameters for the MLP based autoencoder
     input_size=253
-    hidden_size=64 #96 originally 
-    latent_dims=2 #3 originally 
+    hidden_size=96 #96 originally 
+    latent_dims=8 #3 originally 
     num_classes = 7
     
     from iAE_utils_models import *
@@ -137,7 +135,7 @@ for iterr in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10    
-    nn_filename = 'iAE_B6_Waves.pth' 
+    nn_filename = 'iAE_B1_Waves.pth' 
 
     #get number of parameters
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -219,6 +217,17 @@ plt.boxplot((np.mean(np.log(waves_var),axis=1),np.mean(np.log(nonwaves_var),axis
 stat,p = stats.wilcoxon(np.mean(np.log(waves_var),axis=1),
                         np.mean(np.log(nonwaves_var),axis=1))
 print(p)
+
+a = np.mean(np.log(waves_var),axis=1) -   np.mean(np.log(nonwaves_var),axis=1)
+a = np.divide(a, np.abs(np.mean(np.log(nonwaves_var),axis=1)))
+a = 100*(a)
+plt.figure()
+plt.boxplot(a)
+plt.hlines(0, 0.5, 1.5)
+plt.ylabel('Percent increase in variance')
+plt.xticks([])
+plt.xlim((0.85,1.15))
+plt.show()
 
 # perhaps just plot a few movements in 2d or 3d, showcasing gaussian ellipses
 # difference in trial to trial variance b/w movements wave and non wave 
@@ -391,18 +400,23 @@ plt.show()
 ########### movement comparison, wave and non wave
 # plot_movement_wave_vs_nonwave_3d(wave_nonwave_dict, movement_id=1)
 
+from iAE_utils_models import *
 plot_movement_wave_vs_nonwave_3d_with_ellipses(
-wave_nonwave_dict, movement_id=1)       
+wave_nonwave_dict, movement_id=7)       
 
 plot_movement_wave_vs_nonwave_2d_with_ellipses(
 wave_nonwave_dict,
-movement_id=2)
+movement_id=6)
 
 
+####### PLOTTING WAVE ON TOP OF NONWAVE FOR 3 MOVEMENTS #####
+from iAE_utils_models import *
+plot_three_movements_wave_vs_nonwave(
+    wave_nonwave_dict,
+    movement_ids=[4, 7, 2]
+)
 
 
-
-          
 #%% SAVING 
 
 np.savez('Alpha_200Hz_AllDays_B3_Complex_DataAug_1Iter_New', 

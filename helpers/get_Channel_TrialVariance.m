@@ -15,8 +15,8 @@ for days=1:length(stats_cl_hg_days)
                 tmp = stats_cl_hg(i).hg_wave;
                 tmp = cell2mat(tmp');tmp1=tmp;
 
-                % idx = randperm(size(tmp,1),20);
-                % tmp = tmp(idx,:);
+                idx = randperm(size(tmp,1),20);
+                tmp = tmp(idx,:);
 
                 tmp = mean(tmp,1);
                 if ~isempty(tmp) && sum(~isnan(tmp)) == 253
@@ -27,8 +27,8 @@ for days=1:length(stats_cl_hg_days)
                 tmp = stats_cl_hg(i).hg_nonwave;
                 tmp = cell2mat(tmp');tmp1=tmp;
 
-                % idx = randperm(size(tmp,1),20);
-                % tmp = tmp(idx,:);
+                idx = randperm(size(tmp,1),20);
+                tmp = tmp(idx,:);
 
                 tmp = mean(tmp,1); % or mean here or var
                 if ~isempty(tmp) && sum(~isnan(tmp)) == 253

@@ -1,7 +1,8 @@
-function [res] = get_PCs_VAF_DimCollapse(stats_cl_hg_days,num_targets)
+function [res,bad_ch] = get_PCs_VAF_DimCollapse(stats_cl_hg_days,num_targets)
 
 
 res=[];res_var=[];
+bad_ch=[];
 for days=1:length(stats_cl_hg_days)
     stats_cl_hg = stats_cl_hg_days{days};
     dim_wave=[];
@@ -35,6 +36,7 @@ for days=1:length(stats_cl_hg_days)
         s = std(act_wave,1);
         s = zscore((s));
         xx = find(abs(s)>5);
+        bad_ch =[bad_ch xx];
         act_wave(:,xx) = 1e-4*randn(size(act_wave,1),length(xx));
 
         %[c,s,l]=pca(zscore(act_wave));l0=l;c0=c;
@@ -64,6 +66,7 @@ for days=1:length(stats_cl_hg_days)
         s = std(act_nonwave,1);
         s = zscore((s));
         xx = find(abs(s)>5);
+        bad_ch =[bad_ch xx];
         act_nonwave(:,xx) = 1e-4*randn(size(act_nonwave,1),length(xx));
 
         % dimensionality        

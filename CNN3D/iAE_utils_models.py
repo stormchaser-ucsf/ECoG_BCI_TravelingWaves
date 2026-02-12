@@ -160,17 +160,59 @@ def plot_movement_wave_vs_nonwave_3d(wave_dict, movement_id, n_components=3):
     plt.tight_layout()
     plt.show()
 
-def draw_gaussian_ellipse_2d(ax, data, color, n_std=1.5, alpha=0.25):
+# def draw_gaussian_ellipse_2d(ax, data, color, n_std=1.5, alpha=0.25):
+#     """
+#     data: [N x 2]
+#     """
+#     mean = np.mean(data, axis=0)
+#     cov = np.cov(data, rowvar=False)
+
+#     # Eigen-decomposition
+#     eigvals, eigvecs = eigh(cov)
+#     order = eigvals.argsort()[::-1]
+#     eigvals, eigvecs = eigvals[order], eigvecs[:, order]
+
+#     # Width & height
+#     width, height = 2 * n_std * np.sqrt(eigvals)
+
+#     # Rotation angle
+#     angle = np.degrees(np.arctan2(eigvecs[1, 0], eigvecs[0, 0]))
+
+#     ellipse = Ellipse(
+#         xy=mean,
+#         width=width,
+#         height=height,
+#         angle=angle,
+#         color=color,
+#         alpha=alpha
+#     )
+
+#     ax.add_patch(ellipse)
+
+def draw_gaussian_ellipse_2d(
+    ax,
+    data,
+    color,
+    n_std=1.5,
+    alpha=1.0,
+    linestyle="-",
+    linewidth=2
+):
     """
     data: [N x 2]
     """
+
+    if data.shape[0] < 3:
+        return
+
     mean = np.mean(data, axis=0)
     cov = np.cov(data, rowvar=False)
 
     # Eigen-decomposition
     eigvals, eigvecs = eigh(cov)
     order = eigvals.argsort()[::-1]
-    eigvals, eigvecs = eigvals[order], eigvecs[:, order]
+    eigvals = eigvals[order]
+    eigvecs = eigvecs[:, order]
 
     # Width & height
     width, height = 2 * n_std * np.sqrt(eigvals)
@@ -183,11 +225,15 @@ def draw_gaussian_ellipse_2d(ax, data, color, n_std=1.5, alpha=0.25):
         width=width,
         height=height,
         angle=angle,
-        color=color,
+        facecolor="none",        # no fill
+        edgecolor=color,         # line color
+        linestyle=linestyle,     # solid / dashed
+        linewidth=linewidth,
         alpha=alpha
     )
 
     ax.add_patch(ellipse)
+
 
 def draw_gaussian_ellipsoid(ax, data, color, n_std=1.5, alpha=0.2):
     """
@@ -195,7 +241,7 @@ def draw_gaussian_ellipsoid(ax, data, color, n_std=1.5, alpha=0.2):
     data: [N x 3]
     """
     
-    data = data[:,3:]
+    #data = data[:,3:]
     mean = data.mean(axis=0)
     cov = np.cov(data, rowvar=False)
 
@@ -247,6 +293,7 @@ def plot_movement_wave_vs_nonwave_2d_with_ellipses(
     X = np.vstack([wave, nonwave])
     pca = PCA(n_components=n_components)
     Z = pca.fit_transform(X)
+    Z=X;
 
     Z_wave = Z[:wave.shape[0]]
     Z_nonwave = Z[wave.shape[0]:]
@@ -265,8 +312,8 @@ def plot_movement_wave_vs_nonwave_2d_with_ellipses(
     )
 
     # Gaussian ellipses
-    draw_gaussian_ellipse_2d(ax, Z_wave, "tab:blue", n_std=1.5, alpha=0.25)
-    draw_gaussian_ellipse_2d(ax, Z_nonwave, "tab:orange", n_std=1.5, alpha=0.25)
+    draw_gaussian_ellipse_2d(ax, Z_wave[:,:2], "tab:blue", n_std=1.5, alpha=0.25)
+    draw_gaussian_ellipse_2d(ax, Z_nonwave[:,:2], "tab:orange", n_std=1.5, alpha=0.25)
 
     ax.set_title(f"Movement {movement_id} | Latent PCA (2D)")
     ax.set_xlabel("PC 1")
@@ -290,7 +337,7 @@ def plot_movement_wave_vs_nonwave_3d_with_ellipses(wave_dict, movement_id, n_com
     )
 
     pca = PCA(n_components=n_components)
-    #Z = pca.fit_transform(X)
+    Z = pca.fit_transform(X)
     Z=X;
 
     Z_wave = Z[labels == "wave"]
@@ -324,7 +371,82 @@ def plot_movement_wave_vs_nonwave_3d_with_ellipses(wave_dict, movement_id, n_com
     plt.tight_layout()
     plt.show()
 
+
+
+def plot_three_movements_wave_vs_nonwave(
+    wave_nonwave_dict,
+    movement_ids,
+    n_components=2):
+
+    fig, ax = plt.subplots(figsize=(6, 5))
+
+    colors = ["tab:blue", "tab:green", "tab:red"]
+
+    for i, movement_id in enumerate(movement_ids):
+
+        idx = wave_nonwave_dict["targetID"].index(movement_id)
+
+        wave = wave_nonwave_dict["latent_wave"][idx].T
+        nonwave = wave_nonwave_dict["latent_nonwave"][idx].T
+
+        # PCA per movement (shared axes for wave/nonwave of that movement)
+        X = np.vstack([wave, nonwave])
+        pca = PCA(n_components=n_components)
+        
+        Z = pca.fit_transform(X)        
+        mean_proj = pca.mean_ @ pca.components_.T
+        Z = Z + mean_proj
+        
+        Z=X
+
+        Z_wave = Z[:wave.shape[0]]
+        Z_nonwave = Z[wave.shape[0]:]
+
+        color = colors[i]
+
+        # Scatter
+        ax.scatter(
+            Z_wave[:, 1], Z_wave[:, 2],
+            alpha=0.5,
+            color=color,
+            label=f"M{movement_id} Wave"
+        )
+
+        ax.scatter(
+            Z_nonwave[:, 1], Z_nonwave[:, 2],
+            alpha=0.7,
+            color=color,
+            marker="x",
+            label=f"M{movement_id} NonWave"
+        )
+
+        # Ellipses
+        draw_gaussian_ellipse_2d(
+            ax, Z_wave[:, 1:3],
+            color,
+            n_std=1.5,
+            linestyle="-",      # solid
+            linewidth=2
+        )
+
+        draw_gaussian_ellipse_2d(
+            ax, Z_nonwave[:, 1:3],
+            color,
+            n_std=1.5,
+            linestyle="--",     # dashed
+            linewidth=2
+        )
+
+    ax.set_xlabel("Latent 1", fontsize=8)
+    ax.set_ylabel("Latent 2",fontsize=8)
+    ax.set_title("Latent Space: Wave (solid) vs NonWave (dashed)",fontsize=8)
+    ax.set_aspect("equal")
+    ax.legend(fontsize=6)
+    ax.grid(True)
     
+    plt.tight_layout()
+    plt.show()
+
     
     
     

@@ -10,7 +10,7 @@ clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B3';
+subj ='B1';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -277,7 +277,7 @@ legend('Waves','Nonwaves')
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
 load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_hg_days')
-[res_days_B1] = get_PCs_VAF_DimCollapse(stats_cl_hg_days,7)
+[res_days_B1,bad_ch] = get_PCs_VAF_DimCollapse(stats_cl_hg_days,7)
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
 load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_hg_days')
@@ -285,7 +285,7 @@ load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_h
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
 load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat','stats_cl_hg_days')
-[res_days_B6] = get_PCs_VAF_DimCollapse(stats_cl_hg_days(1:end-1),7)
+[res_days_B6,bad_ch] = get_PCs_VAF_DimCollapse(stats_cl_hg_days(1:end-1),7)
 
 
 % plotting
@@ -439,128 +439,128 @@ xticks ''
 plot_beautify
 xlim([0.8 1.2])
 hline(0,'--k')
-
-res_days=[];pval=[];
-res_std_days=[];
-for days=1:length(stats_cl_hg_days)
-    stats_cl_hg = stats_cl_hg_days{days};
-    D_wave=[];D_nonwave=[];res=[];
-    D_wave_total=[];D_nonwave_total=[];res_std=[];
-    for i=1:length(stats_cl_hg)
-        if stats_cl_hg(i).target_id <=num_targets
-            tmp = stats_cl_hg(i).hg_wave;
-            tmp = cell2mat(tmp');tmp1=tmp;
-            tmp = mean(tmp,1);
-            if ~isempty(tmp) && sum(~isnan(tmp)) == 253
-                D_wave = cat(1,D_wave,tmp);
-                D_wave_total = [D_wave_total;tmp1];
-            end
-
-            tmp = stats_cl_hg(i).hg_nonwave;
-            tmp = cell2mat(tmp');tmp1=tmp;
-            tmp = mean(tmp,1); % or mean here or var
-            if ~isempty(tmp) && sum(~isnan(tmp)) == 253
-                D_nonwave = cat(1,D_nonwave,tmp);
-                D_nonwave_total = [D_nonwave_total;tmp1];
-            end
-        end
-    end
-    %res = ([(var(D_wave,1))' (var(D_nonwave,1))']);
-    res = log([(std(D_wave,1))' (std(D_nonwave,1))']);
-    res_std = [(log(std(D_wave_total,1)))' (log(std(D_nonwave_total,1)))'];
-    % figure;
-    % boxplot(res)
-    [p,h] = signrank(res(:,1),res(:,2));
-    pval(days) = ((p<0.05) * (median(res(:,1)) - median(res(:,2))));
-    % xticks(1:2)
-    % xticklabels({'Wave epochs','Non wave epochs'})
-    % ylabel('Variability in mean activity across conditions')
-    res_days =[res_days ;mean(res,1)];
-    res_std_days=[res_std_days;median(res_std,1)];
-    %res_days(days,:,:) = res;
-end
-[p,h] = signrank(res_days(:,1),res_days(:,2))
-mean(res_days)
-%figure;boxplot(res_days,'Notch','off')
-idx=[0.01*randn(size(res_days,1),1) + ones(size(res_days,1),1)...
-    0.01*randn(size(res_days,1),1) + 2*ones(size(res_days,1),1)];
-figure;scatter(idx,res_days)
-xlim([0.5 2.5])
-hold on
-for i=1:size(res_days,1)
-    plot([idx(i,1) idx(i,2)],[res_days(i,1) res_days(i,2)],'Color',[.5 .5 .5 .5]);
-end
-res_days_cl=res_days;
-xticks(1:2)
-xticklabels({'Wave','Non wave'})
-ylabel('Trial to Trial Variance')
-
-res_std_days_cl=res_std_days;
-
-res_days=[];pval=[];
-res_std_days=[];
-parfor days=1:length(stats_cl_hg_days)
-    stats_cl_hg = stats_ol_hg_days{days};
-    D_wave=[];D_nonwave=[];res=[];
-    D_wave_total=[];D_nonwave_total=[];res_std=[];
-    for i=1:length(stats_cl_hg)
-        if stats_cl_hg(i).target_id <=7
-            tmp = stats_cl_hg(i).hg_wave;
-            tmp = cell2mat(tmp');tmp1=tmp;
-            tmp = mean(tmp,1);
-            if ~isempty(tmp) && sum(~isnan(tmp)) == 253
-                D_wave = cat(1,D_wave,tmp);
-                D_wave_total = [D_wave_total;tmp1];
-            end
-
-            tmp = stats_cl_hg(i).hg_nonwave;
-            tmp = cell2mat(tmp');tmp1=tmp;
-            tmp = mean(tmp,1); % or mean, var here
-            if ~isempty(tmp) && sum(~isnan(tmp)) == 253
-                D_nonwave = cat(1,D_nonwave,tmp);
-                D_nonwave_total = [D_nonwave_total;tmp1];
-            end
-        end
-    end
-    %res = ([(var(D_wave,1))' (var(D_nonwave,1))']);
-    res = log([(std(D_wave,1))' (std(D_nonwave,1))']);
-    res_std = [(log(std(D_wave_total,1)))' (log(std(D_nonwave_total,1)))'];
-    % figure;
-    % boxplot(res)
-    [p,h] = signrank(res(:,1),res(:,2));
-    pval(days) = ((p<0.05) * (median(res(:,1)) - median(res(:,2))))
-    % xticks(1:2)
-    % xticklabels({'Wave epochs','Non wave epochs'})
-    % ylabel('Variability in mean activity across conditions')
-    res_days =[res_days ;mean(res,1)];
-    res_std_days=[res_std_days;median(res_std,1)];
-    %res_days(days,:,:) = res;
-end
-[p,h] = signrank(res_days(:,1),res_days(:,2))
-mean(res_days)
-%figure;boxplot(res_days)
-res_days_ol=res_days;
-res_std_days_ol=res_std_days;
-
-res=[res_days_ol res_days_cl];
-figure;boxplot(res)
-xticks(1:4)
-xticklabels({'OL wave epochs ','OL nonwave epochs','CL wave epochs',...
-    'CL nonwave epochs'})
-ylabel('Grid-wise across trial variance in mean hG (log)')
-plot_beautify
-title(subj)
-
-
-res=[res_std_days_ol res_std_days_cl];
-figure;boxplot(res)
-xticks(1:4)
-xticklabels({'OL wave epochs ','OL nonwave epochs','CL wave epochs',...
-    'CL nonwave epochs'})
-ylabel('Grid-wise variance (log)')
-plot_beautify
-title(subj)
-signrank([res(:,1);res(:,2)],[res(:,3);res(:,4)])
+% 
+% res_days=[];pval=[];
+% res_std_days=[];
+% for days=1:length(stats_cl_hg_days)
+%     stats_cl_hg = stats_cl_hg_days{days};
+%     D_wave=[];D_nonwave=[];res=[];
+%     D_wave_total=[];D_nonwave_total=[];res_std=[];
+%     for i=1:length(stats_cl_hg)
+%         if stats_cl_hg(i).target_id <=num_targets
+%             tmp = stats_cl_hg(i).hg_wave;
+%             tmp = cell2mat(tmp');tmp1=tmp;
+%             tmp = mean(tmp,1);
+%             if ~isempty(tmp) && sum(~isnan(tmp)) == 253
+%                 D_wave = cat(1,D_wave,tmp);
+%                 D_wave_total = [D_wave_total;tmp1];
+%             end
+% 
+%             tmp = stats_cl_hg(i).hg_nonwave;
+%             tmp = cell2mat(tmp');tmp1=tmp;
+%             tmp = mean(tmp,1); % or mean here or var
+%             if ~isempty(tmp) && sum(~isnan(tmp)) == 253
+%                 D_nonwave = cat(1,D_nonwave,tmp);
+%                 D_nonwave_total = [D_nonwave_total;tmp1];
+%             end
+%         end
+%     end
+%     %res = ([(var(D_wave,1))' (var(D_nonwave,1))']);
+%     res = log([(std(D_wave,1))' (std(D_nonwave,1))']);
+%     res_std = [(log(std(D_wave_total,1)))' (log(std(D_nonwave_total,1)))'];
+%     % figure;
+%     % boxplot(res)
+%     [p,h] = signrank(res(:,1),res(:,2));
+%     pval(days) = ((p<0.05) * (median(res(:,1)) - median(res(:,2))));
+%     % xticks(1:2)
+%     % xticklabels({'Wave epochs','Non wave epochs'})
+%     % ylabel('Variability in mean activity across conditions')
+%     res_days =[res_days ;mean(res,1)];
+%     res_std_days=[res_std_days;median(res_std,1)];
+%     %res_days(days,:,:) = res;
+% end
+% [p,h] = signrank(res_days(:,1),res_days(:,2))
+% mean(res_days)
+% %figure;boxplot(res_days,'Notch','off')
+% idx=[0.01*randn(size(res_days,1),1) + ones(size(res_days,1),1)...
+%     0.01*randn(size(res_days,1),1) + 2*ones(size(res_days,1),1)];
+% figure;scatter(idx,res_days)
+% xlim([0.5 2.5])
+% hold on
+% for i=1:size(res_days,1)
+%     plot([idx(i,1) idx(i,2)],[res_days(i,1) res_days(i,2)],'Color',[.5 .5 .5 .5]);
+% end
+% res_days_cl=res_days;
+% xticks(1:2)
+% xticklabels({'Wave','Non wave'})
+% ylabel('Trial to Trial Variance')
+% 
+% res_std_days_cl=res_std_days;
+% 
+% res_days=[];pval=[];
+% res_std_days=[];
+% parfor days=1:length(stats_cl_hg_days)
+%     stats_cl_hg = stats_ol_hg_days{days};
+%     D_wave=[];D_nonwave=[];res=[];
+%     D_wave_total=[];D_nonwave_total=[];res_std=[];
+%     for i=1:length(stats_cl_hg)
+%         if stats_cl_hg(i).target_id <=7
+%             tmp = stats_cl_hg(i).hg_wave;
+%             tmp = cell2mat(tmp');tmp1=tmp;
+%             tmp = mean(tmp,1);
+%             if ~isempty(tmp) && sum(~isnan(tmp)) == 253
+%                 D_wave = cat(1,D_wave,tmp);
+%                 D_wave_total = [D_wave_total;tmp1];
+%             end
+% 
+%             tmp = stats_cl_hg(i).hg_nonwave;
+%             tmp = cell2mat(tmp');tmp1=tmp;
+%             tmp = mean(tmp,1); % or mean, var here
+%             if ~isempty(tmp) && sum(~isnan(tmp)) == 253
+%                 D_nonwave = cat(1,D_nonwave,tmp);
+%                 D_nonwave_total = [D_nonwave_total;tmp1];
+%             end
+%         end
+%     end
+%     %res = ([(var(D_wave,1))' (var(D_nonwave,1))']);
+%     res = log([(std(D_wave,1))' (std(D_nonwave,1))']);
+%     res_std = [(log(std(D_wave_total,1)))' (log(std(D_nonwave_total,1)))'];
+%     % figure;
+%     % boxplot(res)
+%     [p,h] = signrank(res(:,1),res(:,2));
+%     pval(days) = ((p<0.05) * (median(res(:,1)) - median(res(:,2))))
+%     % xticks(1:2)
+%     % xticklabels({'Wave epochs','Non wave epochs'})
+%     % ylabel('Variability in mean activity across conditions')
+%     res_days =[res_days ;mean(res,1)];
+%     res_std_days=[res_std_days;median(res_std,1)];
+%     %res_days(days,:,:) = res;
+% end
+% [p,h] = signrank(res_days(:,1),res_days(:,2))
+% mean(res_days)
+% %figure;boxplot(res_days)
+% res_days_ol=res_days;
+% res_std_days_ol=res_std_days;
+% 
+% res=[res_days_ol res_days_cl];
+% figure;boxplot(res)
+% xticks(1:4)
+% xticklabels({'OL wave epochs ','OL nonwave epochs','CL wave epochs',...
+%     'CL nonwave epochs'})
+% ylabel('Grid-wise across trial variance in mean hG (log)')
+% plot_beautify
+% title(subj)
+% 
+% 
+% res=[res_std_days_ol res_std_days_cl];
+% figure;boxplot(res)
+% xticks(1:4)
+% xticklabels({'OL wave epochs ','OL nonwave epochs','CL wave epochs',...
+%     'CL nonwave epochs'})
+% ylabel('Grid-wise variance (log)')
+% plot_beautify
+% title(subj)
+% signrank([res(:,1);res(:,2)],[res(:,3);res(:,4)])
 
 %% ANALYSIS 3
 % EXAMINING Representational geometry
@@ -1542,6 +1542,13 @@ y = [median(acc_nonwave_days)]';
 %% ANALYSIS 4.9 (MAIN STORING DATA FOR WAVE EPOCHS AND AE TO UNDERSTAND
 % REPRESENTATIONAL GEOMETRY OF WAVE AND NON WAVE EPOCHS). 
 
+% get bad channels from earlier code on dim collapse
+%B6
+%bad_ch = [ 15    24    78   100   103   107   143   146   155   185   253];
+
+% B1
+bad_ch = [64	69	93	125	134	141	169	175	215	223	227	233	236	243];
+
 %%%% STORING SINGLE TRIAL DATA FOR WAVES AND NON WAVES IN CL
 condn_data={};k=1;
 for days = 1:length(stats_cl_days)
@@ -1567,23 +1574,32 @@ for days = 1:length(stats_cl_days)
             % store wave data
             tmp = stats_cl_hg(i).hg_wave;
             tmp = cell2mat(tmp');
+
+            % remove bad channels
+            tmp(:,bad_ch) = 1e-4*randn(size(tmp,1),length(bad_ch));
+
+
             % smoothing for B6 and B1 alone
-            % if strcmp(subj,'B1') || strcmp(subj,'B6')
-            %     for j=1:size(tmp,2)
-            %         tmp(:,j) =smooth(tmp(:,j),10);
-            %     end
-            % end
+            if strcmp(subj,'B1') || strcmp(subj,'B6')
+                for j=1:size(tmp,2)
+                    tmp(:,j) =smooth(tmp(:,j),10);
+                end
+            end
             condn_data(k).wave_neural = tmp';
 
             % store nonwave data
             tmp = stats_cl_hg(i).hg_nonwave;
             tmp = cell2mat(tmp');
+
+             % remove bad channels
+            tmp(:,bad_ch) = 1e-4*randn(size(tmp,1),length(bad_ch));
+
             % smoothing for B6 and B1 alone
-            % if strcmp(subj,'B1') || strcmp(subj,'B6')
-            %     for j=1:size(tmp,2)
-            %         tmp(:,j) =smooth(tmp(:,j),10);
-            %     end
-            % end
+            if strcmp(subj,'B1') || strcmp(subj,'B6')
+                for j=1:size(tmp,2)
+                    tmp(:,j) =smooth(tmp(:,j),10);
+                end
+            end
             condn_data(k).nonwave_neural = tmp';
 
             % store wave stability values
@@ -1603,8 +1619,8 @@ end
 
 % save
 %save B3_Wave_NonWave_hG_For_AE condn_data -v7.3 
-%save B1_Wave_NonWave_hG_For_AE condn_data -v7.3 
-save B6_Wave_NonWave_hG_For_AE condn_data -v7.3 
+save B1_Wave_NonWave_hG_For_AE condn_data -v7.3 
+%save B6_Wave_NonWave_hG_For_AE condn_data -v7.3 
 
 len=[];len1=[];
 for i=1:length(condn_data)
