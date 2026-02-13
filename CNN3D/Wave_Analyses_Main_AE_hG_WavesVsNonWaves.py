@@ -64,11 +64,11 @@ if os.name=='nt':
     filename = filepath + filename
 else:
     
-    filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/'
-    filename = 'B3_Wave_NonWave_hG_For_AE.mat'
+    # filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/'
+    # filename = 'B3_Wave_NonWave_hG_For_AE.mat'
     
-    # filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/'
-    # filename = 'B1_Wave_NonWave_hG_For_AE.mat'
+    filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/'
+    filename = 'B1_Wave_NonWave_hG_For_AE.mat'
     
     # filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/'
     # filename = 'B6_Wave_NonWave_hG_For_AE.mat'
@@ -95,9 +95,9 @@ condn_data = data_dict.get('condn_data')
 iterations = 15
 
 
-
-
-
+#####
+##### recon loss is 0.5 and CE loss 2
+####
 
 #%% TRAIN MODEL
 
@@ -224,8 +224,9 @@ a = 100*(a)
 plt.figure()
 plt.boxplot(a)
 plt.hlines(0, 0.5, 1.5)
-plt.ylabel('Percent increase in variance')
+plt.ylabel('Percent increase in variance',fontsize=8)
 plt.xticks([])
+plt.yticks(fontsize=8)
 plt.xlim((0.85,1.15))
 plt.show()
 
@@ -413,7 +414,7 @@ movement_id=6)
 from iAE_utils_models import *
 plot_three_movements_wave_vs_nonwave(
     wave_nonwave_dict,
-    movement_ids=[4, 7, 2]
+    movement_ids=[5, 6, 3]
 )
 
 

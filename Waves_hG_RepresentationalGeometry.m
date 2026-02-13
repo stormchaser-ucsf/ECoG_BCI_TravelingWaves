@@ -10,7 +10,7 @@ clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B1';
+subj ='B6';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -1619,7 +1619,7 @@ end
 
 % save
 %save B3_Wave_NonWave_hG_For_AE condn_data -v7.3 
-save B1_Wave_NonWave_hG_For_AE condn_data -v7.3 
+%save B1_Wave_NonWave_hG_For_AE condn_data -v7.3 
 %save B6_Wave_NonWave_hG_For_AE condn_data -v7.3 
 
 len=[];len1=[];

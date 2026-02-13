@@ -407,14 +407,14 @@ def plot_three_movements_wave_vs_nonwave(
         # Scatter
         ax.scatter(
             Z_wave[:, 1], Z_wave[:, 2],
-            alpha=0.5,
+            alpha=0.2,
             color=color,
             label=f"M{movement_id} Wave"
         )
 
         ax.scatter(
             Z_nonwave[:, 1], Z_nonwave[:, 2],
-            alpha=0.7,
+            alpha=0.2,
             color=color,
             marker="x",
             label=f"M{movement_id} NonWave"
@@ -4117,7 +4117,7 @@ def validation_loss_waves(model,val_data,val_labels,recon_criterion,classif_crit
          out,ypred = model(val_data)
          recon_val_loss = (recon_criterion(out,val_data))/val_data.shape[0]
          classif_val_loss = classif_criterion(ypred,val_labels)
-         total_val_loss = 1*recon_val_loss + classif_val_loss
+         total_val_loss = 0.5*recon_val_loss + 2*classif_val_loss
     
      ypred = convert_to_ClassNumbers(ypred)
      val_acc = (torch.sum(ypred==val_labels))/len(val_labels)
@@ -4225,7 +4225,7 @@ def training_loop_iAE_waves(model,num_epochs,learning_rate,batch_val,
           # get loss      
           recon_loss = (recon_criterion(recon,Xtrain_batch))/Xtrain_batch.shape[0]
           classif_loss = (classif_criterion(decodes,Ytrain_batch))    
-          loss = 1*recon_loss + classif_loss
+          loss = 0.5*recon_loss + 2*classif_loss
           total_loss = loss.item()
           #print(classif_loss.item())
           
