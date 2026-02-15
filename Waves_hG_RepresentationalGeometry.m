@@ -1164,9 +1164,9 @@ bad_ch = [ 15    24    78   100   103   107   143   146   155   185   253];
 % have to get the data into a cell array of condn_data, with target id and
 % neural features
 condn_data={};k=1;
-for days = 1:length(stats_ol_days)
-    stats_cl = stats_ol_days{days};
-    stats_cl_hg = stats_ol_hg_days{days};
+for days = 1:length(stats_cl_days)
+    stats_cl = stats_cl_days{days};
+    stats_cl_hg = stats_cl_hg_days{days};
     for i=1:length(stats_cl)
         tid=stats_cl(i).target_id;
         if tid<=num_targets
@@ -1191,6 +1191,11 @@ for days = 1:length(stats_ol_days)
                 %idx = 1:size(tmp1,1);
                 tmp = tmp(idx,:);
             end
+
+            % for j=1:size(tmp,2)
+            %     tmp(:,j) =smooth(tmp(:,j),10);
+            % end
+
 
             % remove bad channels
             %tmp(:,bad_ch) = 1e-4*randn(size(tmp,1),length(bad_ch));
@@ -1220,7 +1225,7 @@ for i=1:length(condn_data)
 end
 condn_data=condn_data1;
 
-iterations=10;
+iterations=3;
 [acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance] = ...
     accuracy_imagined_data(condn_data, iterations);
 %accuracy_imagined_data_Hand_B3
@@ -1228,9 +1233,9 @@ iterations=10;
 
 % non wave
 condn_data={};k=1;
-for days = 1:length(stats_ol_days)
-    stats_cl = stats_ol_days{days};
-    stats_cl_hg = stats_ol_hg_days{days};
+for days = 1:length(stats_cl_days)
+    stats_cl = stats_cl_days{days};
+    stats_cl_hg = stats_cl_hg_days{days};
     for i=1:length(stats_cl)
         tid=stats_cl(i).target_id;
         if tid<=num_targets
@@ -1240,7 +1245,8 @@ for days = 1:length(stats_ol_days)
             for j=1:size(tmp,2)
                 tmp(:,j) =smooth(tmp(:,j),10);
             end
-            % 
+
+            % % 
             % if size(tmp,1)>62
             %     tmp = tmp(1:62,:);
             % end            
@@ -1257,6 +1263,11 @@ for days = 1:length(stats_ol_days)
                 %idx = 1:size(tmp1,1);
                 tmp = tmp(idx,:);
             end
+
+            % for j=1:size(tmp,2)
+            %     tmp(:,j) =smooth(tmp(:,j),10);
+            % end
+
 
              % remove bad channels
             %tmp(:,bad_ch) = 1e-4*randn(size(tmp,1),length(bad_ch));
@@ -1503,7 +1514,8 @@ res_bin_B3= res_bin;
 clearvars -except res_B3 res_B1 res_bin_B3 res_bin_B1
 root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6';
 cd(root_path)
-load hg_wave_nonwave_MLP_3DArrow_CL_AllData_v3_AllFolders
+%load hg_wave_nonwave_MLP_3DArrow_CL_AllData_v3_AllFolders
+load hg_wave_nonwave_MLP_3DArrow_CL_AllData_v4_AllFolders
 
 res=[];res_bin=[];
 for i=1:size(acc_nonwave,1)
@@ -1533,7 +1545,14 @@ res_bin =[res_bin_B1;res_bin_B3;res_bin_B6];
 %res_bin =[res_bin_B6];
 figure;
 boxplot(res_bin,'notch','on')
-ylim([0.475 0.625])
+ylim([0.45 0.625])
+signrank(res_bin(:,1),res_bin(:,2))
+
+res_bin =[res_bin_B1;res_bin_B3;res_bin_B6];
+%res_bin =[res_bin_B6];
+figure;
+boxplot(res_bin,'notch','on')
+ylim([0.45 0.625])
 signrank(res_bin(:,1),res_bin(:,2))
 
 

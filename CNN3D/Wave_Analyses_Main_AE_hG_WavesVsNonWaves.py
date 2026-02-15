@@ -92,7 +92,7 @@ data_dict = mat73.loadmat(filename)
 
 condn_data = data_dict.get('condn_data')
 
-iterations = 15
+iterations = 10
 
 
 #####
@@ -103,6 +103,9 @@ iterations = 15
 
 waves_var=[]
 nonwaves_var=[]
+
+waves_acc=[] # bin level
+nonwaves_acc=[] # bin level
 
 for iterr in np.arange(iterations):    
     
@@ -164,7 +167,11 @@ for iterr in np.arange(iterations):
         for j in np.arange(len(idx)):
             trial_idx = idx[j]
             tmp = Xtest["wave_neural"][trial_idx]
-            tmp = tmp.T
+            tmp = tmp.T            
+            # take 20 random points 
+            aa = rnd.choice(np.arange(tmp.shape[0]),size=20,replace=False)
+            tmp = tmp[aa,:]
+            # end random choice            
             tmp = torch.from_numpy(tmp).to(device).float()
             with torch.no_grad():
                 latent = model.encoder(tmp)
@@ -174,6 +181,10 @@ for iterr in np.arange(iterations):
             
             tmp = Xtest["nonwave_neural"][trial_idx]
             tmp = tmp.T
+            # take 20 random points 
+            aa = rnd.choice(np.arange(tmp.shape[0]),size=20,replace=False)
+            tmp = tmp[aa,:]
+            # end random choice
             tmp = torch.from_numpy(tmp).to(device).float()
             with torch.no_grad():
                 latent = model.encoder(tmp)
@@ -204,6 +215,46 @@ for iterr in np.arange(iterations):
     
     waves_var.append(wav_var)
     nonwaves_var.append(nonwave_var)
+    
+    # get trial level and sample level decoding accuracies for wave and nonwave
+    # wave
+    # parcellate the validation data
+    test_data_wave = Xtest["wave_neural"]
+    test_data_nonwave = Xtest["nonwave_neural"]
+    test_data_labels =  Xtest["targetID"]
+    test_labels1 = np.array([])      
+    test_labels2 = np.array([])      
+    test_data1 = np.empty((253,0)) #wave
+    test_data2 = np.empty((253,0)) #nonwave
+    recon_criterion = nn.MSELoss(reduction='sum')
+    classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
+    for i in np.arange(len(test_data_labels)):
+        tmp = test_data_wave[i].shape[1]
+        l = np.round(test_data_labels[i])-1       
+        test_labels1= np.append(test_labels1,np.repeat(l,tmp),axis=0)
+        test_data1 =  np.append(test_data1,test_data_wave[i],axis=1)
+        
+        tmp = test_data_nonwave[i].shape[1]
+        l = np.round(test_data_labels[i])-1
+        test_labels2= np.append(test_labels2,np.repeat(l,tmp),axis=0)
+        test_data2 =  np.append(test_data2,test_data_nonwave[i],axis=1)
+    
+    test_data1 = test_data1.T
+    test_data1 =  torch.from_numpy(test_data1).to(device).float()
+    test_labels1 = torch.from_numpy(test_labels1).to(device).long()
+    test_data2 = test_data2.T
+    test_data2 =  torch.from_numpy(test_data2).to(device).float()
+    test_labels2 = torch.from_numpy(test_labels2).to(device).long()
+   
+    recon_val_loss,classif_val_loss,val_loss,val_acc=validation_loss_waves(model,
+                                                           test_data1,test_labels1,
+                                                           recon_criterion,classif_criterion)       
+    waves_acc.append(val_acc)
+    
+    recon_val_loss2,classif_val_loss2,val_loss2,val_acc2=validation_loss_waves(model,
+                                                           test_data2,test_labels2,
+                                                           recon_criterion,classif_criterion)    
+    nonwaves_acc.append(val_acc2)
 
 waves_var = np.vstack(waves_var)
 nonwaves_var = np.vstack(nonwaves_var)
@@ -229,6 +280,8 @@ plt.xticks([])
 plt.yticks(fontsize=8)
 plt.xlim((0.85,1.15))
 plt.show()
+
+stat,p = stats.wilcoxon(waves_acc,nonwaves_acc)
 
 # perhaps just plot a few movements in 2d or 3d, showcasing gaussian ellipses
 # difference in trial to trial variance b/w movements wave and non wave 
