@@ -10,7 +10,7 @@ clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B6';
+subj ='B3';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -236,103 +236,97 @@ plot_beautify
 
 figure;plot(res)
 
-%% ANALYSIS -1 
+%% ANALYSIS -1  (MAIN-ish)
 % PLV between mu and hg
 
+% %loading subjects
 
-%%%%%% JUST FOR CLOSED LOOP, TRIAL LENGTH MATCHING
-elec_list=[14	8	2	130	136	142	147	151	18	13	7	1	129	135	141	146
-    10	4	132	138	144	149	153	156	158	27	24	20	15	9	3	131
-    189	192	32	31	29	26	22	17	11	5	133	139	145	150	154	157
-    169	173	177	181	185	188	191	64	61	58	54	50	46	42	12	6
-    40	37	34	162	165	168	172	176	180	184	187	190	63	60	57	53
-    89	55	51	47	43	39	36	33	161	164	167	171	175	179	183	217
-    212	215	219	223	94	90	86	83	80	77	73	69	65	193	197	201
-    195	199	203	207	210	213	216	220	224	95	91	87	84	81	78	74
-    114	109	76	72	68	196	200	204	237	242	247	251	254	256	96	92
-    244	249	253	127	124	120	115	110	105	101	97	225	229	233	238	243
-    122	117	112	107	103	99	227	231	235	240	245	250	125	121	116	111];
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
+load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_hg_days')
+[res_days_B1] = get_plv_waves(stats_cl_hg_days);
 
-for i=1:numel(elec_list)
-    %disp([i elec_list(i)])
-    if elec_list(i)>=109 && elec_list(i)<=112
-        elec_list(i) = elec_list(i)-1;
-    elseif elec_list(i)>=114 && elec_list(i)<=117
-        elec_list(i) = elec_list(i)-2;
-    elseif elec_list(i)>=119
-        elec_list(i) = elec_list(i)-3;
-    end
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
+load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_hg_days')
+[res_days_B3] = get_plv_waves(stats_cl_hg_days);
+
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
+load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat','stats_cl_hg_days')
+[res_days_B6] = get_plv_waves(stats_cl_hg_days(1:end-1));
+
+
+
+res_days = [res_days_B1;res_days_B3;res_days_B6];
+figure;hold on
+%b1
+idx = [ones(size(res_days_B1,1),1) 2*ones(size(res_days_B1,1),1)];
+idx = idx + 0.05*randn(size(idx));
+scatter(idx(:,1),res_days_B1(:,1),50,'b','LineWidth',1)
+scatter(idx(:,2),res_days_B1(:,2),50,'b',"filled",'LineWidth',1)
+for i=1:size(idx,1)
+    plot([idx(i,1),idx(i,2)],[res_days_B1(i,1),res_days_B1(i,2)],...
+        'Color',[0 0 1 .25])
 end
 
-res_days=[];
-parfor days=1:length(stats_cl_hg_days)
-    stats_cl_hg = stats_ol_hg_days{days};
-    wave_len_cl=[];
-    nonwave_len_cl=[];
-    wave_plv=[];
-    nonwave_plv=[];
-    for i=1:length(stats_cl_hg)
-        %%% just straight up average plv across grid
-        a=stats_cl_hg(i).plv_wave;
-        %a=a(:,elec_list);
-        wave_len_cl(i) = size(a,1);
-
-        b = stats_cl_hg(i).plv_nonwave;
-        %b=b(:,elec_list);
-        nonwave_len_cl(i) = size(b,1);
-
-        % nonwave_plv(i) = mean(abs(mean(b)));
-        % wave_plv(i) = mean(abs(mean(a)));
-
-        if wave_len_cl(i)<nonwave_len_cl(i)
-            wave_plv(i) = mean(abs(mean(a)));
-
-            len = min(30,nonwave_len_cl(i) -  wave_len_cl(i));
-            idx=randperm(nonwave_len_cl(i) -  wave_len_cl(i),len);
-            plv_tmp=[];
-            for j=1:length(idx)
-                tmp = b(idx(j):idx(j)+wave_len_cl(i)-1,:);
-                plv_tmp(j) = mean(abs(mean(tmp,1)));
-            end
-            nonwave_plv(i) = mean(plv_tmp);
-
-        elseif wave_len_cl(i)>nonwave_len_cl(i)
-            nonwave_plv(i) = mean(abs(mean(b)));
-
-            len = min(30,wave_len_cl(i) -  nonwave_len_cl(i));
-            idx=randperm(wave_len_cl(i) -  nonwave_len_cl(i),len);
-            plv_tmp=[];
-            for j=1:length(idx)
-                tmp = a(idx(j):idx(j)+nonwave_len_cl(i)-1,:);
-                plv_tmp(j) = mean(abs(mean(tmp,1)));
-            end
-            wave_plv(i) = mean(plv_tmp);
-
-        elseif wave_len_cl(i)== nonwave_len_cl(i)
-            nonwave_plv(i) = mean(abs(mean(b)));
-            wave_plv(i) = mean(abs(mean(a)));
-        end
-    end
-    res_days(days,:) = [mean(wave_plv) mean(nonwave_plv)];
+%b3
+%figure;hold on
+idx = [ones(size(res_days_B3,1),1) 2*ones(size(res_days_B3,1),1)];
+idx = idx + 0.05*randn(size(idx));
+scatter(idx(:,1),res_days_B3(:,1),50,'r','LineWidth',1)
+scatter(idx(:,2),res_days_B3(:,2),50,'r',"filled",'LineWidth',1)
+for i=1:size(idx,1)
+    plot([idx(i,1),idx(i,2)],[res_days_B3(i,1),res_days_B3(i,2)],...
+        'Color',[1 0 0 .25])
 end
-% figure;
-% boxplot([wave_plv' nonwave_plv'])
-% xticks(1:2)
-% xticklabels({'Wave epochs','Non wave epochs'})
-% plot_beautify
-% [p,h] = signrank(wave_plv,nonwave_plv);
-% title(num2str(p))
 
-figure;
+%b6
+%figure;hold on
+idx = [ones(size(res_days_B6,1),1) 2*ones(size(res_days_B6,1),1)];
+idx = idx + 0.05*randn(size(idx));
+scatter(idx(:,1),res_days_B6(:,1),50,'k','LineWidth',1)
+scatter(idx(:,2),res_days_B6(:,2),50,'k',"filled",'LineWidth',1)
+for i=1:size(idx,1)
+    plot([idx(i,1),idx(i,2)],[res_days_B6(i,1),res_days_B6(i,2)],...
+        'Color',[0.25 0.25 0.25 .25])
+end
+xlim([.5 2.5])
+
 boxplot(res_days)
 xticks(1:2)
-xticklabels({'Wave epochs','Non wave epochs'})
+xticklabels({'Wave epochs','Nonwave epochs'})
+ylabel('PAC mu and hG')
 plot_beautify
-[p,h] = signrank(res_days(:,1),res_days(:,2));
-title(num2str(p))
+%ylim([25 70])
 
-figure;plot(res_days)
-legend('Waves','Nonwaves')
+signrank(res_days(:,1),res_days(:,2))
+
+
+
+% scatter plot as percentage change
+figure;
+hold on
+a = (res_days_B1);
+r = 100*((a(:,1)-a(:,2))./a(:,2));
+idx = ones(size(r))+0.03*randn(size(r));
+scatter(idx,r,'b','LineWidth',1)
+a = (res_days_B3);
+r = 100*((a(:,1)-a(:,2))./a(:,2));
+idx = ones(size(r))+0.03*randn(size(r));
+scatter(idx,r,'r','LineWidth',1)
+a = (res_days_B6);
+r = 100*((a(:,1)-a(:,2))./a(:,2));
+idx = ones(size(r))+0.03*randn(size(r));
+scatter(idx,r,'k','LineWidth',1)
+ylabel('Percent Increase in PAC')
+a = (res_days);
+r = 100*((a(:,1)-a(:,2))./a(:,2));
+boxplot(r)
+ylim([-10 25])
+xticks ''
+plot_beautify
+xlim([0.8 1.2])
+hline(0,'--k')
+
+disp(signrank(r))
 
 %% ANALYSIS 0 and 1 -> VARIANCE, DIMENSIONAL COLLAPSE PCA style (MAIN)
 % hg decouples of mu during waves as compared to non-waves. does the
