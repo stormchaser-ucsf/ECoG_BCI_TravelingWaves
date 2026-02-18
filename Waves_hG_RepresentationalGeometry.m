@@ -236,7 +236,7 @@ plot_beautify
 
 figure;plot(res)
 
-%% ANALYSIS -1  (MAIN-ish)
+%% ANALYSIS -1  (MAIN)
 % PLV between mu and hg
 
 % %loading subjects
@@ -423,7 +423,7 @@ load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat',...
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
 load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat',...
     'stats_ol_hg_days','subj')
-[res_days_B3] = get_Channel_TrialVariance(stats_ol_hg_days,7)
+[res_days_B3] = get_Channel_TrialVariance(stats_cl_hg_days,7)
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
 load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat',...
@@ -1219,7 +1219,7 @@ for i=1:length(condn_data)
 end
 condn_data=condn_data1;
 
-iterations=3;
+iterations=10;
 [acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance] = ...
     accuracy_imagined_data(condn_data, iterations);
 %accuracy_imagined_data_Hand_B3

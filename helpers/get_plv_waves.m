@@ -5,11 +5,11 @@ function [res_days] = get_plv_waves(stats_cl_hg_days)
 
 
 %%%%%% JUST FOR CLOSED LOOP, TRIAL LENGTH MATCHING
-elec_list=[34	162	165	168	172	176
-51	47	43	39	36	33
-219	223	94	90	86	83
-203	207	210	213	216	220
-76	72	68	196	200	204];
+elec_list=[34	162	165	168	172	176	180
+51	47	43	39	36	33	161
+219	223	94	90	86	83	80
+203	207	210	213	216	220	224
+76	72	68	196	200	204	237];
 
 for i=1:numel(elec_list)
     %disp([i elec_list(i)])
@@ -35,11 +35,11 @@ parfor days=1:length(stats_cl_hg_days)
     for i=1:length(stats_cl_hg)
         %%% just straight up average plv across grid
         a=stats_cl_hg(i).plv_wave;
-        %a=a(:,elec_list);
+        a=a(:,elec_list);
         wave_len_cl(i) = size(a,1);
 
         b = stats_cl_hg(i).plv_nonwave;
-        %b=b(:,elec_list);
+        b=b(:,elec_list);
         nonwave_len_cl(i) = size(b,1);
 
         % nonwave_plv(i) = mean(abs(mean(b)));

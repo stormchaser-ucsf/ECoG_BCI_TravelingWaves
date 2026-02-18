@@ -1,5 +1,7 @@
-function [stats,stats_hg] = planar_waves_stats(files,d2,...
+function [stats,stats_hg] = planar_waves_stats_S1vsS3(files,d2,...
     hilbert_flag,ecog_grid,grid_layout,elecmatrix,bpFilt,d1,cl_chk)
+
+% goal here is to compare move vs. rest in hG during wave or nonwave epochs
 
 good_ch=ones(256,1);
 good_ch([108 113 118])=0;
@@ -112,18 +114,18 @@ for ii=1:length(files)
         hg_delta = (hilbert(hg_delta));     
 
         % remove non-task periods
-        df = df(l11+1:end-40,:);%remove last 800ms for b1,b6, last 1000ms for b3 hand 
-        hg = hg(l11+1:end-40,:);%remove last 800ms for b1,b6, last 1000ms for b3 hand
-        hg_mu = hg_mu(l11+1:end-40,:);
-        ds = ds(l11+1:end-40,:);
-        hg_delta = hg_delta(l11+1:end-40,:);
-        output = output(l11+1:end-40);
+        % df = df(l11+1:end-40,:);%remove last 800ms for b1,b6, last 1000ms for b3 hand 
+        % hg = hg(l11+1:end-40,:);%remove last 800ms for b1,b6, last 1000ms for b3 hand
+        % hg_mu = hg_mu(l11+1:end-40,:);
+        % ds = ds(l11+1:end-40,:);
+        % hg_delta = hg_delta(l11+1:end-40,:);
+        % output = output(l11+1:end-40);
         output(isnan(output)) = 1e-6;
         output(output~=TrialData.TargetID)=0;
         output(output==TrialData.TargetID)=1;
 
         % keep track of time
-        tcut = tmain(l1:end-800); % what is being taken
+        tcut = tmain(l1:end); % what is being taken
         tcut = tcut(1:20:end);% down sampled to 50Hz        
 
         % detect planar waves across mini-grid location
@@ -190,10 +192,10 @@ for ii=1:length(files)
 
         %%%%% STABILITY AND WAVE DETECTION 
         % look 300 after start of state 2
-        stab1 = zscore(stab(15:end));
+        stab1 = zscore(stab(1:end));
         [out,st,stp] = wave_stability_detect(stab1);
-        st = st+14;
-        stp = stp+14;
+        st = st;
+        stp = stp;
 
 
         %stab = zscore(stab(1:end)); % 100:end for B3 HAND

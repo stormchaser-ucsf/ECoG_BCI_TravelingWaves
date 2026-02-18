@@ -20,8 +20,8 @@ if strcmp(subj,'B3')
         %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
         root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
         cd(root_path)
-        %load session_data_B3_Hand
-        load session_data_B3
+        load session_data_B3_Hand
+        %load session_data_B3
         load('ECOG_Grid_8596_000067_B3.mat')
         addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 
@@ -130,6 +130,12 @@ if strcmp(subj,'B6')
         'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
         'SampleRate',1e3);
 
+    deltaFilt = designfilt('bandpassiir','FilterOrder',4, ...
+        'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+        'SampleRate',50);
+
+    bpFilt=deltaFilt;
+
 
 
     %
@@ -184,8 +190,8 @@ for days=1:len_days
     day_date = session_data(days).Day;
     files=[];
     for ii=1:length(folders)
-        %folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
-        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'Imagined');
+        folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
+        %folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'Imagined');
         %cd(folderpath)
         files = [files;findfiles('mat',folderpath)'];
     end
@@ -242,8 +248,8 @@ for days=1:len_days
     day_date = session_data(days).Day;
     files=[];
     for ii=1:length(folders)
-        %folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
-        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
+        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        %folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
         %cd(folderpath)
         files = [files;findfiles('mat',folderpath)'];
     end
@@ -380,7 +386,7 @@ end
 
 %save B3_waves_hand_stability_Muller_hG -v7.3
 %save B3_waves_hand_stability_Muller_hG_plv -v7.3
-save B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2 -v7.3
+save B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta -v7.3
 
 % (IMPT) v2 is hg_smoothed by 10 samples (200ms)
 
@@ -644,7 +650,9 @@ end
 
 %save B1_waves_stability_hg_PLV_AccStatsCL -v7.3 %
 %save B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2 -v7.3 %
-save B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData -v7.3 %
+%save B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData -v7.3 %
+
+save B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData_PLVDetla -v7.3
 
 
 %%
