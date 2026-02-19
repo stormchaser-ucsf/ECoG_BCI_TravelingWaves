@@ -454,9 +454,9 @@ for days=1:length(folders) %if B1-> it is -1
 
     len = min(200,length(files));
     idx=randperm(length(files),len);
-    [stats_ol,stats_ol_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-         grid_layout,elecmatrix,bpFilt,d1,0);
-    %stats_ol=[];stats_ol_hg=[];
+    % [stats_ol,stats_ol_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+    %      grid_layout,elecmatrix,bpFilt,d1,0);
+    stats_ol=[];stats_ol_hg=[];
     stats_ol_days{days}=stats_ol;
     stats_ol_hg_days{days} = stats_ol_hg;
 

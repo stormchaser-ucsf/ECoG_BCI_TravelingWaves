@@ -79,12 +79,12 @@ for ii=1:length(files)
         % downsample to 50Hz
         hg = resample(hg,d2.SampleRate,1e3);
 
-        % smooth it
-        hg_smooth=[];
-        for j=1:size(hg,2)
-            hg_smooth(:,j) = smooth(hg(:,j),10);
-        end      
-        hg=hg_smooth;
+        % smooth it -> dont smooth for delta PAC
+        % hg_smooth=[];
+        % for j=1:size(hg,2)
+        %     hg_smooth(:,j) = smooth(hg(:,j),10);
+        % end      
+        % hg=hg_smooth;
         
         % get the mu signal phase of hG
         hg_mu = filtfilt(d2,hg);

@@ -1,7 +1,4 @@
-function [res_days] = get_plv_waves(stats_cl_hg_days)
-
-
-
+function [res_days] = get_plv_waves(stats_cl_hg_days,ecog_grid,cortex,elecmatrix)
 
 
 %%%%%% JUST FOR CLOSED LOOP, TRIAL LENGTH MATCHING
@@ -26,7 +23,8 @@ end
 % traveling wave enforces consistency in phase relationship across trials
 % unlike non traveling wave epochs
 res_days=[];
-parfor days=1:length(stats_cl_hg_days)
+res_days_map=[];
+for days=1:length(stats_cl_hg_days)
     stats_cl_hg = stats_cl_hg_days{days};
     wave_len_cl=[];
     nonwave_len_cl=[];
@@ -35,11 +33,11 @@ parfor days=1:length(stats_cl_hg_days)
     for i=1:length(stats_cl_hg)
         %%% just straight up average plv across grid
         a=stats_cl_hg(i).plv_wave;
-        a=a(:,elec_list);
+        %a=a(:,elec_list);
         wave_len_cl(i) = size(a,1);
 
         b = stats_cl_hg(i).plv_nonwave;
-        b=b(:,elec_list);
+        %b=b(:,elec_list);
         nonwave_len_cl(i) = size(b,1);
 
         % nonwave_plv(i) = mean(abs(mean(b)));
@@ -88,6 +86,8 @@ parfor days=1:length(stats_cl_hg_days)
     nonwave_plv = abs(mean(nonwave_plv,1));
 
     res_days(days,:) = [mean(wave_plv) mean(nonwave_plv)];
+    res_days_map(days,:,1) = wave_plv;
+    res_days_map(days,:,2) = nonwave_plv;
 end
 
 
@@ -162,3 +162,51 @@ title(num2str(p))
 figure;plot(res_days)
 legend('Waves','Nonwaves')
 
+
+
+
+% plotting cortical channels
+sig = res_days_map(:,:,1) - res_days_map(:,:,2);
+sig = mean(sig,1);
+%a = squeeze(median(res_days_map(1:end,:,1),1));
+%b = squeeze(median(res_days_map(1:end,:,2),1));
+%sig = a;
+sig1 = [sig(1:107) 0 sig(108:111) 0  sig(112:115) 0 ...
+    sig(116:end)];
+figure;imagesc(sig1(ecog_grid))
+ch_wts = sig1;
+
+sig = ones(253,1)';
+sig1 = [sig(1:107) 0 sig(108:111) 0  sig(112:115) 0 ...
+    sig(116:end)];
+
+ch_layout=[];
+for i=1:23:253
+    ch_layout = [ch_layout; i:i+22 ];
+end
+ch_layout = (fliplr(ch_layout));
+
+%plv(sig) = zscore(plv(sig))+4;
+phMap = linspace(-pi,pi,253)';
+ChColorMap = ([parula(253)]);
+figure
+%subplot(1,2,2)
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+e_h = el_add(elecmatrix, 'color', 'w','msize',2);
+% elecmatrix1 = [elecmatrix(1:107,:); zeros(1,3); elecmatrix(108:111,:); zeros(1,3) ; ...
+%     elecmatrix(112:115,:) ;zeros(1,3); elecmatrix(116:end,:)];
+for j=1:256%length(sig)
+    [xx yy]=find(ecog_grid==j);
+    if ~isempty(xx)
+        ch = ch_layout(xx,yy);
+        if sig1(j)==1 && ch_wts(j)<0
+            ms = abs(ch_wts(j))*150;
+            %[aa bb]=min(abs(pref_phase(j) - phMap));
+            %c=ChColorMap(bb,:);
+            e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
+        end
+    end
+end
+
+set(gcf,'Color','w')
+sgtitle('Channels with greater increase in hG variance due to mu')

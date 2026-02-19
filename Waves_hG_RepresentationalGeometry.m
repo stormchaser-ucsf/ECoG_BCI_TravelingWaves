@@ -10,7 +10,7 @@ clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B3';
+subj ='B6';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -129,6 +129,7 @@ wave_data={};idx=1;
 for days=1:length(stats_cl_hg_days)
     stats_cl_hg = stats_cl_hg_days{days};
     stats_cl = stats_cl_days{days};
+    stab_val_total=[];
     for i=1:length(stats_cl_hg)
 
         stab = stats_cl(i).stab;
@@ -138,9 +139,19 @@ for days=1:length(stats_cl_hg_days)
         stp = stp+14;
         vec_field = stats_cl(i).vec_field;
         wave_maps={};
+        
         for j=1:length(out)
              tmp = vec_field(st(j):stp(j),:,:);
              wave_maps{j} = squeeze(mean(tmp,1));
+
+             planar_val_time=tmp;
+             stab_val=[];
+             for k=2:size(planar_val_time,1)
+                 xt = planar_val_time(k,:,:);xt=squeeze(xt);
+                 xtm1 = planar_val_time(k-1,:,:);xtm1=squeeze(xtm1);
+                 stab_val(k-1,:,:) =  (abs(xt - xtm1));
+             end
+             stab_val_total = cat(3,stab_val_total,squeeze(mean(stab_val,1)));
         end
         
         wave_data(idx).targetID =  stats_cl(i).target_id;
@@ -150,6 +161,8 @@ for days=1:length(stats_cl_hg_days)
         wave_data(idx).Context = 'CL';
         idx=idx+1;
     end
+
+    % find out where 
 
     stats_ol_hg = stats_ol_hg_days{days};
     stats_ol = stats_ol_days{days};
@@ -240,18 +253,23 @@ figure;plot(res)
 % PLV between mu and hg
 
 % %loading subjects
+clear
+imaging_B3_waves;
+close all
+load('ECOG_Grid_8596_000067_B3.mat')
+
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
 load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_hg_days')
-[res_days_B1] = get_plv_waves(stats_cl_hg_days);
+[res_days_B1] = get_plv_waves(stats_cl_hg_days,ecog_grid,cortex,elecmatrix);
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
 load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_hg_days')
-[res_days_B3] = get_plv_waves(stats_cl_hg_days);
+[res_days_B3] = get_plv_waves(stats_cl_hg_days,ecog_grid,cortex,elecmatrix);
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
 load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat','stats_cl_hg_days')
-[res_days_B6] = get_plv_waves(stats_cl_hg_days(1:end-1));
+[res_days_B6] = get_plv_waves(stats_cl_hg_days(1:end-1),ecog_grid,cortex,elecmatrix);
 
 
 

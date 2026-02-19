@@ -2572,23 +2572,36 @@ if ispc
     addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
     cd(root_path)
     addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
-    load session_data_B3_Hand
-    addpath 'C:\Users\nikic\Documents\MATLAB'
+    %load session_data_B3_Hand
+    load session_data_B3
+    addpath 'C:\Users\nikic\Documents\MATLAB'    
     load('ECOG_Grid_8596_000067_B3.mat')
-    addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
-    addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers')
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\'))
+
+    % root_path = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3';
+    % addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
+    % cd(root_path)
+    % addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
+    % load session_data_B3_Hand
+    % addpath 'C:\Users\nikic\Documents\MATLAB'
+    % load('ECOG_Grid_8596_000067_B3.mat')
+    % addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
+    % addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\helpers')
 
 else
-    root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
+    %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
+    root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
     cd(root_path)
     load session_data_B3_Hand
+    %load session_data_B3
     load('ECOG_Grid_8596_000067_B3.mat')
-    addpath(genpath('/home/reza/Repositories/ECoG_BCI_TravelingWaves'))
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
+
 end
 
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',15,'HalfPowerFrequency2',20, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -2727,10 +2740,78 @@ save PAC_B3_Hand_rawValues_betaToHg_15To20Hz -v7.3
 % plot significant channel on brain with preferred phase
 % show how it traverses across days
 
+% plotting channel wide change across days
+cl_days=[2:2:14 17 20 23];
+pac_all=[];
+for i=1:length(cl_days)
+    tmp = pac_raw_values(cl_days(i)).pac;
+    tmp = abs(mean(tmp));
+    pac_all(i,:) = tmp;
+end
+
+slopes=[];
+days=1:10;
+X = [ones(length(days),1) days'];
+for i=1:253
+    cl = pac_all(:,i);
+    %[B,BINT,R,RINT,STATS] = regress(ol',X);
+    %[B1,BINT,R,RINT,STATS1] = regress(cl',X);
+    %days_poly = [days' days'.^2 days'.^3 days'.^4];
+    mdl  = fitlm(days',cl,'RobustOpts','on');
+    %mdl  = fitlm(days_poly,ol','RobustOpts','on');
+    B = mdl.Coefficients.Estimate;
+    slopes(i) = B(2);
+end
+
+
+% plotting cortical channels
+sig = slopes;
+%a = squeeze(median(res_days_map(1:end,:,1),1));
+%b = squeeze(median(res_days_map(1:end,:,2),1));
+%sig = a;
+sig1 = [sig(1:107) 0 sig(108:111) 0  sig(112:115) 0 ...
+    sig(116:end)];
+figure;imagesc(sig1(ecog_grid))
+ch_wts = sig1;
+
+sig = ones(253,1)';
+sig1 = [sig(1:107) 0 sig(108:111) 0  sig(112:115) 0 ...
+    sig(116:end)];
+
+ch_layout=[];
+for i=1:23:253
+    ch_layout = [ch_layout; i:i+22 ];
+end
+ch_layout = (fliplr(ch_layout));
+
+%plv(sig) = zscore(plv(sig))+4;
+phMap = linspace(-pi,pi,253)';
+ChColorMap = ([parula(253)]);
+figure
+%subplot(1,2,2)
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+e_h = el_add(elecmatrix, 'color', 'w','msize',2);
+% elecmatrix1 = [elecmatrix(1:107,:); zeros(1,3); elecmatrix(108:111,:); zeros(1,3) ; ...
+%     elecmatrix(112:115,:) ;zeros(1,3); elecmatrix(116:end,:)];
+for j=1:256%length(sig)
+    [xx yy]=find(ecog_grid==j);
+    if ~isempty(xx)
+        ch = ch_layout(xx,yy);
+        if sig1(j)==1 && ch_wts(j)<0
+            ms = abs(ch_wts(j))*500;
+            %[aa bb]=min(abs(pref_phase(j) - phMap));
+            %c=ChColorMap(bb,:);
+            e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
+        end
+    end
+end
+
+
+
 
 % plotting example of null hypothesis testing
-tmp = pac_raw_values(1).pac;
-boot= pac_raw_values(1).boot;
+tmp = pac_raw_values(2).pac;
+boot= pac_raw_values(2).boot;
 stat=abs(mean(tmp(:,50)));
 figure;
 hist(boot(:,50));
@@ -2818,7 +2899,7 @@ figure;boxplot([ol' cl'])
 % code for plotting phase angle and PLV on grid. Taken from ecog hand
 % project code
 %day_idx=1;
-pac_day1 = pac_raw_values(1).pac;
+pac_day1 = pac_raw_values(2).pac;
 plv  = abs(mean(pac_day1));
 pval_day1 = pval_cl(1,:);
 %[pfdr,pval1]=fdr(pval_day1,0.05);pfdr
@@ -2864,7 +2945,7 @@ for j=1:256%length(sig)
     if ~isempty(xx)
         ch = ch_layout(xx,yy);
         if sig1(j)==1
-            ms = ch_wts(j)*7.55;
+            ms = ch_wts(j)*12.55;
             %[aa bb]=min(abs(pref_phase(j) - phMap));
             c=ChColorMap(bb,:);
             e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
@@ -2952,7 +3033,50 @@ box off
 P = signrank(ol,cl)
 
 
-% looking at the preferred angle: always the same?
+% look at pac differences between day 10 an day 1
+day10 = pac_raw_values(23).pac;
+day1 = pac_raw_values(2).pac;
+day1 = abs(mean(day1));
+day10 = abs(mean(day10));
+pac_tmp = day1-day10;
+ch_wts = [pac_tmp(1:107) 0 pac_tmp(108:111) 0  pac_tmp(112:115) 0 ...
+    pac_tmp(116:end)];
+ch_wts=abs(ch_wts);
+% figure;
+% imagesc(abs(ch_wts(ecog_grid)))
+sig = ones(253,1)';
+sig1 = [sig(1:107) 0 sig(108:111) 0  sig(112:115) 0 ...
+    sig(116:end)];
+
+ch_layout=[];
+for i=1:23:253
+    ch_layout = [ch_layout; i:i+22 ];
+end
+ch_layout = (fliplr(ch_layout));
+
+%plv(sig) = zscore(plv(sig))+4;
+phMap = linspace(-pi,pi,253)';
+ChColorMap = ([parula(253)]);
+figure
+%subplot(1,2,2)
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+e_h = el_add(elecmatrix, 'color', 'w','msize',2);
+% elecmatrix1 = [elecmatrix(1:107,:); zeros(1,3); elecmatrix(108:111,:); zeros(1,3) ; ...
+%     elecmatrix(112:115,:) ;zeros(1,3); elecmatrix(116:end,:)];
+for j=1:256%length(sig)
+    [xx yy]=find(ecog_grid==j);
+    if ~isempty(xx)
+        ch = ch_layout(xx,yy);
+        if sig1(j)==1
+            ms = ch_wts(j)*18.55;
+            %[aa bb]=min(abs(pref_phase(j) - phMap));
+            c=ChColorMap(bb,:);
+            e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
+        end
+    end
+end
+set(gcf,'Color','w')
+sgtitle('Day 1 to Day 10: Channels with greatest drop in mu hG PAC')
 
 
 %% LOOKING AT THE AVERAGE ALPHA ERPS
