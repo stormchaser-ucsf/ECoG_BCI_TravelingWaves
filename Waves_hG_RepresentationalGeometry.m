@@ -1664,10 +1664,10 @@ y = [median(acc_nonwave_days)]';
 
 % get bad channels from earlier code on dim collapse
 %B6
-%bad_ch = [ 15    24    78   100   103   107   143   146   155   185   253];
+bad_ch = [ 15    24    78   100   103   107   143   146   155   185   253];
 
 % B1
-bad_ch = [64	69	93	125	134	141	169	175	215	223	227	233	236	243];
+%bad_ch = [64	69	93	125	134	141	169	175	215	223	227	233	236	243];
 
 %%%% STORING SINGLE TRIAL DATA FOR WAVES AND NON WAVES IN CL
 condn_data={};k=1;

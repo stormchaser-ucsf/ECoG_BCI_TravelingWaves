@@ -99,6 +99,32 @@ iterations = 10
 ##### recon loss is 0.5 and CE loss 2
 ####
 
+#### SAVING AND LOADING INTO MATLAN
+
+# import scipy.io
+# import numpy as np
+
+# data_for_matlab = {}
+
+# for key, value in condn_data.items():
+#     if isinstance(value, list):
+#         # 1. Create an empty object array of the correct length
+#         obj_arr = np.empty(len(value), dtype=object)
+        
+#         # 2. Manually fill it to skip NumPy's automatic broadcasting
+#         for i, arr in enumerate(value):
+#             obj_arr[i] = arr
+            
+#         data_for_matlab[key] = obj_arr
+#     else:
+#         data_for_matlab[key] = value
+
+# # Save the dictionary
+# scipy.io.savemat("condn_data.mat", data_for_matlab)
+
+
+####
+
 #%% TRAIN MODEL
 
 waves_var=[]
