@@ -1982,45 +1982,45 @@ disp([mean(diag(acc_nonwave)) mean(diag(acc_bin_nonwave))])
 
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
 tid = [condn_data.targetID];
-% 
-% for i=1:7
-%     idx = find(tid==i);
-%     Xw = [condn_data(idx).wave_neural];
-%     Xnw = [condn_data(idx).nonwave_neural];
-% 
-%     nt_w=[];
-%     nt_nw=[];
-%     for j=1:length(condn_data)
-%         if condn_data(j).targetID==i
-%             tmp=condn_data(j).wave_neural;
-%             nt_w = [nt_w size(tmp,2)];
-% 
-%             tmp=condn_data(j).nonwave_neural;
-%             nt_nw = [nt_nw size(tmp,2)];
-%         end
-%     end
-% 
-%     Xw_aligned = match_1st_2nd_moments(Xw', Xnw', nt_w, nt_nw);
-% 
-%     start_idx = 1;k=1;
-%     for ii = 1:length(condn_data)
-% 
-%         if  condn_data(ii).targetID==i
-% 
-%             T = nt_w(k);
-%             idx = start_idx:(start_idx+T-1);
-% 
-%             % Extract this trial
-%             trial_data = Xw_aligned(idx,:);    % T × 253
-% 
-%             % Transpose back to 253 × T
-%             condn_data(ii).wave_neural_aligned = trial_data';
-% 
-%             start_idx = start_idx + T;
-%             k=k+1;
-%         end
-%     end
-% end
+
+for i=1:7
+    idx = find(tid==i);
+    Xw = [condn_data(idx).wave_neural];
+    Xnw = [condn_data(idx).nonwave_neural];
+
+    nt_w=[];
+    nt_nw=[];
+    for j=1:length(condn_data)
+        if condn_data(j).targetID==i
+            tmp=condn_data(j).wave_neural;
+            nt_w = [nt_w size(tmp,2)];
+
+            tmp=condn_data(j).nonwave_neural;
+            nt_nw = [nt_nw size(tmp,2)];
+        end
+    end
+
+    Xw_aligned = match_1st_2nd_moments(Xw', Xnw', nt_w, nt_nw);
+
+    start_idx = 1;k=1;
+    for ii = 1:length(condn_data)
+
+        if  condn_data(ii).targetID==i
+
+            T = nt_w(k);
+            idx = start_idx:(start_idx+T-1);
+
+            % Extract this trial
+            trial_data = Xw_aligned(idx,:);    % T × 253
+
+            % Transpose back to 253 × T
+            condn_data(ii).wave_neural_aligned = trial_data';
+
+            start_idx = start_idx + T;
+            k=k+1;
+        end
+    end
+end
 
 
 
@@ -2032,7 +2032,7 @@ k=1;
 for i=1:length(condn_data)
     tmp=condn_data(i).wave_neural';
     tmp1=condn_data(i).nonwave_neural';
-    %tmp2 = condn_data(i).wave_neural_aligned';
+    tmp2 = condn_data(i).wave_neural_aligned';
     targetID = condn_data(i).targetID;
 
     if size(tmp,1) > size(tmp1,1)
@@ -2044,8 +2044,8 @@ for i=1:length(condn_data)
     condn_data_wave(i).neural = tmp';
     condn_data_wave(i).targetID = targetID;
     
-    %condn_data_nonwave_hat(i).neural = tmp2';
-    %condn_data_nonwave_hat(i).targetID = targetID;
+    condn_data_nonwave_hat(i).neural = tmp2';
+    condn_data_nonwave_hat(i).targetID = targetID;
 
     if size(tmp,1) < size(tmp1,1)
         idx = randperm(size(tmp1,1),size(tmp,1));
@@ -2060,51 +2060,8 @@ end
 
 condn_data_wave = remove_bad_trials(condn_data_wave);
 condn_data_nonwave = remove_bad_trials(condn_data_nonwave);
-
-
-condn_data_nonwave_hat={};
-tid = [condn_data.targetID];
-for i=1:7
-    idx = find(tid==i);
-    Xw = [condn_data_wave(idx).neural];
-    Xnw = [condn_data_nonwave(idx).neural];
-
-    nt_w=[];
-    nt_nw=[];
-    for j=1:length(condn_data)
-        if condn_data(j).targetID==i
-            tmp=condn_data_wave(j).neural;
-            nt_w = [nt_w size(tmp,2)];
-
-            tmp=condn_data_nonwave(j).neural;
-            nt_nw = [nt_nw size(tmp,2)];
-        end
-    end
-
-    Xw_aligned = match_1st_2nd_moments(Xw', Xnw', nt_w, nt_nw);
-
-    start_idx = 1;k=1;xx=[];
-    for ii = 1:length(condn_data)
-
-        if  condn_data(ii).targetID==i
-            xx=[xx ii];
-
-            T = nt_w(k);
-            idx1 = start_idx:(start_idx+T-1);
-
-            % Extract this trial
-            trial_data = Xw_aligned(idx1,:);    % T × 253
-
-            % Transpose back to 253 × T
-            condn_data_nonwave_hat(ii).neural = trial_data';
-            condn_data_nonwave_hat(ii).targetID = i;
-
-            start_idx = start_idx + T;
-            k=k+1;
-        end
-    end
-end
 condn_data_nonwave_hat = remove_bad_trials(condn_data_nonwave_hat);
+
 
 iterations=10;
 [acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance] = ...

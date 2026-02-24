@@ -87,6 +87,24 @@ def training_split_wavesAE(condn_data,prop=0.7):
     
 
 
+def training_split_wavesAE_recon(condn_data,prop=0.7):
+    tid = condn_data.get('targetID')
+    p = round(prop*len(tid))
+    
+    # randomly get p numbers from length tid
+    idx_train = rnd.choice(range(0,len(tid)),size=p,replace=False)
+    
+    # get the remaining numbers
+    full = set(range(0,len(tid)))
+    rem_idx = sorted(full-set(idx_train))
+    rem_idx = np.array(rem_idx)
+    
+    # split these into validation and training set    
+    train_data = split_dict_by_indices(condn_data, idx_train)
+    val_data   = split_dict_by_indices(condn_data, rem_idx)
+    
+    
+    return train_data,val_data
 
     
 
@@ -1255,7 +1273,23 @@ class iAutoencoder(nn.Module):
         z=self.decoder(z)
         #y=self.recon_classifier(z)
         return z,y
+
+class iAutoencoder_recon(nn.Module):
+    def __init__(self,input_size,hidden_size,latent_dims,num_classes):
+        super(iAutoencoder_recon,self).__init__()
+        self.encoder = encoder(input_size,hidden_size,latent_dims,num_classes)
+        self.decoder = decoder(input_size,hidden_size,latent_dims,num_classes)
+        #self.latent_classifier = latent_classifier(latent_dims,num_classes)
+        #self.recon_classifier = recon_classifier(input_size,num_classes)
     
+    def forward(self,x):
+        z=self.encoder(x)
+        #y=self.latent_classifier(z)
+        z=self.decoder(z)
+        #y=self.recon_classifier(z)
+        return z
+
+
 # combining all into 
 class Autoencoder(nn.Module):
     def __init__(self,input_size,hidden_size,latent_dims,num_classes):
@@ -4126,6 +4160,7 @@ def validation_loss_waves(model,val_data,val_labels,recon_criterion,classif_crit
     
      return recon_val_loss.item(),classif_val_loss.item(),total_val_loss.item(),val_acc.item()
          
+
          
     
      
@@ -4272,6 +4307,200 @@ def training_loop_iAE_waves(model,num_epochs,learning_rate,batch_val,
     model_goat=model_goat.to(device)
     model_goat.eval()
     return model_goat, goat_acc
+
+
+ 
+def validation_loss_waves_recon(model,Xval,recon_criterion):    
+     
+     a = Xval["targetID"]
+     wave_tmp = Xval["wave_neural"]
+     nonwave_tmp = Xval["nonwave_neural"]    
+     total_val_loss_loop=[]
+     for total_loop in np.arange(20):
+         
+         input_val = []
+         output_val=[]
+             
+         for trial_loop in np.arange(len(a)):
+             tmp_wave = wave_tmp[trial_loop]
+             tmp_nonwave = nonwave_tmp[trial_loop]
+             
+             #if there are more nonwave samples
+             if tmp_nonwave.shape[1] > tmp_wave.shape[1]:
+                 idx  = rnd.choice(tmp_nonwave.shape[1],size=tmp_wave.shape[1],replace=False)
+                 tmp_nonwave = tmp_nonwave[:,idx]
+                 
+             #if there are more wave samples             
+             if tmp_nonwave.shape[1] < tmp_wave.shape[1]:
+                 idx  = rnd.choice(tmp_wave.shape[1],size=tmp_nonwave.shape[1],replace=False)
+                 tmp_wave = tmp_wave[:,idx]
+            
+             input_val.append(tmp_wave)        
+             output_val.append(tmp_nonwave)        
+         
+         input_val=np.concatenate(input_val,axis=1)    
+         output_val=np.concatenate(output_val,axis=1)    
+         
+         input_val = torch.from_numpy(input_val).to(device).float()
+         input_val = input_val.t()
+         
+         output_val = torch.from_numpy(output_val).to(device).float()
+         output_val = output_val.t()
+         
+         model.eval()
+         with torch.no_grad():
+                 
+             out = model(input_val)
+             recon_val_loss = (recon_criterion(out,output_val))/output_val.shape[0]         
+             total_val_loss = recon_val_loss
+             total_val_loss = total_val_loss.item()
+        
+         total_val_loss_loop.append(total_val_loss)
+         
+     
+     model.train()
+     recon_val_loss = np.array(total_val_loss_loop).mean()
+    
+     return recon_val_loss
+
+
+# TRAINING LOOP
+def training_loop_iAE_waves_recon(model,num_epochs,learning_rate,batch_val,
+                      patience,gradient_clipping,filename,
+                      Xtrain,Xval,
+                      input_size,hidden_size,latent_dims,num_classes):
+    
+    # parcellate the validation data
+    # val_data_wave = Xval["wave_neural"]
+    # val_data_nonwave = Xval["nonwave_neural"]
+    # val_data_labels =  Xval["targetID"]
+    # val_labels = np.array([])      
+    # val_data_input = np.empty((253,0))
+    # val_data_output = np.empty((253,0))
+    # for i in np.arange(len(val_data_labels)):
+    #     tmp = val_data_wave[i].shape[1]
+    #     l = np.round(val_data_labels[i])-1       
+    #     val_labels= np.append(val_labels,np.repeat(l,tmp),axis=0)
+    #     val_data_input =  np.append(val_data,val_data_wave[i],axis=1)
+        
+    #     tmp = val_data_nonwave[i].shape[1]
+    #     l = np.round(val_data_labels[i])-1
+    #     val_labels= np.append(val_labels,np.repeat(l,tmp),axis=0)
+    #     val_data_output =  np.append(val_data,val_data_nonwave[i],axis=1)
+    
+    # val_data_input = val_data_input.T
+    # val_data_input =  torch.from_numpy(val_data_input).to(device).float()
+    # val_data_output = val_data_output.T
+    # val_data_output =  torch.from_numpy(val_data_output).to(device).float()
+    # val_labels = torch.from_numpy(val_labels).to(device).long()
+    
+        
+    
+   
+    # within every epoch, perform monte carlo sampling of balanced minibatches    
+    num_batches=300
+    recon_criterion = nn.MSELoss(reduction='sum')
+    #classif_criterion = nn.CrossEntropyLoss(reduction='mean')    
+    #opt = torch.optim.Adam(model.parameters(),lr=learning_rate)
+    opt = torch.optim.AdamW(model.parameters(),lr=learning_rate,weight_decay=1e-4)
+    print('Starting training')
+    goat_loss=99999
+    counter=0
+    labels = np.array(Xtrain["targetID"])    
+    res=[]      
+    
+    model.train()
+    for epoch in range(num_epochs):
+      
+      if epoch>round(num_epochs*0.6):
+          for g in opt.param_groups:
+              g['lr']=1e-4
+              
+     
+      for batch in range(num_batches):
+          
+          
+          # get the batch 
+          sz=4
+          trial_sz=3;
+          Xtrain_batch=[]
+          Ytrain_batch=[]
+          label_batch=np.array([])          
+          for i in np.arange(num_classes)+1:
+              aa = np.where((i)==labels)[0]
+              # get 3 random trials 
+              bb = rnd.choice(len(aa),size=trial_sz,replace=False)
+              bb = aa[bb]
+              
+              # get the hg samples from these trials both waves and non waves
+              for j in np.arange(len(bb)):
+                  tmp = np.array(Xtrain["wave_neural"][bb[j]])
+                  tmp_idx = rnd.choice(tmp.shape[1],size=sz,replace=False)
+                  Xtrain_batch.append(tmp[:,tmp_idx])
+                  label_batch= np.append(label_batch,np.repeat(i,sz),axis=0)
+                                 
+                  
+                  tmp = np.array(Xtrain["nonwave_neural"][bb[j]])
+                  tmp_idx = rnd.choice(tmp.shape[1],size=sz,replace=False)
+                  Ytrain_batch.append(tmp[:,tmp_idx])
+                  label_batch= np.append(label_batch,np.repeat(i,sz),axis=0)
+              
+          Xtrain_batch  = np.concatenate(Xtrain_batch,axis=1)
+          Ytrain_batch  = np.concatenate(Ytrain_batch,axis=1)
+                    
+          #push to gpu
+          Xtrain_batch = torch.from_numpy(Xtrain_batch).to(device).float()
+          Xtrain_batch = Xtrain_batch.t()
+          
+          Ytrain_batch = torch.from_numpy(Ytrain_batch).to(device).float()
+          Ytrain_batch = Ytrain_batch.t()
+          
+          # forward pass thru network
+          opt.zero_grad() 
+          recon = model(Xtrain_batch)          
+          
+          # get loss      
+          recon_loss = (recon_criterion(recon,Ytrain_batch))/Ytrain_batch.shape[0]          
+          loss = recon_loss
+          total_loss = loss.item()
+          #print(classif_loss.item())
+          
+          # backpropagate thru network 
+          loss.backward()
+          nn.utils.clip_grad_value_(model.parameters(), clip_value=gradient_clipping)
+          opt.step()
+          #plt.figure();plt.plot(res)
+      
+     
+      # get validation losses      
+      val_loss=validation_loss_waves_recon(model,Xval, recon_criterion)    
+      
+      print(f'Epoch [{epoch+1}/{num_epochs}], Val. Loss {val_loss:.6f}, Train Loss {total_loss:.6f}')    
+      
+      if val_loss<goat_loss:
+           goat_loss = val_loss      
+           counter = 0
+           print('Goat loss, saving model')      
+           torch.save(model.state_dict(), filename)
+      else:
+           counter += 1
+        
+      if counter>=patience:
+           print('Early stoppping point reached')
+           print('Best val loss is')
+           print(goat_loss)
+           break
+        
+     #model_goat = Autoencoder3D(ksize,num_classes,input_size,lstm_size)
+    model_goat = iAutoencoder_recon(input_size,hidden_size,latent_dims,num_classes)  
+    #model_goat = iAutoencoder_B3(input_size,hidden_size,latent_dims,num_classes)
+    model_goat.load_state_dict(torch.load(filename))
+    model_goat=model_goat.to(device)
+    model_goat.eval()
+    return model_goat
+
+
+
 
 
 # plotting and returning latent activations
