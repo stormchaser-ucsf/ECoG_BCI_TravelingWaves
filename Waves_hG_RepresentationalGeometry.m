@@ -10,7 +10,7 @@ clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B1';
+subj ='B3';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -121,7 +121,7 @@ figure;
 boxplot(res)
 
 
-%% ANALYSIS -3
+%% ANALYSIS -3 (also channels with greatest wave stability)
 % getting the wave data over to RM
 
 % have to get it from the vector field in stats_cl
@@ -188,6 +188,13 @@ for days=1:length(stats_cl_hg_days)
         idx=idx+1;
     end
 end
+
+% imagesc stab_val_total
+tmp=squeeze(median(stab_val_total,3));
+tmp  = max(tmp(:))-tmp;
+figure;imagesc((tmp))
+figure;imagesc(rot90(tmp,-1))
+
 
 wave_data_B3 =wave_data;
 save wave_data_B3 wave_data_B3 -v7.3
@@ -346,7 +353,9 @@ hline(0,'--k')
 
 disp(signrank(r))
 
-%% ANALYSIS 0 and 1 -> VARIANCE, DIMENSIONAL COLLAPSE PCA style (MAIN)
+%% ANALYSIS 0 and 1 -> VARIANCE, PCA style (MAIN)
+% PRINCIPAL ANGLES 
+% DIMENSIONAL COLLAPSE  
 % hg decouples of mu during waves as compared to non-waves. does the
 % dynamic range of hg increase during wave epochs as opposed to non wave
 % epochs? is there greater  total variance? 
