@@ -1,4 +1,4 @@
-% main code for the hand project
++% main code for the hand project
 %
 % this includes the data recently collected with multipe sequences of hand
 % movements
@@ -12,11 +12,20 @@
 
 %% INIT
 clc;clear
-addpath('C:\Users\nikic\Documents\MATLAB')
-addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
-addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim\helpers')
-addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
-addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
+
+if ispc
+    addpath('C:\Users\nikic\Documents\MATLAB')
+    addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
+    addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim\helpers')
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
+    addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
+
+else
+
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
+
+end
 
 
 
@@ -2731,8 +2740,11 @@ end
 toc
 
 
-cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
-save PAC_B3_Hand_rawValues_betaToHg_15To20Hz -v7.3
+%cd('/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data')
+%save PAC_B3_Hand_rawValues_betaToHg_15To20Hz -v7.3
+
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/')
+load('PAC_B3_Hand_rawValues.mat')
 
 %% PLOTTING CONTINUATION FROM ABOVE
 
@@ -2896,31 +2908,143 @@ figure;boxplot([ol' cl'])
 % vs alpha
 
 
-% code for plotting phase angle and PLV on grid. Taken from ecog hand
+%%%% (MAIN) code for plotting phase angle and PLV on grid. Taken from ecog hand
 % project code
-%day_idx=1;
-pac_day1 = pac_raw_values(2).pac;
-plv  = abs(mean(pac_day1));
-pval_day1 = pval_cl(1,:);
-%[pfdr,pval1]=fdr(pval_day1,0.05);pfdr
-pfdr=0.05;
-sig = pval_day1<=pfdr;
-ns = pval_day1>pfdr;
-pref_phase = angle(mean(pac_day1));
-%subplot(1,2,1)
-pax = plot_phases(pref_phase(sig));
-%rose(pref_phase(sig));
 
-% plotting plv values as an image first
-pac_tmp = abs(mean(pac_day1));
-ch_wts = [pac_tmp(1:107) 0 pac_tmp(108:111) 0  pac_tmp(112:115) 0 ...
-    pac_tmp(116:end)];
-sig1 = [sig(1:107) 0 sig(108:111) 0  sig(112:115) 0 ...
-    sig(116:end)];
+%%%% STEP 1: JUST PLOTTING THE NUMBER OF SIG. CHANNELS ACROSS DAYS
+tmp=sum(pval_cl'<=0.05);
+figure;plot(tmp./253)
+xlabel('Days')
+xticks(1:10)
+ylabel('Prop of sig channels')
+
+tmp=[];tmp_ol=[];
+sig_ch=[];
+pfdr_days=[];
+sig_ch_ol=[];
+for i=1:size(pval_cl,1)
+    [pfdr,pval1]=fdr(pval_cl(i,:),0.05);
+    tmp(i) = sum(pval_cl(i,:) <= pfdr);
+    sig_ch(i,:) = pval_cl(i,:)<=pfdr;    
+    pfdr_days(i) = pfdr;
+
+    [pfdr,pval1]=fdr(pval_ol(i,:),0.05);
+    tmp_ol(i) = sum(pval_ol(i,:) <= pfdr);
+    sig_ch_ol(i,:) = pval_ol(i,:)<=pfdr;    
+end
+figure;hold on
+plot(tmp./253)
+%plot(tmp_ol./253)
+xlabel('Days')
+xticks(1:10)
+ylabel('Prop of sig channels (FDR)')
+plot_beautify
+
+%%% IMPORTANT
+% fit a logistic-sigmoidal model and do stats
+x=1:10;
+y=tmp./253;
+ft = fittype('L/(1+exp(k*(x-x0)))', 'independent','x', 'coefficients',{'L','k','x0'});
+opts = fitoptions(ft);
+opts.StartPoint = [max(y) 1 median(x)];
+opts.Lower = [0 0 0];
+opts.Upper = [1 10 10];
+[mdl,gof] = fit(x',y',ft,opts);
+R2 = gof.rsquare;
+
+parfor i=1:1000
+    xx = randperm(10);    
+    [mdlb,gofb] = fit(xx',y',ft);    
+    r2boot(i) = gofb.rsquare;
+end
+figure;hist(abs(r2boot),50)
+vline(R2,'r')
+
+xx=linspace(1,10,100);
+yhat = feval(mdl,xx');
 figure;
-imagesc(ch_wts(ecog_grid))
+hold on
+plot(x,y,'.b','MarkerSize',20)
+plot(xx,yhat,'k','LineWidth',1)
+xlabel('Days')
+ylabel('Proportion of sig. PAC channels')
+plot_beautify
+
+%%% comparing PLV over sig. channels between OL and CL
+ol_days = [1:2:13 16:3:22];
+cl_days = ol_days+1;
+batch_days = [NaN(1,6) 15:3:24];
+plv_ol=[];
+plv_cl=[];
+plv_batch=[];
+for i=1:length(ol_days)
+    ol_tmp_pac = pac_raw_values(ol_days(i)).pac;
+    ol_tmp_pac = abs(mean(ol_tmp_pac));
+    ol_p = pval_ol(i,:);
+    [pfdr] = fdr(ol_p,0.05);
+    idx = ol_p <= pfdr;
+    plv_ol(i) = mean(ol_tmp_pac(idx));
+
+    cl_tmp_pac = pac_raw_values(cl_days(i)).pac;
+    cl_tmp_pac = abs(mean(cl_tmp_pac));
+    cl_p = pval_cl(i,:);
+    [pfdr] = fdr(cl_p,0.05);
+    idx = cl_p <= pfdr;
+    plv_cl(i) = mean(cl_tmp_pac(idx));
+
+    cl_tmp_pac = pac_raw_values(cl_days(i)).pac;
+    cl_tmp_pac = abs(mean(cl_tmp_pac));
+    cl_p = pval_cl(i,:);
+    [pfdr] = fdr(cl_p,0.05);
+    idx = cl_p <= pfdr;
+    plv_cl(i) = mean(cl_tmp_pac(idx));
+
+    if i>6
+        cl_tmp_pac = pac_raw_values(batch_days(i)).pac;
+        cl_tmp_pac = abs(mean(cl_tmp_pac));
+        cl_p = pval_batch(i,:);
+        [pfdr] = fdr(cl_p,0.05);
+        idx = cl_p <= pfdr;
+        plv_batch(i) = mean(cl_tmp_pac(idx));
+    end
+end
 figure;
-imagesc(ch_wts(ecog_grid).*sig1(ecog_grid))
+plot(plv_ol)
+hold on
+plot(plv_cl)
+plot(plv_batch)
+signrank(plv_ol,plv_cl)
+figure;boxplot([plv_ol' plv_cl'])
+
+%%%% STEP 2 PLOTTING SIG. CHANNELS ON GRID  WITH PLV
+% days 1-3
+tmp = sum(sig_ch(1:3,:),1);
+tmp(tmp>0)=1;
+tmp_pac=[];
+for ii=2:2:6 % CL days 1 and 2
+    tmp1 = pac_raw_values(ii).pac;
+    tmp1 = abs(mean(tmp1));
+    tmp_pac=[tmp_pac;tmp1];
+end
+tmp_pac = sum(tmp_pac);
+plot_on_brain_wts(tmp,tmp_pac,ecog_grid,cortex,elecmatrix);
+
+% days 8-10
+tmp = sum(sig_ch(8:10,:),1);
+tmp(tmp>0)=1;
+tmp_pac=[];
+for ii=17:3:23 % CL days 1 and 2
+    tmp1 = pac_raw_values(ii).pac;
+    tmp1 = abs(mean(tmp1));
+    tmp_pac=[tmp_pac;tmp1];
+end
+tmp_pac = sum(tmp_pac);
+plot_on_brain_wts(tmp,tmp_pac,ecog_grid,cortex,elecmatrix);
+
+%%%%% END PLOTTING STUFF (MAIN)
+
+%day_idx=1;
+
 
 % plot sig electrodes, with size denoted by PLV and color b preferred phase
 % need to plot this taking into account the location of the grid and not

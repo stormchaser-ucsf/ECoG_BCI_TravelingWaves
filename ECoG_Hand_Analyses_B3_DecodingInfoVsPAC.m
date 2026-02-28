@@ -23,21 +23,22 @@ if ispc
     
 
 else
-    root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
+    %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
+    root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
     cd(root_path)
     load session_data_B3_Hand
     load('ECOG_Grid_8596_000067_B3.mat')
-    addpath(genpath('/home/reza/Repositories/ECoG_BCI_TravelingWaves'))
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 end
 
 
-% d1 = designfilt('bandpassiir','FilterOrder',4, ...
-%     'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
-%     'SampleRate',1e3);
-
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
     'SampleRate',1e3);
+
+% d1 = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+%     'SampleRate',1e3);
 
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -52,6 +53,10 @@ reg_days=[];
 mahab_dist_days=[];
 plot_true = true;
 close all
+
+imaging_B3_waves;
+close all
+
 
 for i=1:length(session_data)
 
@@ -128,8 +133,8 @@ for i=1:length(session_data)
 
     % get the phase locking value
     disp(['Processing Day ' num2str(i) ' CL'])
-    %[pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
-    pac=zeros(100,253);
+    [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+    %pac=zeros(100,253);
 
 
     % get the mahab dist at each channel
@@ -180,16 +185,16 @@ for i=1:length(session_data)
 
 
     % regression
-    % y = abs(mean(pac))';
-    % x = mahab_dist';
-    % x = [ones(size(x,1),1) x];
-    % [B,BINT,R,RINT,STATS1] = regress(y,x);
+    y = abs(mean(pac))';
+    x = mahab_dist';
+    x = [ones(size(x,1),1) x];
+    [B,BINT,R,RINT,STATS1] = regress(y,x);
    
 
     if plot_true
 
         yhat = x*B;
-        plot(x(:,2),yhat,'k')
+        plot(x(:,2),yhat,'k','LineWidth',1)
 
         % plot mahab dist on brain
         figure;
@@ -203,7 +208,7 @@ for i=1:length(session_data)
 
     end
 
-    %reg_days(:,i) = [B; STATS1(3)];
+    reg_days(:,i) = [B; STATS1(3)];
 
     %
     % %%%%%%%%% getting batch files now
@@ -288,10 +293,7 @@ plot_beautify
 title('Evolution of alpha-hG PAC and discriminability')
 xlim([0.5 10.5])
 
-save mahab_pac_alpha_hg_B3_Hand -v7.3
-
-
-
+save mahab_pac_alpha_hg_B3_Hand_New -v7.3
 
 
 tmp=angle(mean(pac));
@@ -299,6 +301,19 @@ I=find(pac_tmp>0.3);
 figure;rose(tmp(I))
 title('Preferred angle between hG and alpha')
 plot_beautify
+
+
+% % plot mahab distances days
+for i=1:size(mahab_dist_days,1)
+
+    mahab_dist_day1 = mahab_dist_days(i,:);
+    ch_wts1 = [mahab_dist_day1(1:107) 0 mahab_dist_day1(108:111) 0  mahab_dist_day1(112:115) 0 ...
+        mahab_dist_day1(116:end)];
+
+    plot_on_brain(ch_wts1,cortex,elecmatrix,ecog_grid)
+    title(['hG decoding info CL Day ' num2str(i)])
+
+end
 
 %% (B1 ARROW 253 GRID): LOOKING at the the relationship b/w decoding 
 % information at each channel and % PAC b/w hg and alpha/delta at that 
