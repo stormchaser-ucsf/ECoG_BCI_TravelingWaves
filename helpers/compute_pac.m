@@ -24,12 +24,14 @@ for ii=1:length(files)
     disp(ii/length(files)*100)
     loaded=1;
     try
-        load(files{ii})
+        load(files{ii});
     catch
         loaded=0;
     end
 
     if loaded==1
+
+        
 
         kinax1 = find(TrialData.TaskState==1);
         kinax2 = find(TrialData.TaskState==2);

@@ -49,14 +49,17 @@ d3 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
     'SampleRate',1e3);
 
-reg_days=[];
-mahab_dist_days=[];
-plot_true = true;
-close all
+
 
 imaging_B3_waves;
 close all
 
+plot_true = true;
+
+
+reg_days=[];
+mahab_dist_days=[];
+pac_days=[];
 
 for i=1:length(session_data)
 
@@ -135,6 +138,7 @@ for i=1:length(session_data)
     disp(['Processing Day ' num2str(i) ' CL'])
     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
     %pac=zeros(100,253);
+    pac_days(i,:) = abs(mean(pac,1));
 
 
     % get the mahab dist at each channel
@@ -188,7 +192,10 @@ for i=1:length(session_data)
     y = abs(mean(pac))';
     x = mahab_dist';
     x = [ones(size(x,1),1) x];
-    [B,BINT,R,RINT,STATS1] = regress(y,x);
+    %[B,BINT,R,RINT,STATS1] = regress(y,x);
+    mdl = fitlm(x(:,2),y,'RobustOpts','on');
+    B = mdl.Coefficients.Estimate;
+    STATS1 = [0 mdl.Coefficients.pValue'];
    
 
     if plot_true
@@ -196,10 +203,12 @@ for i=1:length(session_data)
         yhat = x*B;
         plot(x(:,2),yhat,'k','LineWidth',1)
 
-        % plot mahab dist on brain
-        figure;
-        plot_on_brain(ch_wts_mahab,cortex,elecmatrix,ecog_grid)
-          title(['hG decoding info CL Day ' num2str(i)])
+        % %%plot mahab dist on brain
+        
+        % figure;
+        % plot_on_brain(ch_wts_mahab,cortex,elecmatrix,ecog_grid)
+        %   title(['hG decoding info CL Day ' num2str(i)])
+
         % 
         % % plot PAC on brain
         % %figure
@@ -208,7 +217,7 @@ for i=1:length(session_data)
 
     end
 
-    reg_days(:,i) = [B; STATS1(3)];
+    reg_days(:,i) = [B; STATS1(3);mdl.Coefficients.SE];
 
     %
     % %%%%%%%%% getting batch files now
@@ -260,6 +269,7 @@ for i=1:length(session_data)
 
 end
 
+%%%%% p value trend
 figure;hold on
 plot(log(reg_days(3,:)),'.','MarkerSize',20)
 xlabel('Days')
@@ -272,30 +282,66 @@ x = [ones(size(x,1),1) x];
 yhat = x*B;
 %plot(x(:,2),yhat,'k')
 plot_beautify
-title('Evolution of alpha-hG PAC and discriminability (sig)')
-hline(log(0.05),'--r')
+title('Evolution of mu-hG PAC and discriminability (sig)')
+hline(log(0.01),'--r')
+xlim([0.5 10.5])
 
 
-
+%%%% slope trend
 figure;hold on
 plot((reg_days(2,:)),'.','MarkerSize',20)
 xlabel('Days')
-%ylabel('Slope b/w PAC and decoding info.')
-ylabel('LFO - hG PAC and hG decoding info.')
+ylabel('Slope between mu-hG PAC and hG Decoding')
+%ylabel('LFO - hG PAC and hG decoding info.')
 xticks(1:10)
 y = reg_days(2,:)';
 x = (1:10)';
 x = [ones(size(x,1),1) x];
-[B,BINT,R,RINT,STATS1] = regress(y,x);
+%[B,BINT,R,RINT,STATS1] = regress(y,x);
+mdl = fitlm(x(:,2),y,'RobustOpts','on');
+B = mdl.Coefficients.Estimate;
 yhat = x*B;
 plot(x(:,2),yhat,'k')
 plot_beautify
-title('Evolution of alpha-hG PAC and discriminability')
+%title('Evolution of alpha-hG PAC and discriminability')
 xlim([0.5 10.5])
+hline(0,'--r')
 
 save mahab_pac_alpha_hg_B3_Hand_New -v7.3
 
+%%%%% HIERARCHICAL LINEAR MIXED EFFECT MODEL
 
+pac_days=pac_days';
+mahab_days=  mahab_dist_days';
+
+[nchan,ndays]=size(pac_days);
+[chanGrid, dayGrid] = ndgrid(1:nchan, 1:ndays);
+T = table;
+T.Y      = mahab_days(:);         % decoding info
+T.X      = pac_days(:);           % PAC
+T.DayNum = dayGrid(:);             % 1..10
+T.ChanID = categorical(chanGrid(:)); % same channels repeated across days
+T.DayC = T.DayNum - mean(1:ndays);  % mean(1:10)=5.5
+
+lme = fitlme(T, 'Y ~ 1 + X*DayC + (1|ChanID)', ...
+    'FitMethod','REML');
+
+% plotting
+b = fixedEffects(lme);
+names = lme.CoefficientNames;
+
+bX  = b(strcmp(names,'X'));
+bXD = b(strcmp(names,'X:DayC'));
+
+days  = (1:ndays)';
+dayC  = days - mean(1:ndays);
+slope_hat = bX + bXD*dayC;
+
+figure; plot(days, slope_hat, 'o-');
+yline(0,'--'); xlabel('Day'); ylabel('Estimated PAC→Decoding slope');
+
+
+%%%% MISC STUFF 
 tmp=angle(mean(pac));
 I=find(pac_tmp>0.3);
 figure;rose(tmp(I))

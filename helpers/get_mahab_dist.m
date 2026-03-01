@@ -148,7 +148,7 @@ else
     ch_len=128;
 end
 
-for ch=1:ch_len %channels
+parfor ch=1:ch_len %channels
     D=zeros(12);
     for j=1:length(condn_data)
         tmp = condn_data{j};
