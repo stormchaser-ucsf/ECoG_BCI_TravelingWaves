@@ -54,7 +54,7 @@ d3 = designfilt('bandpassiir','FilterOrder',4, ...
 imaging_B3_waves;
 close all
 
-plot_true = true;
+plot_true = false;
 
 
 reg_days=[];
@@ -205,9 +205,9 @@ for i=1:length(session_data)
 
         % %%plot mahab dist on brain
         
-        % figure;
-        % plot_on_brain(ch_wts_mahab,cortex,elecmatrix,ecog_grid)
-        %   title(['hG decoding info CL Day ' num2str(i)])
+        figure;
+        plot_on_brain(ch_wts_mahab,cortex,elecmatrix,ecog_grid)
+          title(['hG decoding info CL Day ' num2str(i)])
 
         % 
         % % plot PAC on brain
@@ -310,6 +310,7 @@ hline(0,'--r')
 save mahab_pac_alpha_hg_B3_Hand_New -v7.3
 
 %%%%% HIERARCHICAL LINEAR MIXED EFFECT MODEL
+% change in mu-hG PAC across-days using mixed effect model
 
 pac_days=pac_days';
 mahab_days=  mahab_dist_days';
@@ -339,6 +340,126 @@ slope_hat = bX + bXD*dayC;
 
 figure; plot(days, slope_hat, 'o-');
 yline(0,'--'); xlabel('Day'); ylabel('Estimated PAC→Decoding slope');
+
+
+%%%% MIXED EFFECT MODEL LOOKING AT EMERGENCE OF DECODING INFORMATION ROI
+% first thing, make sure that ecog_grid is converted to 253
+ecog_grid_253=[];
+for i=1:size(ecog_grid,1)
+    for j=1:size(ecog_grid,2)
+        if ecog_grid(i,j) <= 107
+            ecog_grid_253(i,j) = ecog_grid(i,j);
+        elseif ecog_grid(i,j) > 108 && ecog_grid(i,j) <= 113
+            ecog_grid_253(i,j) = ecog_grid(i,j)-1;
+
+        elseif  ecog_grid(i,j) > 113 && ecog_grid(i,j) <= 118
+            ecog_grid_253(i,j) = ecog_grid(i,j)-2;
+
+        elseif ecog_grid(i,j) > 118
+            ecog_grid_253(i,j) = ecog_grid(i,j)-3;
+        end
+    end
+end
+
+m1=[202	218	49	131	156	134
+205	62	45	137	157	140
+208	59	41	167	30	145
+211	56	38	171	28	149
+215	52	35	175	25	152
+219	48	160	179	21	23];
+
+pmv=[104	106	245	88	70
+100	102	249	85	66
+225	98	252	82	191
+229	223	125	79	195
+233	227	123	75	199
+238	231	120	71	203];
+
+lpmv1=[243	236	116	67	206
+119	241	112	192	209
+115	246	108	196	212
+111	250	76	200	216
+107	124	72	204	220
+103	121	68	207	94];
+
+spch_pmv=[99	117	193	210	90
+224	113	197	213	86
+228	109	201	217	83
+232	105	234	221	80
+237	101	239	95	77
+242	97	244	91	73];
+
+tg1=[247	222	248	87	69
+122	226	251	84	65
+118	230	253	81	190
+114	235	96	78	194
+110	240	92	74	198];
+
+tg2=[168	187	50	136	20	1
+172	63	46	142	15	126
+176	60	42	147	9	132
+180	57	12	151	3	138
+214	53	6	154	128	143];
+
+lm1=[93	44	163	183	16	19
+89	40	166	186	10	14
+55	37	170	189	4	8
+51	34	174	32	129	2
+47	159	178	31	135	127
+43	162	182	29	141	133];
+
+spchm1=[39	165	185	26	146	139
+36	169	188	22	150	144
+33	173	64	17	153	148
+158	177	61	11	155	18
+161	181	58	5	27	13
+164	184	54	130	24	7];
+
+nChan = 253;
+ROI = strings(nChan,1);
+ROI(m1(:))        = "M1";
+ROI(pmv(:))       = "PMv";
+ROI(lpmv1(:))     = "lPMv1";
+ROI(spch_pmv(:))  = "spchPMv";
+ROI(tg1(:))       = "TG1";
+ROI(tg2(:))       = "TG2";
+ROI(lm1(:))       = "lM1";
+ROI(spchm1(:))    = "spchM1";
+
+ROI = categorical(ROI);
+
+%%%%  LME
+DEC = mahab_days;
+DEC = DEC ./ max(DEC); % normalize it to per day relative ROI
+
+[nChan,nDay] = size(DEC);
+[chanGrid, dayGrid] = ndgrid(1:nChan, 1:nDay);
+
+T = table;
+T.Y      = DEC(:);
+T.DayNum = dayGrid(:);
+T.DayC   = T.DayNum - mean(1:nDay);
+T.ChanID = categorical(chanGrid(:));
+T.ROI    = ROI(chanGrid(:));
+
+% ROI × Day interaction model (random intercept per channel)
+lme_roi = fitlme(T, 'Y ~ 1 + DayC*ROI + (1|ChanID)', 'FitMethod','REML');
+
+disp(lme_roi)
+anova(lme_roi)   % look at DayC:ROI terms
+
+% plotting
+%%%% slops with sig. 
+plot_roi_slopes(T,lme_roi)
+
+%%%% plotting at specific ROIs
+m1_dec=[];
+for i=1:10
+    tmp=DEC(:,i);
+    tmp = tmp(tg1(:));
+    m1_dec(i) = mean(tmp);
+end
+figure;plot(m1_dec,'.','MarkerSize',20)
 
 
 %%%% MISC STUFF 

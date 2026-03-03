@@ -58,6 +58,22 @@ for j=1:size(anatomy_B3,1)
     end 
 end
 
+% plotting just brain with electrodes
+figure
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+set(gcf,'Color','w')
+rois = unique(anatomy_B3(:,4));
+colmap = parula(length(rois));
+for j=1:size(anatomy_B3,1)
+    ch_roi = anatomy_B3{j,4};
+    for i=1:length(rois)
+        if strcmp(ch_roi,rois{i})
+            col = colmap(i,:);
+            e_h = el_add(elecmatrix(j,:), ...
+                'color', 'b', 'msize',8);
+        end
+    end 
+end
 
 
 % plotting with a color bar denoting the phase values and the radius
