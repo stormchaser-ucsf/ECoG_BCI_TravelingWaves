@@ -485,6 +485,30 @@ plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
 ch_wts = zeros(253,1);
 ch_wts(pmv(:))=1;
 plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
+% stg1
+ch_wts = zeros(253,1);
+ch_wts(tg1(:))=1;
+plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
+% stg2
+ch_wts = zeros(253,1);
+ch_wts(tg2(:))=1;
+plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
+% spchm1
+ch_wts = zeros(253,1);
+ch_wts(spchm1(:))=1;
+plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
+%spchpmd
+ch_wts = zeros(253,1);
+ch_wts(spch_pmv(:))=1;
+plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
+%ventral to m1/s1
+ch_wts = zeros(253,1);
+ch_wts(lm1(:))=1;
+plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
+%ventral to pmd
+ch_wts = zeros(253,1);
+ch_wts(lpmv1(:))=1;
+plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
 
 %%%% MISC STUFF 
 tmp=angle(mean(pac));
