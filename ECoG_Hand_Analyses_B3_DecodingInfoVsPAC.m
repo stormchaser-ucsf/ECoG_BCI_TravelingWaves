@@ -450,17 +450,41 @@ anova(lme_roi)   % look at DayC:ROI terms
 
 % plotting
 %%%% slops with sig. 
-plot_roi_slopes(T,lme_roi)
+outTbl = plot_roi_slopes(T,lme_roi);
 
 %%%% plotting at specific ROIs
 m1_dec=[];
 for i=1:10
     tmp=DEC(:,i);
-    tmp = tmp(tg1(:));
-    m1_dec(i) = mean(tmp);
+    tmp = tmp(m1(:));
+    m1_dec(i) = median(tmp);
 end
-figure;plot(m1_dec,'.','MarkerSize',20)
+X=[1:10];
+Y = m1_dec;
+figure;plot(X,Y,'.k','MarkerSize',20)
+mdl=fitlm(X,Y);
+bhat = mdl.Coefficients.Estimate;
+yhat =  mdl.Fitted;
+yhat1 = [ones(length(X),1) X(:)]*bhat;
+hold on
+plot(X,yhat,'k','LineWidth',1)
+plot_beautify
+xlabel('Days')
+ylabel('high gamma decoding information')
+title('M1')
+xticks(1:10)
+xlim([0.5 10.5])
 
+% plotting brain regions
+% plot cortex and only specific channels 
+% m1 channels
+ch_wts = zeros(253,1);
+ch_wts(m1(:))=1;
+plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
+% pmd channels
+ch_wts = zeros(253,1);
+ch_wts(pmv(:))=1;
+plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
 
 %%%% MISC STUFF 
 tmp=angle(mean(pac));

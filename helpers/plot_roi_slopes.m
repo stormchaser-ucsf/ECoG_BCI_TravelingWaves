@@ -1,4 +1,4 @@
-function plot_roi_slopes(T,lme_roi)
+function outTbl=plot_roi_slopes(T,lme_roi)
 
 
 % === ROI-specific Day slopes from LME + bar plot with 95% CI + significance stars ===
@@ -50,10 +50,20 @@ for r = 1:nROI
     roiCI95_hi(r) = roiSlope(r) + tcrit*roiSE(r);
 end
 
-% ---- Table output (optional) ----
-outTbl = table(string(roiLevels), roiSlope, roiSE, roiCI95_lo, roiCI95_hi, roiP, ...
-    'VariableNames', {'ROI','DaySlope','SE','CI95_L','CI95_U','p'});
+% get t-value
+df = lme_roi.DFE;
+tval = roiSlope ./ roiSE;
+
+outTbl = table(string(roiLevels), roiSlope, roiSE, tval, roiCI95_lo, roiCI95_hi, roiP, ...
+               repmat(df, numel(roiLevels), 1), ...
+    'VariableNames', {'ROI','DaySlope','SE','t','CI95_L','CI95_U','p','DF'});
+
 disp(outTbl)
+
+% ---- Table output (optional) ----
+% outTbl = table(string(roiLevels), roiSlope, roiSE, roiCI95_lo, roiCI95_hi, roiP, ...
+%     'VariableNames', {'ROI','DaySlope','SE','CI95_L','CI95_U','p'});
+% disp(outTbl)
 
 % ---- Bar plot with 95% CI and stars ----
 figure; hold on
