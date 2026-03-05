@@ -45,24 +45,29 @@ from sklearn.preprocessing import MinMaxScaler
 #%% LOADING MATLAB FILES FOR ECHO SYNCH
 
 filepath = '/media/user/Data/ecog_data/ECoG BCI/Testing BlackRock/B1/SynchData/20210623/'
-filename ='Raw_BlackRockData_Block1.mat'
-#filename = 'Raw_BlackRockData_Block1_EventMarkers.mat'
-filename ='StreamedData_Block1.mat'
+filename0 ='Raw_BlackRockData_Block4.mat'
+filename = 'Raw_BlackRockData_Block4_EventMarkers.mat'
+filename2 ='StreamedData_Block4.mat'
 
+filename0 = filepath + filename0
 filename = filepath + filename
+filename2 = filepath + filename2
 
 data_dict = mat73.loadmat(filename)
+data_markers = data_dict.get('Raw_BlackRockData_Block1_EventMarkers')
+idx = [i for i, x in enumerate(data_markers) if x[0] not in [None, '']]
 
-data = data_dict.get('StreamedData_Block1')
+data_dict = mat73.loadmat(filename0)
+data = data_dict.get('Raw_BlackRockData_Block4')
 
-C= data
+data_dict = mat73.loadmat(filename2)
+data_streamed = data_dict.get('StreamedData_Block4')
 
-idx=[]
-for i in range(len(C)):
-    if C[i] is not None and C[i][0] is not None:
-        idx.append(i)
-        print(i, C[i][0])
-        
+
+#data = data_dict.get('StreamedData_Block1')
+#data = data_dict.get('Raw_BlackRockData_Block1')
+
+
         
         
         

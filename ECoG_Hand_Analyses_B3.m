@@ -2954,7 +2954,7 @@ R2 = gof.rsquare;
 
 parfor i=1:1000
     xx = randperm(10);    
-    [mdlb,gofb] = fit(xx',y',ft);    
+    [mdlb,gofb] = fit(xx',y',ft,opts);    
     r2boot(i) = gofb.rsquare;
 end
 figure;hist(abs(r2boot),50)
@@ -2969,6 +2969,20 @@ plot(xx,yhat,'k','LineWidth',1)
 xlabel('Days')
 ylabel('Proportion of sig. PAC channels')
 plot_beautify
+
+% linear fit
+lm = fitlm(x,y,'RobustOpts','on');
+bhat = lm.Coefficients.Estimate;
+yhat = lm.Fitted;
+figure;
+hold on
+plot(x,y,'.b','MarkerSize',20)
+plot(x,yhat,'k','LineWidth',1)
+plot_beautify
+ylim([0 1])
+xlabel('Days')
+ylabel('Proportion of sig. PAC channels')
+
 
 %%% comparing PLV over sig. channels between OL and CL
 ol_days = [1:2:13 16:3:22];
@@ -3017,11 +3031,11 @@ signrank(plv_ol,plv_cl)
 figure;boxplot([plv_ol' plv_cl'])
 
 %%%% STEP 2 PLOTTING SIG. CHANNELS ON GRID  WITH PLV
-% days 1-3
-tmp = sum(sig_ch(1:3,:),1);
+% days 1-2
+tmp = sum(sig_ch(1:2,:),1);
 tmp(tmp>0)=1;
 tmp_pac=[];
-for ii=2:2:6 % CL days 1 and 2
+for ii=2:2:4 % CL days 1 and 2
     tmp1 = pac_raw_values(ii).pac;
     tmp1 = abs(mean(tmp1));
     tmp_pac=[tmp_pac;tmp1];

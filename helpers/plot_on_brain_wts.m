@@ -30,7 +30,7 @@ for j=1:256
     [xx yy]=find(ecog_grid==j);
     if ~isempty(xx) && ch_wts(j)>0
         ch = ch_layout(xx,yy);
-        ms = ch_pac(j)*8;
+        ms = ch_pac(j)*4;
         e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
     end
 end

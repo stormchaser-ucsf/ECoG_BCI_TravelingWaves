@@ -54,7 +54,7 @@ d3 = designfilt('bandpassiir','FilterOrder',4, ...
 imaging_B3_waves;
 close all
 
-plot_true = false;
+plot_true = true;
 
 
 reg_days=[];
@@ -83,6 +83,10 @@ for i=1:length(session_data)
     else
         batch_idx = find(folders_batch1==1);
     end
+
+    % if i==7
+    %     online_idx = [online_idx 10:13];
+    % end
 
 
 
@@ -175,9 +179,12 @@ for i=1:length(session_data)
         % plot and see?
         %figure;
         subplot(1,3,3)
-        plot(mahab_dist,abs(mean(pac)),'.','MarkerSize',20)
-        xlabel('Mahab Dist')
-        ylabel('PAC')
+        %plot(mahab_dist,abs(mean(pac)),'.','MarkerSize',20)
+        %xlabel('Mahab Dist')
+        %ylabel('PAC')
+        plot(abs(mean(pac)),mahab_dist,'.','MarkerSize',20)
+        ylabel('Mahab Dist')
+        xlabel('PAC')        
         title(['CL Day ' num2str(i)])
         ylim([0 0.7])
         plot_beautify
@@ -189,8 +196,8 @@ for i=1:length(session_data)
 
 
     % regression
-    y = abs(mean(pac))';
-    x = mahab_dist';
+    x = abs(mean(pac))';
+    y = mahab_dist';
     x = [ones(size(x,1),1) x];
     %[B,BINT,R,RINT,STATS1] = regress(y,x);
     mdl = fitlm(x(:,2),y,'RobustOpts','on');
@@ -202,12 +209,14 @@ for i=1:length(session_data)
 
         yhat = x*B;
         plot(x(:,2),yhat,'k','LineWidth',1)
+        xlim([0 1])
+        %ylim([0 1])
 
         % %%plot mahab dist on brain
         
-        figure;
-        plot_on_brain(ch_wts_mahab,cortex,elecmatrix,ecog_grid)
-          title(['hG decoding info CL Day ' num2str(i)])
+        % figure;
+        % plot_on_brain(ch_wts_mahab,cortex,elecmatrix,ecog_grid)
+        %   title(['hG decoding info CL Day ' num2str(i)])
 
         % 
         % % plot PAC on brain
@@ -269,6 +278,66 @@ for i=1:length(session_data)
 
 end
 
+
+pac_days = pac_days';
+mahab_dist_days=mahab_dist_days';
+
+%%%% PLOTTING SLOPES AS A BAR PLOT
+[nChan, nDay] = size(pac_days);
+
+days = (1:nDay)';
+
+slope = zeros(nDay,1);
+se = zeros(nDay,1);
+
+% ----- Compute slope for each day -----
+for d = 1:nDay
+    
+    PAC = pac_days(:,d);
+    DEC = mahab_dist_days(:,d);
+    
+    mdl = fitlm(PAC, DEC,'RobustOpts','on');
+    
+    slope(d) = mdl.Coefficients.Estimate(2); % PAC slope
+    se(d)    = mdl.Coefficients.SE(2);
+    
+end
+
+% ----- 95% confidence intervals -----
+tcrit = tinv(0.975, nChan-2);
+
+ci = tcrit * se;
+
+% ----- Plot -----
+figure
+b = bar(days, slope);
+hold on
+
+errorbar(days, slope, ci, 'k.', 'LineWidth',1.5)
+
+yline(0,'--r')
+
+xlabel('Day')
+ylabel('Slope, mu hG PAC → hG decoding info.')
+
+box on
+set(gca,'FontSize',12)
+plot_beautify
+
+%%%
+
+
+% recreating slope trend
+slopes=[];
+for i=1:10
+    x = pac_days(:,i);
+    y = mahab_dist_days(:,i);
+    x = [ones(size(x,1),1) x];  
+    mdl = fitlm(x(:,2),y,'RobustOpts','on');
+    B = mdl.Coefficients.Estimate;
+    slopes(i)=B(2);
+end
+
 %%%%% p value trend
 figure;hold on
 plot(log(reg_days(3,:)),'.','MarkerSize',20)
@@ -291,8 +360,8 @@ xlim([0.5 10.5])
 figure;hold on
 plot((reg_days(2,:)),'.','MarkerSize',20)
 xlabel('Days')
-ylabel('Slope between mu-hG PAC and hG Decoding')
-%ylabel('LFO - hG PAC and hG decoding info.')
+%ylabel('Slope between mu-hG PAC and hG Decoding')
+ylabel('Slope between LFO - hG PAC and hG decoding info.')
 xticks(1:10)
 y = reg_days(2,:)';
 x = (1:10)';
@@ -307,18 +376,20 @@ plot_beautify
 xlim([0.5 10.5])
 hline(0,'--r')
 
-save mahab_pac_alpha_hg_B3_Hand_New -v7.3
+save mahab_pac_mu_hg_B3_Hand_New -v7.3
+%save mahab_pac_alpha_hg_B3_Hand_New -v7.3
+%save mahab_pac_delta_hg_B3_Hand_New -v7.3
 
 %%%%% HIERARCHICAL LINEAR MIXED EFFECT MODEL
 % change in mu-hG PAC across-days using mixed effect model
 
-pac_days=pac_days';
-mahab_days=  mahab_dist_days';
+% pac_days=pac_days';
+% mahab_days=  mahab_dist_days';
 
 [nchan,ndays]=size(pac_days);
 [chanGrid, dayGrid] = ndgrid(1:nchan, 1:ndays);
 T = table;
-T.Y      = mahab_days(:);         % decoding info
+T.Y      = mahab_dist_days(:);         % decoding info
 T.X      = pac_days(:);           % PAC
 T.DayNum = dayGrid(:);             % 1..10
 T.ChanID = categorical(chanGrid(:)); % same channels repeated across days
