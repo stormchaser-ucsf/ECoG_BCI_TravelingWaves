@@ -182,7 +182,8 @@ session_data(10).AM_PM = {'am','am','am','am','am','am',...
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230511\HandImagined';
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
 %filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230223/Robot3DArrow';
-filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230518/HandOnline';
+%filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230518/HandOnline';
+filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/REAL_MOVEMENT_DATA/ObjectGraspImagined/';
 
 load('ECOG_Grid_8596_000067_B3.mat')
 
@@ -198,18 +199,13 @@ files=files1;
 %files=files(1:100);
 
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',13, ...
     'SampleRate',1e3);
 fvtool(bpFilt)
 
 
 %elec_list=1:256;
-elec_list = [137	143	148	152	155	23
-159	160	30	28	25	21
-134	140	170	174	178	182
-49	45	41	38	35	163
-221	62	59	56	52	48
-205	208	211	214	218	222];
+
 
 % plot raw with mu filtered activity over 12 random electrodes, sorted by
 % peak
@@ -237,7 +233,7 @@ osc_clus=[];
 stats=[];
 pow_freq=[];
 ffreq=[];
-for ii=1:length(files)
+for ii=1:100%length(files)
     disp(ii/length(files)*100)
     loaded=true;
     try
@@ -258,7 +254,12 @@ for ii=1:length(files)
 
         % run power spectrum and 1/f stats on a single trial basis
         task_state = TrialData.TaskState;
-        kinax = find(task_state==3);
+        
+        % kinax = [find(task_state==1) find(task_state==2)];
+        % kinax=kinax(1:7);
+
+        kinax = [find(task_state==3)];
+
         data = cell2mat(data_trial(kinax));
 
         %data=data(:,elec_list);
@@ -268,16 +269,14 @@ for ii=1:length(files)
             x = data(:,i);
             if length(x)>=1024
                 [Pxx,F] = pwelch(x,1024,512,1024,1e3);
+                %[Pxx,F] = pwelch(x,hamming(1000),500,2048,1000);
                 pow_freq = [pow_freq;Pxx' ];
                 ffreq = [ffreq ;F'];
-                idx = logical((F>0) .* (F<=40));
-                %idx = logical((F>0) .* (F<=150));
-                %idx = logical((F>65) .* (F<=150));
+                idx = logical((F>0) .* (F<=40));                
                 F1=F(idx);
                 F1=log2(F1);
                 power_spect = Pxx(idx);
-                power_spect = log2(power_spect);
-                %[bhat p wh se ci t_stat]=robust_fit(F1,power_spect,1);
+                power_spect = log2(power_spect);                
                 tb=fitlm(F1,power_spect,'RobustOpts','on');
                 stats_tmp = [stats_tmp tb.Coefficients.pValue(2)];
                 bhat = tb.Coefficients.Estimate;
@@ -307,8 +306,7 @@ for ii=1:length(files)
         % getting oscillation clusters
         if ~isempty(spectral_peaks)
             osc_clus_tmp=[];
-            for f=2:40 % 40 earlier
-                %for f=66:150 % 40 earlier
+            for f=2:40                
                 ff = [f-1 f+1];
                 tmp=0;ch_tmp=[];
                 for j=1:length(spectral_peaks)
@@ -332,8 +330,6 @@ end
 
 % plot oscillation clusters
 f=2:40;
-%f=2:150;
-%f=66:150;
 figure;
 hold on
 plot(f,osc_clus,'Color',[.5 .5 .5 .5],'LineWidth',.5)
@@ -357,10 +353,10 @@ for i=1:length(spectral_peaks)
         end
     end
 end
-length(ch_idx)/128
-I = zeros(128,1);
+length(ch_idx)/256
+I = zeros(256,1);
 I(ch_idx)=1;
-ecog_grid = TrialData.Params.ChMap
+%ecog_grid = TrialData.Params.ChMap
 figure;imagesc(I(ecog_grid))
 
 % get all electrodes within 16 and 20Hz
@@ -368,17 +364,83 @@ ch_idx=[];
 for i=1:length(spectral_peaks)
     if sum(i==bad_ch)==0
         f = spectral_peaks(i).freqs;
-        if sum( (f>=2) .* (f<=6) ) >= 1
+        if sum( (f>=16) .* (f<=20) ) >= 1
             ch_idx=[ch_idx i];
         end
     end
 end
-length(ch_idx)/128
-I = zeros(128,1);
+length(ch_idx)/256
+I = zeros(256,1);
 I(ch_idx)=1;
-ecog_grid = TrialData.Params.ChMap
+%ecog_grid = TrialData.Params.ChMap
 figure;imagesc(I(ecog_grid))
 
+
+
+%% PERFORMING ERPs -> does mu actually have ERS or is there ERD
+% continuing from above
+
+Params = TrialData.Params;
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',1e3);
+ERP=[];
+
+for ii=1:200%length(files)
+    disp(ii/length(files)*100)
+    loaded=true;
+    try
+        load(files{ii})
+    catch
+        loaded=false;
+    end
+
+    if loaded
+
+        data_trial = (TrialData.BroadbandData');
+        task_state = TrialData.TaskState;
+        kinax1 = find(task_state==0);
+        kinax2 = find(task_state==1);
+        kinax3 = find(task_state==2);
+        kinax4 = find(task_state==3);
+
+        data0 = cell2mat(data_trial(kinax1));
+        data1 = cell2mat(data_trial(kinax2));
+        data2 = cell2mat(data_trial(kinax3));
+        data3 = cell2mat(data_trial(kinax4));
+        l0 = size(data0,1);
+        l1 = size(data1,1);
+        l2 = size(data2,1);
+        l3 = size(data3,1);
+
+        data_trial = cell2mat(data_trial);
+        data_trial = filtfilt(bpFilt,data_trial);
+        data_trial = abs(hilbert(data_trial));
+
+        % segment and epoch
+        data_ep = data_trial(l0+1:end,:); % take from state 1 onwards
+
+        % zscore
+        m = mean(data_ep(1:1000,:),1);
+        s = std(data_ep(1:1000,:),1);
+        data_ep = (data_ep-m)./s;
+
+        % store
+        ERP = cat(3,ERP,data_ep(1:6.3e3,:));
+
+    end
+
+end
+
+
+tmp = squeeze(mean(ERP,3));
+
+figure;plot(tmp(:,137),'LineWidth',1)
+vline([1e3 2e3])
+plot_beautify
+xlim([0 6000])
+title('7 to 10hz')
+hline(0,'--r')
 
 %% PERFORMANCE IMAGINED - ONLINE- BATCH FOR B3 HAND EXPERIMENTS
 
