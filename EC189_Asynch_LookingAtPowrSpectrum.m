@@ -102,21 +102,21 @@ lfp=lfp';
 % % find the bad-channels
 bad_chI = subj_data(1).bad_chI_New;
 bad_ch_idx = find(bad_chI==0);
-
-figure;
-for i=1:length(bad_ch_idx)
-    tmp = lfp(:,bad_ch_idx(i));
-    [Pxx,F]=pwelch(tmp,[],[],[],Fs);
-    subplot(2,1,1)
-    plot(tmp);
-    axis tight
-    subplot(2,1,2)
-    plot(F,log10(abs(Pxx)));
-    axis tight
-    xlim([0 60])
-    sgtitle(num2str(bad_ch_idx(i)))
-    waitforbuttonpress
-end
+% 
+% figure;
+% for i=1:length(bad_ch_idx)
+%     tmp = lfp(:,bad_ch_idx(i));
+%     [Pxx,F]=pwelch(tmp,[],[],[],Fs);
+%     subplot(2,1,1)
+%     plot(tmp);
+%     axis tight
+%     subplot(2,1,2)
+%     plot(F,log10(abs(Pxx)));
+%     axis tight
+%     xlim([0 60])
+%     sgtitle(num2str(bad_ch_idx(i)))
+%     waitforbuttonpress
+% end
 
 % remove bad channels 
 lfp=lfp(:,1:256);
@@ -128,8 +128,8 @@ lfp = lfp - median(lfp,2);
 
 %% comparing power spectrum in move vs. rest periods
 % sequence is rest, ready, go
-%ch= [204:209 219:224 187:193];
-ch= [204:209];
+ch= [204:209 219:224 187:193];
+%ch= [219:224  187:193];
 load('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20251203/Robot3DArrow/133334/Imagined/Data0001.mat')
 Params=TrialData.Params;
 filterbank=[];k=1;
@@ -142,11 +142,11 @@ for i=9:16
 end
 
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',9,'HalfPowerFrequency2',11, ...
+    'HalfPowerFrequency1',13,'HalfPowerFrequency2',15, ...
     'SampleRate',Fs);
 
 bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',13, ...
+    'HalfPowerFrequency1',13,'HalfPowerFrequency2',19, ...
     'SampleRate',Fs);
 
 
@@ -184,6 +184,10 @@ mu_ep=[];
 hg_ep=[];
 alp_ep=[];
 kin_ep=[];
+osc_clus=[];
+stats=[];
+pow_freq=[];
+ffreq=[];
 for i=1:length(trial_timings)
      timings = [trial_timings(i).movement.cue.time];
      % for j=1:length(timings)
@@ -191,9 +195,9 @@ for i=1:length(trial_timings)
      %     vline(timings(2),'y')
      %     vline(timings(3),'g')
      % end
-     go_time = trial_timings(i).movement.cue(3).time; %anin
+     go_time = trial_timings(i).movement.cue(2).time; %anin
      st = go_time-1;
-     stp = go_time+5;
+     stp = go_time+8;
      
      index = (kin_time_resample >= st) .* (kin_time_resample<=stp);
      kin_ep(:,i) = kindata_full_length_resampled(logical(index),13);
@@ -202,29 +206,114 @@ for i=1:length(trial_timings)
      mu_ep(:,i) = mu(logical(index));
      hg_ep(:,i) = hg(logical(index));
      alp_ep(:,i) = alp(logical(index));
+
+
+     st = trial_timings(i).movement.cue(1).time; %anin
+     stp = trial_timings(i).movement.cue(2).time; %anin
+     %stp=st+4;
+     index = (lfp_time >= st) .* (lfp_time<=stp);
+     data = lfp(logical(index),:);
+     
+     spectral_peaks=[];
+     stats_tmp=[];
+     parfor ii=1:size(data,2)
+         x = data(:,ii);
+         if length(x)>=1024
+             [Pxx,F] = pwelch(x,1024,512,1024,1e3);
+             %[Pxx,F] = pwelch(x,hamming(1000),500,2048,1000);
+             pow_freq = [pow_freq;Pxx' ];
+             ffreq = [ffreq ;F'];
+             idx = logical((F>0) .* (F<=40));
+             F1=F(idx);
+             F1=log2(F1);
+             power_spect = Pxx(idx);
+             power_spect = log2(power_spect);
+             tb=fitlm(F1,power_spect,'RobustOpts','on');
+             stats_tmp = [stats_tmp tb.Coefficients.pValue(2)];
+             bhat = tb.Coefficients.Estimate;
+             x = [ones(length(F1),1) F1];
+             yhat = x*bhat;
+
+             %plot
+             % figure;
+             % plot(F1,power_spect,'LineWidth',1);
+             % hold on
+             % plot(F1,yhat,'LineWidth',1);
+
+             % get peaks in power spectrum at specific frequencies
+             power_spect = zscore(power_spect - yhat);
+             [aa ,bb]=findpeaks(power_spect);
+             peak_loc = bb(find(power_spect(bb)>1));
+             freqs = 2.^F1(peak_loc);
+             pow = power_spect(peak_loc);
+
+             %store
+             spectral_peaks(ii).freqs = freqs;
+             spectral_peaks(ii).pow = pow;
+         end
+     end
+
+
+     % getting oscillation clusters
+     if ~isempty(spectral_peaks)
+         osc_clus_tmp=[];
+         for f=2:40
+             ff = [f-1 f+1];
+             tmp=0;ch_tmp=[];
+             for j=1:length(spectral_peaks)
+                 freqs = spectral_peaks(j).freqs;
+                 for k=1:length(freqs)
+                     if ff(1) <= freqs(k)  && freqs(k) <= ff(2)
+                         tmp=tmp+1;
+                         ch_tmp = [ch_tmp j];
+                     end
+                 end
+             end
+             osc_clus_tmp = [osc_clus_tmp tmp];
+         end
+         osc_clus = [osc_clus;osc_clus_tmp];
+     end
+
 end
-m = mean(mu_ep(1:254*1,:),1);
-s = std(mu_ep(1:254*1,:),1);
+
+
+% plot oscillation clusters
+f=2:40;
+figure;
+hold on
+plot(f,osc_clus,'Color',[.5 .5 .5 .5],'LineWidth',.5)
+plot(f,mean(osc_clus,1),'b','LineWidth',2)
+
+% plot power spectrum
+figure;
+hold on
+plot(ffreq(1,:),log10(pow_freq'),'Color',[.5 .5 .5 .5])
+plot(ffreq(1,:),log10(mean(pow_freq,1)),'k','LineWidth',2)
+xlim([0 200])
+
+
+m = mean(mu_ep(1:254*2,:),1);
+s = std(mu_ep(1:254*2,:),1);
 mu_ep = (mu_ep-m)./s;
 
-m = mean(hg_ep(1:254*1,:),1);
-s = std(hg_ep(1:254*1,:),1);
+m = mean(hg_ep(1:254*2,:),1);
+s = std(hg_ep(1:254*2,:),1);
 hg_ep = (hg_ep-m)./s;
 
-m = mean(alp_ep(1:254*1,:),1);
-s = std(alp_ep(1:254*1,:),1);
+m = mean(alp_ep(1:254*2,:),1);
+s = std(alp_ep(1:254*2,:),1);
 alp_ep = (alp_ep-m)./s;
 
 figure;
 hold on
-tt=-1:(1/Fs):5;
+tt=-1:(1/Fs):8;
 if length(tt)>size(alp_ep,1)
     tt=tt(1:end-1);
 end
 plot(tt,median(hg_ep,2),'b','LineWidth',1)
 plot(tt,median(mu_ep,2),'r','LineWidth',1)
 plot(tt,median(alp_ep,2),'k','LineWidth',1)
-vline([0 3])
+vline([0 4])
 hline(0)
 xlim([-0.5 5])
 ylim([-3 6])
@@ -235,10 +324,12 @@ addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 plot_beautify
 axis tight
 
-a=alp_ep(end-500:end,:);
-b=mu_ep(end-500:end,:);
-a=mean(a,1);
-b=mean(b,1);[p,h]=signrank(a,b)
+a=alp_ep(500:1000,:);
+b=mu_ep(500:1000,:);
+a=median(a,1);
+b=median(b,1);[p,h]=signrank(a,b)
+
+% so kinda the same concept, except the frequency moved up to a higher one
 
 %%
 kindata1=[];ecog=[];
