@@ -380,13 +380,15 @@ figure;imagesc(I(ecog_grid))
 %% PERFORMING ERPs -> does mu actually have ERS or is there ERD
 % continuing from above
 
+load(files{1})
 Params = TrialData.Params;
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
     'SampleRate',1e3);
 ERP=[];
-
-for ii=1:200%length(files)
+ERP_beta=[];
+ERP_hg=[];
+for ii=1:100%length(files)
     disp(ii/length(files)*100)
     loaded=true;
     try
@@ -414,19 +416,54 @@ for ii=1:200%length(files)
         l3 = size(data3,1);
 
         data_trial = cell2mat(data_trial);
-        data_trial = filtfilt(bpFilt,data_trial);
+        data_trial0=data_trial;
+
+        % filter in mu
+        data_trial = filter(bpFilt,data_trial);
         data_trial = abs(hilbert(data_trial));
+
+        % filter in beta
+        tmp_beta=[];
+        for j=4:5
+            tmp = filtfilt(Params.FilterBank(j).b,Params.FilterBank(j).a,...
+                data_trial0);
+            tmp = abs(hilbert(tmp));
+            tmp_beta = cat(3,tmp_beta,tmp);
+        end
+        tmp_beta = squeeze(mean(tmp_beta,3));
+
+        % filter in hG
+        tmp_hg=[];
+        for j=9:16
+            tmp = filtfilt(Params.FilterBank(j).b,Params.FilterBank(j).a,...
+                data_trial0);
+            tmp = abs(hilbert(tmp));
+            tmp_hg = cat(3,tmp_hg,tmp);
+        end
+        tmp_hg = squeeze(mean(tmp_hg,3));
 
         % segment and epoch
         data_ep = data_trial(l0+1:end,:); % take from state 1 onwards
+        data_ep_beta = tmp_beta(l0+1:end,:); % take from state 1 onwards
+        data_ep_hg = tmp_hg(l0+1:end,:); % take from state 1 onwards
 
         % zscore
         m = mean(data_ep(1:1000,:),1);
         s = std(data_ep(1:1000,:),1);
         data_ep = (data_ep-m)./s;
 
+        m = mean(data_ep_beta(1:1000,:),1);
+        s = std(data_ep_beta(1:1000,:),1);
+        data_ep_beta = (data_ep_beta-m)./s;
+
+        m = mean(data_ep_hg(1:1000,:),1);
+        s = std(data_ep_hg(1:1000,:),1);
+        data_ep_hg = (data_ep_hg-m)./s;
+
         % store
         ERP = cat(3,ERP,data_ep(1:6.3e3,:));
+        ERP_beta = cat(3,ERP_beta,data_ep_beta(1:6.3e3,:));
+        ERP_hg = cat(3,ERP_hg,data_ep_hg(1:6.3e3,:));
 
     end
 
@@ -434,13 +471,32 @@ end
 
 
 tmp = squeeze(mean(ERP,3));
+tmp_beta = squeeze(mean(ERP_beta,3));
+tmp_hg = squeeze(mean(ERP_hg,3));
 
-figure;plot(tmp(:,137),'LineWidth',1)
+
+figure;hold on
+ch=[137	143	148	152
+159	160	30	28
+134	140	170	174
+49	45	41	38
+221	62	59	56
+205	208	211	214
+70	66	194	198];
+ch=137;
+%plot(tmp(:,ch),'LineWidth',1)
+%plot(tmp_beta(:,ch),'LineWidth',1)
+plot(mean(tmp(:,ch),2),'LineWidth',2)
+plot(mean(tmp_beta(:,ch),2),'LineWidth',2)
+plot(mean(tmp_hg(:,ch),2),'LineWidth',2)
 vline([1e3 2e3])
 plot_beautify
 xlim([0 6000])
-title('7 to 10hz')
 hline(0,'--r')
+legend({'Mu','Beta','hG'})
+xlabel('Time (ms)')
+ylabel('Amplit.')
+title('Avg all M1/S1 channels')
 
 %% PERFORMANCE IMAGINED - ONLINE- BATCH FOR B3 HAND EXPERIMENTS
 
