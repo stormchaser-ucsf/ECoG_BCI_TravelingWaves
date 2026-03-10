@@ -126,9 +126,10 @@ lfp = lfp(:,bad_chI);
 lfp = lfp - median(lfp,2);
 
 
-% comparing power spectrum in move vs. rest periods
+%% comparing power spectrum in move vs. rest periods
 % sequence is rest, ready, go
-ch= [204:209 219:224];
+%ch= [204:209 219:224 187:193];
+ch= [204:209];
 load('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20251203/Robot3DArrow/133334/Imagined/Data0001.mat')
 Params=TrialData.Params;
 filterbank=[];k=1;
@@ -141,15 +142,26 @@ for i=9:16
 end
 
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',7,'HalfPowerFrequency2',9, ...
+    'HalfPowerFrequency1',9,'HalfPowerFrequency2',11, ...
     'SampleRate',Fs);
+
+bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',13, ...
+    'SampleRate',Fs);
+
 
 % get mu and hg
 mu = [];hg=[];
-
+alp=[];
 mu = filtfilt(bpFilt,lfp(:,ch));
 mu = abs(hilbert(mu));
 mu = mean(mu,2);
+mu=zscore(mu);
+
+alp = filtfilt(bpFilt1,lfp(:,ch));
+alp = abs(hilbert(alp));
+alp = mean(alp,2);
+alp=zscore(alp);
 
 tmp_hg=[];
 for j=1:8
@@ -160,23 +172,75 @@ for j=1:8
 end
 tmp_hg = squeeze(mean(tmp_hg,3));
 hg = squeeze(mean(tmp_hg,2));
+hg=zscore(hg);
 
 % plot 
 % also extract power spectrum within each signal portion (1/f)
-figure;
-hold on
-plot(lfp_time,smooth(zscore(hg),100))
-plot(lfp_time,smooth(zscore(mu),100))
+% figure;
+% hold on
+% plot(lfp_time,smooth(zscore(hg),100))
+% plot(lfp_time,smooth(zscore(mu),100))
+mu_ep=[];
+hg_ep=[];
+alp_ep=[];
+kin_ep=[];
 for i=1:length(trial_timings)
      timings = [trial_timings(i).movement.cue.time];
-     for j=1:length(timings)
-         vline(timings(1),'r')
-         vline(timings(2),'y')
-         vline(timings(3),'g')
-     end
+     % for j=1:length(timings)
+     %     vline(timings(1),'r')
+     %     vline(timings(2),'y')
+     %     vline(timings(3),'g')
+     % end
+     go_time = trial_timings(i).movement.cue(3).time; %anin
+     st = go_time-1;
+     stp = go_time+5;
+     
+     index = (kin_time_resample >= st) .* (kin_time_resample<=stp);
+     kin_ep(:,i) = kindata_full_length_resampled(logical(index),13);
+     
+     index = (lfp_time >= st) .* (lfp_time<=stp);
+     mu_ep(:,i) = mu(logical(index));
+     hg_ep(:,i) = hg(logical(index));
+     alp_ep(:,i) = alp(logical(index));
 end
+m = mean(mu_ep(1:254*1,:),1);
+s = std(mu_ep(1:254*1,:),1);
+mu_ep = (mu_ep-m)./s;
 
+m = mean(hg_ep(1:254*1,:),1);
+s = std(hg_ep(1:254*1,:),1);
+hg_ep = (hg_ep-m)./s;
 
+m = mean(alp_ep(1:254*1,:),1);
+s = std(alp_ep(1:254*1,:),1);
+alp_ep = (alp_ep-m)./s;
+
+figure;
+hold on
+tt=-1:(1/Fs):5;
+if length(tt)>size(alp_ep,1)
+    tt=tt(1:end-1);
+end
+plot(tt,median(hg_ep,2),'b','LineWidth',1)
+plot(tt,median(mu_ep,2),'r','LineWidth',1)
+plot(tt,median(alp_ep,2),'k','LineWidth',1)
+vline([0 3])
+hline(0)
+xlim([-0.5 5])
+ylim([-3 6])
+legend({'hG','mu','alpha'})
+xlabel('Time (s)')
+ylabel('Z score')
+addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
+plot_beautify
+axis tight
+
+a=alp_ep(end-500:end,:);
+b=mu_ep(end-500:end,:);
+a=mean(a,1);
+b=mean(b,1);[p,h]=signrank(a,b)
+
+%%
 kindata1=[];ecog=[];
 %bad_trials = [5 7 10 11 17 21 23 24 27]; % middle
 bad_trials = [1 12 21 22];
