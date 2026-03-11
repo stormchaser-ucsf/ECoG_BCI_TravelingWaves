@@ -1,4 +1,4 @@
-+% main code for the hand project
+% main code for the hand project
 %
 % this includes the data recently collected with multipe sequences of hand
 % movements
@@ -183,7 +183,10 @@ session_data(10).AM_PM = {'am','am','am','am','am','am',...
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
 %filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230223/Robot3DArrow';
 %filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230518/HandOnline';
-filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/REAL_MOVEMENT_DATA/ObjectGraspImagined/';
+
+%filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/REAL_MOVEMENT_DATA/ObjectGraspImagined/';
+%filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20250917/Robot3DArrow/';
+filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20250703/Robot3DArrow/';
 
 load('ECOG_Grid_8596_000067_B3.mat')
 
@@ -201,7 +204,7 @@ files=files1;
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',8,'HalfPowerFrequency2',13, ...
     'SampleRate',1e3);
-fvtool(bpFilt)
+%fvtool(bpFilt)
 
 
 %elec_list=1:256;
@@ -233,7 +236,7 @@ osc_clus=[];
 stats=[];
 pow_freq=[];
 ffreq=[];
-for ii=1:100%length(files)
+for ii=1:length(files)
     disp(ii/length(files)*100)
     loaded=true;
     try
@@ -332,8 +335,12 @@ end
 f=2:40;
 figure;
 hold on
-plot(f,osc_clus,'Color',[.5 .5 .5 .5],'LineWidth',.5)
-plot(f,mean(osc_clus,1),'b','LineWidth',2)
+plot(f,osc_clus/243,'Color',[.5 .5 .5 .5],'LineWidth',.5)
+plot(f,mean(osc_clus,1)/243,'b','LineWidth',2)
+xlabel('Freq')
+ylabel('Prop. of channels')
+plot_beautify
+title('B6 arrow BCI')
 
 % plot power spectrum
 figure;

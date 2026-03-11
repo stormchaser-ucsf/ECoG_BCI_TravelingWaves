@@ -24,6 +24,8 @@ load('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC189_ProcessingForNik
 
 load('/media/user/Data/ecog_data/ECoG LeapMotion/Results/subj_data_25Hz_withKin_LMP.mat');
 
+addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
+
 %% extracting the kinematic and neural data with markers
 
 % kinematic time course
@@ -118,12 +120,29 @@ bad_ch_idx = find(bad_chI==0);
 %     waitforbuttonpress
 % end
 
+% remove line noise
+
+line_freq = 60;
+harmonics = line_freq:line_freq:(Fs/2 - 1);   % all harmonics below Nyquist
+
+bw_hz = 2;   % total notch width in Hz; try 1-3 Hz typically
+
+for f0 = harmonics
+    wo = f0/(Fs/2);          % normalized center frequency
+    bw = bw_hz/(Fs/2);       % normalized bandwidth
+    [b,a] = iirnotch(wo, bw);
+    lfp = filtfilt(b, a, lfp);   % zero-phase filtering
+end
+
+
 % remove bad channels 
 lfp=lfp(:,1:256);
 lfp = lfp(:,bad_chI);
 
 % median reference
 lfp = lfp - median(lfp,2);
+
+
 
 
 %% comparing power spectrum in move vs. rest periods
@@ -208,8 +227,8 @@ for i=1:length(trial_timings)
      alp_ep(:,i) = alp(logical(index));
 
 
-     st = trial_timings(i).movement.cue(1).time; %anin
-     stp = trial_timings(i).movement.cue(2).time; %anin
+     st = trial_timings(i).movement.cue(2).time; %anin
+     stp = trial_timings(i).movement.cue(3).time; %anin
      %stp=st+4;
      index = (lfp_time >= st) .* (lfp_time<=stp);
      data = lfp(logical(index),:);
@@ -281,8 +300,12 @@ end
 f=2:40;
 figure;
 hold on
-plot(f,osc_clus,'Color',[.5 .5 .5 .5],'LineWidth',.5)
-plot(f,mean(osc_clus,1),'b','LineWidth',2)
+plot(f,osc_clus/227,'Color',[.5 .5 .5 .5],'LineWidth',.5)
+plot(f,mean(osc_clus,1)/227,'b','LineWidth',2)
+xlabel('Freq.')
+ylabel('Prop of channels')
+plot_beautify
+title('1/f sig.')
 
 % plot power spectrum
 figure;
@@ -310,17 +333,16 @@ tt=-1:(1/Fs):8;
 if length(tt)>size(alp_ep,1)
     tt=tt(1:end-1);
 end
-plot(tt,median(hg_ep,2),'b','LineWidth',1)
-plot(tt,median(mu_ep,2),'r','LineWidth',1)
-plot(tt,median(alp_ep,2),'k','LineWidth',1)
+plot(tt,mean(hg_ep,2),'b','LineWidth',1)
+plot(tt,mean(mu_ep,2),'r','LineWidth',1)
+plot(tt,mean(alp_ep,2),'k','LineWidth',1)
 vline([0 4])
 hline(0)
 xlim([-0.5 5])
 ylim([-3 6])
-legend({'hG','mu','alpha'})
+legend({'hG','narrow beta','beta'})
 xlabel('Time (s)')
 ylabel('Z score')
-addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 plot_beautify
 axis tight
 
