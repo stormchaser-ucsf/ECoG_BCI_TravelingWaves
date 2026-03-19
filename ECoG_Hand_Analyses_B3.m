@@ -183,10 +183,14 @@ session_data(10).AM_PM = {'am','am','am','am','am','am',...
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
 %filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230223/Robot3DArrow';
 %filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230518/HandOnline';
+%filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20231011/HandOnline';
 
 %filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/REAL_MOVEMENT_DATA/ObjectGraspImagined/';
 %filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20250917/Robot3DArrow/';
-filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20250703/Robot3DArrow/';
+%filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20250703/Robot3DArrow/';
+
+filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/20240712/Robot3DArrow/';
+
 
 load('ECOG_Grid_8596_000067_B3.mat')
 
@@ -202,7 +206,7 @@ files=files1;
 %files=files(1:100);
 
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',13, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
     'SampleRate',1e3);
 %fvtool(bpFilt)
 
@@ -390,12 +394,12 @@ figure;imagesc(I(ecog_grid))
 load(files{1})
 Params = TrialData.Params;
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
     'SampleRate',1e3);
 ERP=[];
 ERP_beta=[];
 ERP_hg=[];
-for ii=1:100%length(files)
+for ii=127:length(files)
     disp(ii/length(files)*100)
     loaded=true;
     try
@@ -404,14 +408,14 @@ for ii=1:100%length(files)
         loaded=false;
     end
 
-    if loaded
+    if loaded && (TrialData.TargetID==1 )
 
         data_trial = (TrialData.BroadbandData');
         task_state = TrialData.TaskState;
-        kinax1 = find(task_state==0);
-        kinax2 = find(task_state==1);
-        kinax3 = find(task_state==2);
-        kinax4 = find(task_state==3);
+        kinax1 = find(task_state==1);
+        kinax2 = find(task_state==2);
+        kinax3 = find(task_state==3);
+        kinax4 = find(task_state==4);
 
         data0 = cell2mat(data_trial(kinax1));
         data1 = cell2mat(data_trial(kinax2));
@@ -450,32 +454,38 @@ for ii=1:100%length(files)
         tmp_hg = squeeze(mean(tmp_hg,3));
 
         % segment and epoch
+        l0=200; % removing the first 200ms
         data_ep = data_trial(l0+1:end,:); % take from state 1 onwards
         data_ep_beta = tmp_beta(l0+1:end,:); % take from state 1 onwards
         data_ep_hg = tmp_hg(l0+1:end,:); % take from state 1 onwards
 
         % zscore
-        m = mean(data_ep(1:1000,:),1);
-        s = std(data_ep(1:1000,:),1);
+        m = mean(data_ep(1:800,:),1);
+        s = std(data_ep(1:800,:),1);
         data_ep = (data_ep-m)./s;
 
-        m = mean(data_ep_beta(1:1000,:),1);
-        s = std(data_ep_beta(1:1000,:),1);
+        m = mean(data_ep_beta(1:800,:),1);
+        s = std(data_ep_beta(1:800,:),1);
         data_ep_beta = (data_ep_beta-m)./s;
 
-        m = mean(data_ep_hg(1:1000,:),1);
-        s = std(data_ep_hg(1:1000,:),1);
+        m = mean(data_ep_hg(1:800,:),1);
+        s = std(data_ep_hg(1:800,:),1);
         data_ep_hg = (data_ep_hg-m)./s;
 
         % store
-        ERP = cat(3,ERP,data_ep(1:6.3e3,:));
-        ERP_beta = cat(3,ERP_beta,data_ep_beta(1:6.3e3,:));
-        ERP_hg = cat(3,ERP_hg,data_ep_hg(1:6.3e3,:));
+        ERP = cat(3,ERP,data_ep(1:3.2e3,:));
+        ERP_beta = cat(3,ERP_beta,data_ep_beta(1:3.2e3,:));
+        ERP_hg = cat(3,ERP_hg,data_ep_hg(1:3.2e3,:));
 
     end
 
 end
 
+% arrow imagined
+% first 800 is state 1
+% next 1000 is state 2
+% next 5000 is state 3
+% next 500 is state 4
 
 tmp = squeeze(mean(ERP,3));
 tmp_beta = squeeze(mean(ERP_beta,3));
@@ -483,27 +493,44 @@ tmp_hg = squeeze(mean(ERP_hg,3));
 
 
 figure;hold on
-ch=[137	143	148	152
-159	160	30	28
-134	140	170	174
-49	45	41	38
-221	62	59	56
-205	208	211	214
-70	66	194	198];
-ch=137;
+% ch=[137	143	148	152
+% 159	160	30	28
+% 134	140	170	174
+% 49	45	41	38
+% 221	62	59	56];
+%ch=137;
+ch=[185	188	191	64	61
+165	168	172	176	180
+43	39	36	33	161
+94	90	86	83	80
+210	213	216	220	224];
+
 %plot(tmp(:,ch),'LineWidth',1)
 %plot(tmp_beta(:,ch),'LineWidth',1)
 plot(mean(tmp(:,ch),2),'LineWidth',2)
 plot(mean(tmp_beta(:,ch),2),'LineWidth',2)
 plot(mean(tmp_hg(:,ch),2),'LineWidth',2)
-vline([1e3 2e3])
+%vline([1e3 2e3])
+vline([800 1800 ])
 plot_beautify
-xlim([0 6000])
+%xlim([0 4000])
 hline(0,'--r')
-legend({'Mu','Beta','hG'})
+legend({'Mu','Alpha','hG'})
 xlabel('Time (ms)')
 ylabel('Amplit.')
 title('Avg all M1/S1 channels')
+
+% 
+% tmp=squeeze(mean(ERP_hg,3));
+% tmp = squeeze(mean(tmp(2000:end,:)));
+% figure;imagesc(tmp(fliplr(ecog_grid')))
+
+
+%% (MAIN) PLOTTING 1/F SPECTRA, SLOPE BETWEEN IMAGINED (BCI) AND OVERT MOVEMENTS
+
+% have to perform the following steps:
+% 1: 1/f during bci control, rest and actual control.
+
 
 %% PERFORMANCE IMAGINED - ONLINE- BATCH FOR B3 HAND EXPERIMENTS
 
@@ -2889,6 +2916,7 @@ end
 slopes=[];
 days=1:10;
 X = [ones(length(days),1) days'];
+pvals=[];
 for i=1:253
     cl = pac_all(:,i);
     %[B,BINT,R,RINT,STATS] = regress(ol',X);
@@ -2898,11 +2926,14 @@ for i=1:253
     %mdl  = fitlm(days_poly,ol','RobustOpts','on');
     B = mdl.Coefficients.Estimate;
     slopes(i) = B(2);
+    pvals(i)=mdl.Coefficients.pValue(2);
 end
 
+slopes(pvals>0.05) = 0;
 
 % plotting cortical channels
 sig = slopes;
+
 %a = squeeze(median(res_days_map(1:end,:,1),1));
 %b = squeeze(median(res_days_map(1:end,:,2),1));
 %sig = a;
@@ -2922,8 +2953,6 @@ end
 ch_layout = (fliplr(ch_layout));
 
 %plv(sig) = zscore(plv(sig))+4;
-phMap = linspace(-pi,pi,253)';
-ChColorMap = ([parula(253)]);
 figure
 %subplot(1,2,2)
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
@@ -2934,11 +2963,16 @@ for j=1:256%length(sig)
     [xx yy]=find(ecog_grid==j);
     if ~isempty(xx)
         ch = ch_layout(xx,yy);
-        if sig1(j)==1 && ch_wts(j)<0
-            ms = abs(ch_wts(j))*500;
+        if sig1(j)==1 && ch_wts(j)~=0
+            ms = (ch_wts(j))*200;
+            if ms>0
+                c='r';
+            else
+                c='b';
+            end
             %[aa bb]=min(abs(pref_phase(j) - phMap));
             %c=ChColorMap(bb,:);
-            e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
+            e_h = el_add(elecmatrix(ch,:), 'color', c,'msize',abs(ms));
         end
     end
 end

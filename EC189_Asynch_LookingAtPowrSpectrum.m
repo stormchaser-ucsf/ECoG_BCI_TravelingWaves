@@ -143,11 +143,12 @@ lfp = lfp(:,bad_chI);
 lfp = lfp - median(lfp,2);
 
 
-
+% save EC189_Asynch_Thumb trial_timings lfp lfp_time kindata_full_length_resampled...
+%     kin_time_resample Fs bad_chI bad_ch_idx -v7.3
 
 %% comparing power spectrum in move vs. rest periods
 % sequence is rest, ready, go
-ch= [204:209 219:224 187:193];
+ch= [204:209 219:224];
 %ch= [219:224  187:193];
 load('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20251203/Robot3DArrow/133334/Imagined/Data0001.mat')
 Params=TrialData.Params;
@@ -161,7 +162,7 @@ for i=9:16
 end
 
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',13,'HalfPowerFrequency2',15, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',9, ...
     'SampleRate',Fs);
 
 bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -195,10 +196,12 @@ hg=zscore(hg);
 
 % plot 
 % also extract power spectrum within each signal portion (1/f)
-% figure;
-% hold on
-% plot(lfp_time,smooth(zscore(hg),100))
-% plot(lfp_time,smooth(zscore(mu),100))
+figure;
+hold on
+plot(lfp_time,smooth(zscore(hg),100))
+plot(lfp_time,smooth(zscore(mu),100))
+legend({'hG','mu'})
+
 mu_ep=[];
 hg_ep=[];
 alp_ep=[];
@@ -209,11 +212,11 @@ pow_freq=[];
 ffreq=[];
 for i=1:length(trial_timings)
      timings = [trial_timings(i).movement.cue.time];
-     % for j=1:length(timings)
-     %     vline(timings(1),'r')
-     %     vline(timings(2),'y')
-     %     vline(timings(3),'g')
-     % end
+     for j=1:length(timings)
+         vline(timings(1),'r')
+         vline(timings(2),'y')
+         vline(timings(3),'g')
+     end
      go_time = trial_timings(i).movement.cue(2).time; %anin
      st = go_time-1;
      stp = go_time+8;
