@@ -230,9 +230,9 @@ for i=1:length(trial_timings)
      alp_ep(:,i) = alp(logical(index));
 
 
-     st = trial_timings(i).movement.cue(2).time; %anin
-     stp = trial_timings(i).movement.cue(3).time; %anin
-     %stp=st+4;
+     st = trial_timings(i).movement.cue(3).time; %anin
+     %stp = trial_timings(i).movement.cue(3).time; %anin
+     stp=st+4;
      index = (lfp_time >= st) .* (lfp_time<=stp);
      data = lfp(logical(index),:);
      
