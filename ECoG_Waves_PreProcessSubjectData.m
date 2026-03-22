@@ -1,6 +1,8 @@
 %% WAVE PROCESSING SUBJECTS DATA
 clear
-subj='B6';
+clc
+close all
+subj='B1';
 %% LOAD SUBJECT SPECIFIC DATA
 
 if strcmp(subj,'B3')
@@ -20,8 +22,8 @@ if strcmp(subj,'B3')
         %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
         root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
         cd(root_path)
-        load session_data_B3_Hand
-        %load session_data_B3
+        %load session_data_B3_Hand
+        load session_data_B3
         load('ECOG_Grid_8596_000067_B3.mat')
         addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 
@@ -248,8 +250,8 @@ for days=1:len_days
     day_date = session_data(days).Day;
     files=[];
     for ii=1:length(folders)
-        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
-        %folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
+        %folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
         %cd(folderpath)
         files = [files;findfiles('mat',folderpath)'];
     end
@@ -260,6 +262,26 @@ for days=1:len_days
         grid_layout,elecmatrix,bpFilt,d1,1);
     stats_cl_days{days}=stats_cl;
     stats_cl_hg_days{days}=stats_cl_hg;
+
+    % looking at mu power during waves vs. non wave events
+    mu_wave_pow=[];
+    mu_nonwav_pow=[];
+    for ii=1:length(stats_cl_hg)
+        tmp = stats_cl_hg(ii).mu_wave;
+        tmp = cell2mat(tmp');
+        tmp = abs(tmp);
+        mu_wave_pow(ii,:) = mean(tmp,1);
+
+        tmp = stats_cl_hg(ii).mu_nonwave;
+        tmp = cell2mat(tmp');
+        tmp = abs(tmp);
+        mu_nonwav_pow(ii,:) = mean(tmp,1);
+    end
+
+    figure;
+    boxplot([mean(mu_wave_pow,1)' mean(mu_nonwav_pow,1)'])
+
+
 
     %   % stats on PLV, CL
     % wave_plv=[];nonwave_plv=[];wave_len=[];nonwave_len=[];nonwave_len_corr=[];
@@ -520,6 +542,25 @@ for days=1:length(folders) %if B1-> it is -1
         grid_layout,elecmatrix,bpFilt,d1,1);
     stats_cl_days{days}=stats_cl;
     stats_cl_hg_days{days}=stats_cl_hg;
+
+
+    % looking at mu power during waves vs. non wave events
+    mu_wave_pow=[];
+    mu_nonwav_pow=[];
+    for ii=1:length(stats_cl_hg)
+        tmp = stats_cl_hg(ii).mu_wave;
+        tmp = cell2mat(tmp');
+        tmp = abs(tmp);
+        mu_wave_pow(ii,:) = mean(tmp,1);
+
+        tmp = stats_cl_hg(ii).mu_nonwave;
+        tmp = cell2mat(tmp');
+        tmp = abs(tmp);
+        mu_nonwav_pow(ii,:) = mean(tmp,1);
+    end
+
+    figure;
+    boxplot([mean(mu_wave_pow,1)' mean(mu_nonwav_pow,1)'])
 
    
 

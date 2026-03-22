@@ -526,10 +526,6 @@ title('Avg all M1/S1 channels')
 % figure;imagesc(tmp(fliplr(ecog_grid')))
 
 
-%% (MAIN) PLOTTING 1/F SPECTRA, SLOPE BETWEEN IMAGINED (BCI) AND OVERT MOVEMENTS
-
-% have to perform the following steps:
-% 1: 1/f during bci control, rest and actual control.
 
 
 %% PERFORMANCE IMAGINED - ONLINE- BATCH FOR B3 HAND EXPERIMENTS

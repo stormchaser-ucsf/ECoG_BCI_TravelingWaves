@@ -213,15 +213,20 @@ ylabel('Amplit.')
 title('Avg all M1/S1 channels')
 
 
+
+
+%% imaging;
+imaging_B3_waves;
+close all
+
+
 %% LOOK AT 1/F AND POWER IN STATE 3 VS. 1
 %BCI - B3
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'HalfPowerFrequency1',13,'HalfPowerFrequency2',30, ...
     'SampleRate',1e3); % center freq is 8.5
-imaging_B3_waves;
-close all
-subj='B6';
+subj='B3';
 
 
 if strcmp(subj,'B3')
@@ -257,7 +262,7 @@ end
 
 pow_days=[];
 
-for days=1:len_days
+for days=4%:len_days
 
     disp(['Processing day ' num2str(days)])
 
@@ -401,6 +406,7 @@ for days=1:len_days
     boxplot([a b c d])
     title(['Day ' num2str(days)])
     plot_beautify
+    hline(0,'--r')
 
 end
 
@@ -408,3 +414,684 @@ end
 
 %% LOOK AT 1/F AND POWER IN STATE 3 VS. 1
 %ACTUAL MOTOR CONTROL
+% EC189
+
+clc;clear
+
+
+% loading data
+get_data_analyses_EC189
+imaging_EC189
+close all
+
+ecog_grid=[];
+k=1;
+for i=1:16:256
+    ecog_grid(k,:) = i:i+15;
+    k=k+1;
+end
+ecog_grid = flipud(ecog_grid);
+
+%%% OTHER ANALYSES
+% get power of LoMU in move, hold and rest states?
+load('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20251203/Robot3DArrow/133334/Imagined/Data0001.mat')
+Params=TrialData.Params;
+filterbank=[];k=1;
+for i=9:16
+    [b,a]=butter(3,Params.FilterBank(i).fpass/(Fs/2));
+    filterbank(k).b=b;
+    filterbank(k).a=a;
+    filterbank(k).fpass=Params.FilterBank(i).fpass;
+    k=k+1;
+end
+
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',9, ...
+    'SampleRate',Fs);
+
+bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',13,'HalfPowerFrequency2',19, ...
+    'SampleRate',Fs);
+
+
+%ch= [204:209 219:224];
+ch=1:256;
+
+% get mu and hg
+mu = [];hg=[];
+alp=[];
+mu = filtfilt(bpFilt,lfp(:,ch));
+mu = abs(hilbert(mu));
+%mu = mean(mu,2);
+%mu=zscore(mu);
+
+alp = filtfilt(bpFilt1,lfp(:,ch));
+alp = abs(hilbert(alp));
+%alp = mean(alp,2);
+%alp=zscore(alp);
+
+tmp_hg=[];
+for j=1:8
+    tmp = filtfilt(filterbank(j).b,filterbank(j).a,...
+        lfp(:,ch));
+    tmp = abs(hilbert(tmp));
+    tmp_hg = cat(3,tmp_hg,tmp);
+end
+tmp_hg = squeeze(mean(tmp_hg,3));
+hg=tmp_hg;
+%hg = squeeze(mean(tmp_hg,2));
+%hg=zscore(hg);
+
+
+% get a sense of the timing of events
+trial_times=[];
+for i=1:length(trial_timings)
+    timings = [trial_timings(i).movement.cue.time];
+    trial_times(i,:) = timings;
+end
+
+trial_times(2:end,1) - trial_times(1:end-1,3);
+
+% plot
+% also extract power spectrum within each signal portion (1/f)
+figure;
+hold on
+plot(lfp_time,smooth(zscore(hg(:,250)),100))
+plot(lfp_time,smooth(zscore(mu(:,250)),100))
+legend({'hG','mu'})
+
+mu_ep=[];
+hg_ep=[];
+alp_ep=[];
+kin_ep=[];
+osc_clus=[];
+stats=[];
+pow_freq=[];
+ffreq=[];
+hold_dur = [];
+for i=1:length(trial_timings)
+    timings = [trial_timings(i).movement.cue.time];
+    for j=1:length(timings)
+        vline(timings(1),'r') % rest
+        vline(timings(2),'y') % hold
+        vline(timings(3),'g') % go
+    end
+    go_time = trial_timings(i).movement.cue(2).time; %anin
+    st = go_time-1; % go back 1s into the rest period
+    stp = go_time+7; % average hold time is 4s, go period is 3s.
+
+    hold_dur(i) = trial_timings(i).movement.cue(3).time - ...
+        trial_timings(i).movement.cue(2).time;
+
+    index = (kin_time_resample >= st) .* (kin_time_resample<=stp);
+    kin_ep(:,i) = kindata_full_length_resampled(logical(index),13);
+
+    index = (lfp_time >= st) .* (lfp_time<=stp);
+    mu_ep(:,:,i) = mu(logical(index),:);
+    hg_ep(:,:,i) = hg(logical(index),:);
+    alp_ep(:,:,i) = alp(logical(index),:);
+
+    % only during the go period or hold period for 1/f
+    st = trial_timings(i).movement.cue(1).time; %anin
+    stp = trial_timings(i).movement.cue(2).time; %anin
+    %stp=st+3; % duration
+    index = (lfp_time >= st) .* (lfp_time<=stp);
+    data = lfp(logical(index),:);
+
+    spectral_peaks=[];
+    stats_tmp=[];
+    parfor ii=1:size(data,2)
+        x = data(:,ii);
+
+        [Pxx,F] = pwelch(x,512,256,512,Fs);
+        %[Pxx,F] = pwelch(x,1024,512,1024,1e3);
+        %[Pxx,F] = pwelch(x,hamming(1000),500,2048,1000);
+        pow_freq = [pow_freq;Pxx' ];
+        ffreq = [ffreq ;F'];
+        idx = logical((F>0) .* (F<=40));
+        F1=F(idx);
+        F1=log2(F1);
+        power_spect = Pxx(idx);
+        power_spect = log2(power_spect);
+        tb=fitlm(F1,power_spect,'RobustOpts','on');
+        stats_tmp = [stats_tmp tb.Coefficients.pValue(2)];
+        bhat = tb.Coefficients.Estimate;
+        x = [ones(length(F1),1) F1];
+        yhat = x*bhat;
+
+        %plot
+        % figure;
+        % plot(F1,power_spect,'LineWidth',1);
+        % hold on
+        % plot(F1,yhat,'LineWidth',1);
+
+        % get peaks in power spectrum at specific frequencies
+        power_spect = zscore(power_spect - yhat);
+        [aa ,bb]=findpeaks(power_spect);
+        peak_loc = bb(find(power_spect(bb)>1));
+        freqs = 2.^F1(peak_loc);
+        pow = power_spect(peak_loc);
+
+        %store
+        spectral_peaks(ii).freqs = freqs;
+        spectral_peaks(ii).pow = pow;
+
+    end
+
+
+    % getting oscillation clusters
+    if ~isempty(spectral_peaks)
+        osc_clus_tmp=[];
+        for f=2:40
+            ff = [f-1 f+1];
+            tmp=0;ch_tmp=[];
+            for j=1:length(spectral_peaks)
+                freqs = spectral_peaks(j).freqs;
+                for k=1:length(freqs)
+                    if ff(1) <= freqs(k)  && freqs(k) <= ff(2)
+                        tmp=tmp+1;
+                        ch_tmp = [ch_tmp j];
+                    end
+                end
+            end
+            osc_clus_tmp = [osc_clus_tmp tmp];
+        end
+        osc_clus = [osc_clus;osc_clus_tmp];
+    end
+
+end
+
+
+% plot oscillation clusters
+f=2:40;
+figure;
+hold on
+plot(f,osc_clus/227,'Color',[.5 .5 .5 .5],'LineWidth',.5)
+plot(f,mean(osc_clus,1)/227,'b','LineWidth',2)
+xlabel('Freq.')
+ylabel('Prop of channels')
+plot_beautify
+title('1/f sig.')
+
+% plot power spectrum
+figure;
+hold on
+plot(ffreq(1,:),log10(pow_freq'),'Color',[.5 .5 .5 .5])
+plot(ffreq(1,:),log10(mean(pow_freq,1)),'k','LineWidth',2)
+xlim([0 200])
+ylim([-17 -9])
+
+m = mean(mu_ep(1:254*2,:,:),1);
+s = std(mu_ep(1:254*2,:,:),1);
+mu_ep = (mu_ep-m)./s;
+
+m = mean(hg_ep(1:254*2,:,:),1);
+s = std(hg_ep(1:254*2,:,:),1);
+hg_ep = (hg_ep-m)./s;
+
+m = mean(alp_ep(1:254*2,:,:),1);
+s = std(alp_ep(1:254*2,:,:),1);
+alp_ep = (alp_ep-m)./s;
+
+
+% getting average hG power over grid 
+dur = diff(trial_times')';
+hold_dur1 = round(Fs*hold_dur');% in samples, duration of hold
+hg_pow=[];
+pow_s1=[];
+pow_s2=[];
+pow_s3=[];
+aa=[];len=[];
+for i=1:length(hold_dur1)
+    %tmp = squeeze(mu_ep(:,:,i)); 
+    tmp = squeeze(mu_ep(:,:,i)); 
+    % first 1s or 508 samples is rest (baseline)
+    idx = 509: (509+hold_dur1(i));
+    %idx = (509+hold_dur1(i)):size(tmp,1);
+    %hg_pow(:,i) = mean(tmp(idx,:),1);
+    hg_pow(:,i) = mean(tmp(idx,:));
+    aa=[aa;tmp(idx,:)];
+    len=[len;length(idx)];
+
+    
+    % states 1,2,3, mu
+    tmp = squeeze(mu_ep(:,:,i)); 
+    idx=1:508;
+    pow_s1(:,i) = mean(tmp(idx,:),1);
+    
+    idx = 508 + (1:hold_dur1(i));
+    pow_s2(:,i) = mean(tmp(idx,:),1);
+    
+    idx = (508 + hold_dur1(i)):size(tmp,1);
+    pow_s3(:,i) = mean(tmp(idx,:),1);
+end
+
+
+
+pow_s1a = mean(pow_s1,2);
+pow_s2a = mean(pow_s2,2);
+pow_s3a = mean(pow_s3,2);
+figure;
+hold on
+boxplot([pow_s1a pow_s2a pow_s3a])
+hline(0,'--r')
+ylim([-1.5 1.5])
+
+
+tmp = mean(hg_pow,2);
+figure;
+imagesc(tmp(ecog_grid))
+% plot on grid
+val=tmp;
+figure;
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
+for j=1:length(val)
+    ms = val(j)*5;
+    c='b';
+    if ms>0.5
+        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
+    end
+end
+
+% plotting PCs first
+[coeff,score,latent]=pca(aa);
+tmp=coeff(:,2);
+figure;
+imagesc(tmp(ecog_grid))
+% plot on grid
+val=tmp;
+figure;
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
+for j=1:length(val)
+    ms = (val(j)*60);    
+    if ms>=0
+        c='r';
+        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
+    else
+        c='b';
+        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
+    end
+end
+
+
+
+% ERPs
+figure;
+hold on
+ch=235;
+hg_ep1 = squeeze((hg_ep(:,ch,:)));
+alp_ep1 = squeeze((alp_ep(:,ch,:)));
+mu_ep1 = squeeze((mu_ep(:,ch,:)));
+tt=-1:(1/Fs):7;
+if length(tt)>size(alp_ep1,1)
+    tt=tt(1:end-1);
+end
+plot(tt,mean(hg_ep1,2),'b','LineWidth',1)
+plot(tt,mean(mu_ep1,2),'r','LineWidth',1)
+plot(tt,mean(alp_ep1,2),'k','LineWidth',1)
+vline([0 3.7])
+hline(0)
+xlim([-1 4.5])
+legend({'hG','narrow beta','beta'})
+xlabel('Time (s)')
+ylabel('Z score')
+plot_beautify
+axis tight
+
+
+% phase amplitude coupling between the hG and mu at specific task phases
+
+
+
+%% LOOK AT 1/F AND POWER IN STATE 3 VS. 1
+%ACTUAL MOTOR CONTROL
+% EC210
+
+clc;clear
+close all
+
+% loading data
+get_data_analyses_EC210
+imaging_EC210
+%close all
+
+ecog_grid=[];
+k=1;
+for i=1:16:256
+    ecog_grid(k,:) = i:i+15;
+    k=k+1;
+end
+ecog_grid = flipud(fliplr(ecog_grid'));
+
+%%% OTHER ANALYSES
+% get power of LoMU in move, hold and rest states? 
+load('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20251203/Robot3DArrow/133334/Imagined/Data0001.mat')
+Params=TrialData.Params;
+filterbank=[];k=1;
+for i=9:16
+    [b,a]=butter(3,Params.FilterBank(i).fpass/(Fs/2));
+    filterbank(k).b=b;
+    filterbank(k).a=a;
+    filterbank(k).fpass=Params.FilterBank(i).fpass;
+    k=k+1;
+end
+
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',5,'HalfPowerFrequency2',8, ...
+    'SampleRate',Fs);
+
+bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',13, ...
+    'SampleRate',Fs);
+
+
+%ch= [204:209 219:224];
+ch=1:256;
+
+% get mu and hg
+mu = [];hg=[];
+alp=[];
+mu = filtfilt(bpFilt,lfp(:,ch));
+mu = abs(hilbert(mu));
+%mu = mean(mu,2);
+%mu=zscore(mu);
+
+alp = filtfilt(bpFilt1,lfp(:,ch));
+alp = abs(hilbert(alp));
+%alp = mean(alp,2);
+%alp=zscore(alp);
+
+tmp_hg=[];
+for j=1:8
+    tmp = filtfilt(filterbank(j).b,filterbank(j).a,...
+        lfp(:,ch));
+    tmp = abs(hilbert(tmp));
+    tmp_hg = cat(3,tmp_hg,tmp);
+end
+tmp_hg = squeeze(mean(tmp_hg,3));
+hg=tmp_hg;
+%hg = squeeze(mean(tmp_hg,2));
+%hg=zscore(hg);
+
+
+% get a sense of the timing of events
+trial_times=[];
+for i=1:length(trial_timings)
+     timings = [trial_timings(i).movement.cue.time];
+     trial_times(i,:) = timings;
+end
+
+trial_times
+diff(trial_times')'
+trial_times(2:end,1) - trial_times(1:end-1,3)
+
+% plot
+% also extract power spectrum within each signal portion (1/f)
+figure;
+hold on
+plot(lfp_time,smooth(zscore(hg(:,140)),100))
+plot(lfp_time,smooth(zscore(mu(:,140)),100))
+legend({'hG','mu'})
+
+mu_ep=[];
+hg_ep=[];
+alp_ep=[];
+kin_ep=[];
+osc_clus=[];
+stats=[];
+pow_freq=[];
+ffreq=[];
+hold_dur = [];
+for i=1:length(trial_timings)
+    timings = [trial_timings(i).movement.cue.time];
+    for j=1:length(timings)
+        vline(timings(1),'r') % rest
+        vline(timings(2),'y') % hold
+        vline(timings(3),'g') % go
+    end
+    go_time = trial_timings(i).movement.cue(2).time; %anin
+    st = go_time-1; % go back 1s into the rest period
+    stp = go_time+4.5; % average hold time is 1.7s, go period is 3s.
+
+    hold_dur(i) = trial_timings(i).movement.cue(3).time - ...
+        trial_timings(i).movement.cue(2).time;
+
+    index = (kin_time_resample >= st) .* (kin_time_resample<=stp);
+    kin_ep(:,i) = kindata_full_length_resampled(logical(index),13);
+
+    index = (lfp_time >= st) .* (lfp_time<=stp);
+    mu_ep(:,:,i) = mu(logical(index),:);
+    hg_ep(:,:,i) = hg(logical(index),:);
+    alp_ep(:,:,i) = alp(logical(index),:);
+
+    % only during the go period or hold period for 1/f
+    st = trial_timings(i).movement.cue(2).time; %anin
+    stp = trial_timings(i).movement.cue(3).time; %anin
+    %stp=st+3; % duration
+    index = (lfp_time >= st) .* (lfp_time<=stp);
+    data = lfp(logical(index),:);
+
+    spectral_peaks=[];
+    stats_tmp=[];
+    parfor ii=1:size(data,2)
+        x = data(:,ii);
+
+        [Pxx,F] = pwelch(x,512,256,512,Fs);
+        %[Pxx,F] = pwelch(x,hamming(1000),500,2048,1000);
+        pow_freq = [pow_freq;Pxx' ];
+        ffreq = [ffreq ;F'];
+        idx = logical((F>0) .* (F<=40));
+        F1=F(idx);
+        F1=log2(F1);
+        power_spect = Pxx(idx);
+        power_spect = log2(power_spect);
+        tb=fitlm(F1,power_spect,'RobustOpts','on');
+        stats_tmp = [stats_tmp tb.Coefficients.pValue(2)];
+        bhat = tb.Coefficients.Estimate;
+        x = [ones(length(F1),1) F1];
+        yhat = x*bhat;
+
+        %plot
+        % figure;
+        % plot(F1,power_spect,'LineWidth',1);
+        % hold on
+        % plot(F1,yhat,'LineWidth',1);
+
+        % get peaks in power spectrum at specific frequencies
+        power_spect = zscore(power_spect - yhat);
+        [aa ,bb]=findpeaks(power_spect);
+        peak_loc = bb(find(power_spect(bb)>1));
+        freqs = 2.^F1(peak_loc);
+        pow = power_spect(peak_loc);
+
+        %store
+        spectral_peaks(ii).freqs = freqs;
+        spectral_peaks(ii).pow = pow;
+
+    end
+
+
+    % getting oscillation clusters
+    if ~isempty(spectral_peaks)
+        osc_clus_tmp=[];
+        for f=2:40
+            ff = [f-1 f+1];
+            tmp=0;ch_tmp=[];
+            for j=1:length(spectral_peaks)
+                freqs = spectral_peaks(j).freqs;
+                for k=1:length(freqs)
+                    if ff(1) <= freqs(k)  && freqs(k) <= ff(2)
+                        tmp=tmp+1;
+                        ch_tmp = [ch_tmp j];
+                    end
+                end
+            end
+            osc_clus_tmp = [osc_clus_tmp tmp];
+        end
+        osc_clus = [osc_clus;osc_clus_tmp];
+    end
+
+end
+
+
+% plot oscillation clusters
+f=2:40;
+figure;
+hold on
+plot(f,osc_clus/sum(bad_chI),'Color',[.5 .5 .5 .5],'LineWidth',.5)
+plot(f,mean(osc_clus,1)/sum(bad_chI),'b','LineWidth',2)
+xlabel('Freq.')
+ylabel('Prop of channels')
+plot_beautify
+title('1/f sig.')
+
+% plot power spectrum
+figure;
+hold on
+plot(ffreq(1,:),log10(pow_freq'),'Color',[.5 .5 .5 .5])
+plot(ffreq(1,:),log10(mean(pow_freq,1)),'k','LineWidth',2)
+xlim([0 200])
+
+% get all the electrodes with peak between 8.0Hz and 10Hz
+ch_idx=[];
+for i=1:length(spectral_peaks)
+    if sum(i==bad_ch)==0
+        f = spectral_peaks(i).freqs;
+        if sum( (f>=5) .* (f<=8) ) >= 1
+            ch_idx=[ch_idx i];
+        end
+    end
+end
+length(ch_idx)/sum(bad_chI)
+I = zeros(256,1);
+I(ch_idx)=1;
+%ecog_grid = TrialData.Params.ChMap
+figure;imagesc(I(ecog_grid))
+figure;
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'rh',1,1,1);
+e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
+I = logical(I);
+e_h = el_add(elecmatrix([I],:), 'color', 'b', 'msize',8);
+
+
+m = mean(mu_ep(1:254*2,:,:),1);
+s = std(mu_ep(1:254*2,:,:),1);
+mu_ep = (mu_ep-m)./s;
+
+m = mean(hg_ep(1:254*2,:,:),1);
+s = std(hg_ep(1:254*2,:,:),1);
+hg_ep = (hg_ep-m)./s;
+
+m = mean(alp_ep(1:254*2,:,:),1);
+s = std(alp_ep(1:254*2,:,:),1);
+alp_ep = (alp_ep-m)./s;
+
+
+% getting average hG power over grid 
+dur = diff(trial_times')';
+hold_dur1 = round(Fs*hold_dur');% in samples, duration of hold
+hg_pow=[];
+pow_s1=[];
+pow_s2=[];
+pow_s3=[];
+aa=[];len=[];
+for i=1:length(hold_dur1)
+    %tmp = squeeze(mu_ep(:,:,i)); 
+    tmp = squeeze(hg_ep(:,:,i)); 
+    % first 1s or 508 samples is rest (baseline)
+    %idx = 509: (509+hold_dur1(i));
+    idx = (509+hold_dur1(i)):size(tmp,1);
+    %hg_pow(:,i) = mean(tmp(idx,:),1);
+    hg_pow(:,i) = mean(tmp(idx,:));
+    aa=[aa;tmp(idx,:)];
+    len=[len;length(idx)];
+
+    
+    % states 1,2,3, mu
+    tmp = squeeze(mu_ep(:,:,i)); 
+    idx=1:508;
+    pow_s1(:,i) = mean(tmp(idx,:),1);
+    
+    idx = 508 + (1:hold_dur1(i));
+    pow_s2(:,i) = mean(tmp(idx,:),1);
+    
+    idx = (508 + hold_dur1(i)):size(tmp,1);
+    pow_s3(:,i) = mean(tmp(idx,:),1);
+end
+
+
+
+pow_s1a = mean(pow_s1,2);
+pow_s2a = mean(pow_s2,2);
+pow_s3a = mean(pow_s3,2);
+figure;
+hold on
+boxplot([pow_s1a pow_s2a pow_s3a])
+hline(0,'--r')
+ylim([-1.5 1.5])
+
+
+tmp = mean(hg_pow,2);
+figure;
+imagesc(tmp(ecog_grid))
+% plot on grid
+val=tmp;
+figure;
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'rh',1,1,1);
+e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
+for j=1:length(val)
+    ms = val(j)*10;
+    c='b';
+    if ms>0.25
+        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
+    end
+end
+
+% plotting PCs first
+[coeff,score,latent]=pca(aa);
+tmp=coeff(:,2);
+figure;
+imagesc(tmp(ecog_grid))
+% plot on grid
+val=tmp;
+figure;
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'rh',1,1,1);
+e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
+for j=1:length(val)
+    ms = (val(j)*60);    
+    if ms>=0
+        c='r';
+        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
+    else
+        c='b';
+        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
+    end
+end
+
+
+
+% ERPs
+figure;
+hold on
+ch=74;
+hg_ep1 = squeeze((hg_ep(:,ch,:)));
+alp_ep1 = squeeze((alp_ep(:,ch,:)));
+mu_ep1 = squeeze((mu_ep(:,ch,:)));
+tt=-1:(1/Fs):4.5;
+if length(tt)>size(alp_ep1,1)
+    tt=tt(1:end-1);
+end
+plot(tt,mean(hg_ep1,2),'b','LineWidth',1)
+plot(tt,mean(mu_ep1,2),'r','LineWidth',1)
+plot(tt,mean(alp_ep1,2),'k','LineWidth',1)
+vline([0 1.7])
+hline(0)
+xlim([-1 4.5])
+legend({'hG','narrow beta','beta'})
+xlabel('Time (s)')
+ylabel('Z score')
+plot_beautify
+axis tight
+
