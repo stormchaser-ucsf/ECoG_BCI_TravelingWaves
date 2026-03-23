@@ -3,6 +3,7 @@
 
 
 %cd('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC189_ProcessingForNikhilesh')
+%b32 and b34
 load('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC210/EC210_B32/proc_data.mat')
 
 addpath('/media/user/Data/ecog_data/ECoG LeapMotion/Results/')

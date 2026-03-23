@@ -532,8 +532,8 @@ for i=1:length(trial_timings)
     alp_ep(:,:,i) = alp(logical(index),:);
 
     % only during the go period or hold period for 1/f
-    st = trial_timings(i).movement.cue(1).time; %anin
-    stp = trial_timings(i).movement.cue(2).time; %anin
+    st = trial_timings(i).movement.cue(2).time; %anin
+    stp = trial_timings(i).movement.cue(3).time; %anin
     %stp=st+3; % duration
     index = (lfp_time >= st) .* (lfp_time<=stp);
     data = lfp(logical(index),:);
@@ -742,6 +742,103 @@ axis tight
 
 
 % phase amplitude coupling between the hG and mu at specific task phases
+%bpfilt is the one for mu
+
+
+% phase amplitude coupling between the hG and mu at specific task phases
+%bpfilt is the one for mu
+hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',Fs);
+
+% mu 
+% bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+%     'SampleRate',Fs);
+
+% Example: Low-pass FIR filter for LFO
+bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
+               'HalfPowerFrequency', 3, 'SampleRate', Fs);
+
+
+
+mu = filtfilt(bpFilt,zscore(lfp));
+mu = angle(hilbert(mu));
+
+hg = filtfilt(hGFilt,zscore(lfp));
+hg = abs(hilbert(hg));
+hg_mu = filtfilt(bpFilt,hg);
+hg_mu = angle(hilbert(hg_mu));
+
+plv_hold=[];
+plv_move=[];
+for i=1:length(trial_timings)
+
+    % hold period
+    st = trial_timings(i).movement.cue(2).time; %anin
+    stp = trial_timings(i).movement.cue(3).time; %anin   
+    %st = st+0.5;
+    %stp=st+3;
+    index = (lfp_time >= st) .* (lfp_time<=stp);
+    
+    hg1 = hg_mu(logical(index),:);
+    % hg1 = hg(logical(index),:);
+    % hg1=zscore(hg1);
+    % hg_mu = filtfilt(bpFilt,hg1);    
+    % hg_mu = angle(hilbert(hg_mu));
+    
+    mu1 = mu(logical(index),:);
+    % mu1=zscore(mu1);
+    % mu1=angle(hilbert(mu1));
+    
+    tmp = circ_mean(mu1-hg1);
+    plv_hold(i,:) = tmp;
+
+    % move period
+    st = trial_timings(i).movement.cue(3).time; %anin
+    stp = st+3;    
+    index = (lfp_time >= st) .* (lfp_time<=stp);
+    
+    hg1 = hg_mu(logical(index),:);
+    % hg1 = hg(logical(index),:);
+    % hg1=zscore(hg1);
+    % hg_mu = filtfilt(bpFilt,hg1);
+    % hg_mu = angle(hilbert(hg_mu));
+    % 
+    mu1 = mu(logical(index),:);
+    % mu1=zscore(mu1);
+    % mu1=angle(hilbert(mu1));
+    % 
+    tmp = circ_mean(mu1-hg1);
+    plv_move(i,:) = tmp;
+end
+
+a = exp(1i*plv_hold);
+a = mean(a,1);
+a = abs(a);
+
+b = exp(1i*plv_move);
+b = mean(b,1);
+b = abs(b);
+
+figure;
+boxplot([a(bad_chI)' b(bad_chI)'],'Notch','on')
+xticks(1:2)
+xticklabels({'Hold','Move'})
+[p,h]=signrank(a(bad_chI),b(bad_chI))
+
+% plot on brain
+val=a;
+figure;
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
+for j=1:length(val)
+    ms = val(j)*20;
+    c='b';
+    if ms>0.0 && bad_chI(j)==1
+        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
+    end
+end
 
 
 
@@ -1094,4 +1191,102 @@ xlabel('Time (s)')
 ylabel('Z score')
 plot_beautify
 axis tight
+
+
+
+% phase amplitude coupling between the hG and mu at specific task phases
+%bpfilt is the one for mu
+hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'SampleRate',Fs);
+
+% mu 
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',5,'HalfPowerFrequency2',8, ...
+    'SampleRate',Fs);
+
+% Example: Low-pass FIR filter for LFO
+% bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
+%                'HalfPowerFrequency', 3, 'SampleRate', Fs);
+
+
+
+mu = filtfilt(bpFilt,zscore(lfp));
+mu = angle(hilbert(mu));
+
+hg = filtfilt(hGFilt,zscore(lfp));
+hg = abs(hilbert(hg));
+hg_mu = filtfilt(bpFilt,hg);
+hg_mu = angle(hilbert(hg_mu));
+
+plv_hold=[];
+plv_move=[];
+for i=1:length(trial_timings)
+
+    % hold period
+    st = trial_timings(i).movement.cue(2).time; %anin
+    stp = trial_timings(i).movement.cue(3).time; %anin   
+    %st = st+0.5;
+    %stp=st+3;
+    index = (lfp_time >= st) .* (lfp_time<=stp);
+    
+    hg1 = hg_mu(logical(index),:);
+    % hg1 = hg(logical(index),:);
+    % hg1=zscore(hg1);
+    % hg_mu = filtfilt(bpFilt,hg1);    
+    % hg_mu = angle(hilbert(hg_mu));
+    
+    mu1 = mu(logical(index),:);
+    % mu1=zscore(mu1);
+    % mu1=angle(hilbert(mu1));
+    
+    tmp = circ_mean(mu1-hg1);
+    plv_hold(i,:) = tmp;
+
+    % move period
+    st = trial_timings(i).movement.cue(3).time; %anin
+    stp = st+3;    
+    index = (lfp_time >= st) .* (lfp_time<=stp);
+    
+    hg1 = hg_mu(logical(index),:);
+    % hg1 = hg(logical(index),:);
+    % hg1=zscore(hg1);
+    % hg_mu = filtfilt(bpFilt,hg1);
+    % hg_mu = angle(hilbert(hg_mu));
+    % 
+    mu1 = mu(logical(index),:);
+    % mu1=zscore(mu1);
+    % mu1=angle(hilbert(mu1));
+    % 
+    tmp = circ_mean(mu1-hg1);
+    plv_move(i,:) = tmp;
+end
+
+a = exp(1i*plv_hold);
+a = mean(a,1);
+a = abs(a);
+
+b = exp(1i*plv_move);
+b = mean(b,1);
+b = abs(b);
+
+figure;
+boxplot([a(bad_chI)' b(bad_chI)'],'Notch','on')
+xticks(1:2)
+xticklabels({'Hold','Move'})
+[p,h]=signrank(a(bad_chI),b(bad_chI))
+
+% plot on brain
+val=b;
+figure;
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'rh',1,1,1);
+e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
+for j=1:length(val)
+    ms = val(j)*20;
+    c='b';
+    if ms>0.0 && bad_chI(j)==1
+        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
+    end
+end
+
 
