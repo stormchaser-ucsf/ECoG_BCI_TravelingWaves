@@ -424,10 +424,6 @@ get_data_analyses_EC189
 imaging_EC189
 close all
 
-
-cd('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC189_ProcessingForNikhilesh/EC189/')
-
-
 ecog_grid=[];
 k=1;
 for i=1:16:256
@@ -513,7 +509,6 @@ stats=[];
 pow_freq=[];
 ffreq=[];
 hold_dur = [];
-lfp_epochs={};
 for i=1:length(trial_timings)
     timings = [trial_timings(i).movement.cue.time];
     for j=1:length(timings)
@@ -542,8 +537,6 @@ for i=1:length(trial_timings)
     %stp=st+3; % duration
     index = (lfp_time >= st) .* (lfp_time<=stp);
     data = lfp(logical(index),:);
-
-    lfp_epochs{i}=data;
 
     spectral_peaks=[];
     stats_tmp=[];
@@ -608,7 +601,6 @@ for i=1:length(trial_timings)
 
 end
 
-save lfp_epochs_holdState lfp_epochs Fs bad_chI -v7.3
 
 % plot oscillation clusters
 f=2:40;
@@ -1324,8 +1316,6 @@ get_data_analyses_EC176
 imaging_EC176
 %close all
 
-cd('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC176_ProcessingForNikhilesh/ecog_data_NN')
-
 lfp=lfp(10e5:end,:);
 lfp_time=lfp_time(10e5:end);
 
@@ -1448,7 +1438,7 @@ for i=1:length(trial_timings)
     index = (lfp_time >= st) .* (lfp_time<=stp);
     data = lfp(logical(index),:);
 
-    lfp_epochs{i}=data;
+    lfp_ep
 
     spectral_peaks=[];
     stats_tmp=[];
