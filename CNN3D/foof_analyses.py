@@ -56,6 +56,7 @@ filepath = '/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC210/'
 #filepath = '/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC176_ProcessingForNikhilesh/ecog_data_NN/'
 #filepath='/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC189_ProcessingForNikhilesh/EC189/'
 filename ='lfp_epochs_holdState.mat'
+#filename='lfp_epochs_moveState.mat'
 filename = filepath + filename
 
 data_dict = mat73.loadmat(filename)
@@ -88,6 +89,7 @@ for i in np.arange(len(lfp)):
         # Initialize a FOOOF object
         fm = FOOOF()
         # run FOOF
+        #fm.report(F,Pxx,freq_range)
         fm.fit(F, Pxx, freq_range)
         
         if fm.peak_params_.size > 0:
@@ -196,7 +198,8 @@ osc_clus = np.array(osc_clus)
 
 # plotting
 f = np.arange(2, 41)
+x = np.median(osc_clus, axis=0) / np.sum(bad_chI)
 plt.figure()
-plt.plot(f, np.median(osc_clus, axis=0) / np.sum(bad_chI))
+plt.plot(f, x)
 plt.show()
 

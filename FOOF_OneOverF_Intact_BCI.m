@@ -450,11 +450,11 @@ for i=9:16
 end
 
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',7,'HalfPowerFrequency2',9, ...
+    'HalfPowerFrequency1',6,'HalfPowerFrequency2',9, ...
     'SampleRate',Fs);
 
 bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',13,'HalfPowerFrequency2',19, ...
+    'HalfPowerFrequency1',8,'HalfPowerFrequency2',13, ...
     'SampleRate',Fs);
 
 
@@ -537,9 +537,9 @@ for i=1:length(trial_timings)
     alp_ep(:,:,i) = alp(logical(index),:);
 
     % only during the go period or hold period for 1/f
-    st = trial_timings(i).movement.cue(2).time; %anin
-    stp = trial_timings(i).movement.cue(3).time; %anin
-    %stp=st+3; % duration
+    st = trial_timings(i).movement.cue(3).time; %anin
+    %stp = trial_timings(i).movement.cue(2).time; %anin
+    stp=st+3; % duration
     index = (lfp_time >= st) .* (lfp_time<=stp);
     data = lfp(logical(index),:);
 
@@ -608,7 +608,7 @@ for i=1:length(trial_timings)
 
 end
 
-save lfp_epochs_holdState lfp_epochs Fs bad_chI -v7.3
+%save lfp_epochs_moveState lfp_epochs Fs bad_chI -v7.3
 
 % plot oscillation clusters
 f=2:40;
@@ -652,10 +652,10 @@ pow_s3=[];
 aa=[];len=[];
 for i=1:length(hold_dur1)
     %tmp = squeeze(mu_ep(:,:,i)); 
-    tmp = squeeze(mu_ep(:,:,i)); 
+    tmp = squeeze(hg_ep(:,:,i)); 
     % first 1s or 508 samples is rest (baseline)
-    idx = 509: (509+hold_dur1(i));
-    %idx = (509+hold_dur1(i)):size(tmp,1);
+    %idx = 509: (509+hold_dur1(i));
+    idx = (509+hold_dur1(i)):size(tmp,1);
     %hg_pow(:,i) = mean(tmp(idx,:),1);
     hg_pow(:,i) = mean(tmp(idx,:));
     aa=[aa;tmp(idx,:)];
@@ -695,7 +695,7 @@ figure;
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
 e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
 for j=1:length(val)
-    ms = val(j)*5;
+    ms = val(j)*8;
     c='b';
     if ms>0.5
         e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
@@ -704,7 +704,7 @@ end
 
 % plotting PCs first
 [coeff,score,latent]=pca(aa);
-tmp=coeff(:,2);
+tmp=coeff(:,1);
 figure;
 imagesc(tmp(ecog_grid))
 % plot on grid
@@ -729,9 +729,9 @@ end
 figure;
 hold on
 ch=235;
-hg_ep1 = squeeze((hg_ep(:,ch,:)));
-alp_ep1 = squeeze((alp_ep(:,ch,:)));
-mu_ep1 = squeeze((mu_ep(:,ch,:)));
+hg_ep1 = squeeze(mean(hg_ep(:,ch,:),3));
+alp_ep1 = squeeze(mean(alp_ep(:,ch,:),3));
+mu_ep1 = squeeze(mean(mu_ep(:,ch,:),3));
 tt=-1:(1/Fs):7;
 if length(tt)>size(alp_ep1,1)
     tt=tt(1:end-1);
@@ -741,13 +741,13 @@ plot(tt,mean(mu_ep1,2),'r','LineWidth',1)
 plot(tt,mean(alp_ep1,2),'k','LineWidth',1)
 vline([0 3.7])
 hline(0)
-xlim([-1 4.5])
-legend({'hG','narrow beta','beta'})
+xlim([-1 6])
+legend({'hG','narrow mu','brdband mu (8-13Hz)'})
 xlabel('Time (s)')
 ylabel('Z score')
 plot_beautify
 axis tight
-
+title('Amplitude ERPs M1 Channel')
 
 % phase amplitude coupling between the hG and mu at specific task phases
 %bpfilt is the one for mu
@@ -756,17 +756,17 @@ axis tight
 % phase amplitude coupling between the hG and mu at specific task phases
 %bpfilt is the one for mu
 hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
     'SampleRate',Fs);
 
 % mu 
-% bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-%     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
-%     'SampleRate',Fs);
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',4,'HalfPowerFrequency2',8, ...
+    'SampleRate',Fs);
 
 % Example: Low-pass FIR filter for LFO
-bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
-               'HalfPowerFrequency', 3, 'SampleRate', Fs);
+% bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
+%                'HalfPowerFrequency', 3, 'SampleRate', Fs);
 
 
 
