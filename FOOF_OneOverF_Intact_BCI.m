@@ -683,9 +683,31 @@ figure;
 hold on
 boxplot([pow_s1a pow_s2a pow_s3a])
 hline(0,'--r')
-ylim([-1.5 1.5])
+xticks([1:3])
+xticklabels({'Rest','Hold','Move'})
+ylim([-1.25 3.5])
+plot_beautify
+ylabel('Z-score relative to rest')
+xlim([1.5 3.5])
 
 
+% plotting mu power
+val=pow_s2a-pow_s3a;
+figure;
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
+for j=1:length(val)
+    ms = val(j)*4;    
+    if ms>=0.0 && bad_chI(j)
+        e_h = el_add(elecmatrix(j,:), 'color', 'r','msize',abs(ms));
+    elseif ms<0 && bad_chI(j)
+        e_h = el_add(elecmatrix(j,:), 'color', 'b','msize',abs(ms));
+    end
+end
+set(gcf,'Color','w')
+title('EC 189 Mu power (hold-move)')
+
+% plotting hG power
 tmp = mean(hg_pow,2);
 figure;
 imagesc(tmp(ecog_grid))
@@ -760,13 +782,13 @@ hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',Fs);
 
 % mu 
-bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',4,'HalfPowerFrequency2',8, ...
-    'SampleRate',Fs);
+% bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',6,'HalfPowerFrequency2',9, ...
+%     'SampleRate',Fs);
 
 % Example: Low-pass FIR filter for LFO
-% bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
-%                'HalfPowerFrequency', 3, 'SampleRate', Fs);
+bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
+               'HalfPowerFrequency', 3, 'SampleRate', Fs);
 
 
 
@@ -834,6 +856,9 @@ boxplot([a(bad_chI)' b(bad_chI)'],'Notch','on')
 xticks(1:2)
 xticklabels({'Hold','Move'})
 [p,h]=signrank(a(bad_chI),b(bad_chI))
+ylabel('PAC')
+plot_beautify
+title('EC189')
 
 % plot on brain
 val=a;
@@ -841,13 +866,15 @@ figure;
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
 e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
 for j=1:length(val)
-    ms = val(j)*20;
+    ms = val(j)*16;
     c='b';
     if ms>0.0 && bad_chI(j)==1
         e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
     end
 end
-
+plot_beautify
+title('EC 189 mu hG PAC (move)')
+sum((a(bad_chI)'- b(bad_chI)')>0)/sum(bad_chI)
 
 
 %% LOOK AT 1/F AND POWER IN STATE 3 VS. 1
@@ -889,7 +916,7 @@ for i=9:16
 end
 
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',5,'HalfPowerFrequency2',8, ...
+    'HalfPowerFrequency1',4.5,'HalfPowerFrequency2',7.5, ...
     'SampleRate',Fs);
 
 bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -1136,7 +1163,6 @@ for i=1:length(hold_dur1)
 end
 
 
-
 pow_s1a = mean(pow_s1,2);
 pow_s2a = mean(pow_s2,2);
 pow_s3a = mean(pow_s3,2);
@@ -1144,9 +1170,33 @@ figure;
 hold on
 boxplot([pow_s1a pow_s2a pow_s3a])
 hline(0,'--r')
-ylim([-1.5 1.5])
+xticks([1:3])
+xticklabels({'Rest','Hold','Move'})
+ylim([-2 2])
+plot_beautify
+ylabel('Z-score relative to rest')
+xlim([1.5 3.5])
+title('EC 210 Mu power')
 
+% plotting mu power
+val=pow_s2a-pow_s3a;
+figure;
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'rh',1,1,1);
+e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
+for j=1:length(val)
+    ms = val(j)*4;    
+    if ms>=0.0 && bad_chI(j)
+        e_h = el_add(elecmatrix(j,:), 'color', 'b','msize',abs(ms));
+    % elseif ms<0 && bad_chI(j)
+    %     e_h = el_add(elecmatrix(j,:), 'color', 'b','msize',abs(ms));
+    % end
+    end
+end
+set(gcf,'Color','w')
+title('EC 210 Mu power (hold-move)')
+sum(val(bad_chI)>0)/sum(bad_chI)
 
+% hg power
 tmp = mean(hg_pow,2);
 figure;
 imagesc(tmp(ecog_grid))
@@ -1219,7 +1269,7 @@ hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
 
 % mu 
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',5,'HalfPowerFrequency2',8, ...
+    'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
     'SampleRate',Fs);
 
 % Example: Low-pass FIR filter for LFO
@@ -1292,20 +1342,25 @@ boxplot([a(bad_chI)' b(bad_chI)'],'Notch','on')
 xticks(1:2)
 xticklabels({'Hold','Move'})
 [p,h]=signrank(a(bad_chI),b(bad_chI))
+ylabel('PAC')
+plot_beautify
 
 % plot on brain
 val=b;
 figure;
+good_ch = find(bad_chI==1);
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'rh',1,1,1);
-e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
+e_h = el_add(elecmatrix([good_ch],:), 'color', 'w', 'msize',2);
 for j=1:length(val)
-    ms = val(j)*20;
+    ms = val(j)*8;
     c='b';
     if ms>0.0 && bad_chI(j)==1
         e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
     end
 end
-
+plot_beautify
+title('EC 210 mu hG PAC (hold)')
+sum((a(bad_chI)'- b(bad_chI)')>0)/sum(bad_chI)
 
 
 
@@ -1546,7 +1601,7 @@ for i=1:length(trial_timings)
 
 end
 
-save lfp_epochs_holdState lfp_epochs Fs bad_chI -v7.3
+%save lfp_epochs_holdState lfp_epochs Fs bad_chI -v7.3
 
 % plot move and hold power spectra
 figure;hold on
@@ -1643,6 +1698,7 @@ end
 
 
 
+
 pow_s1a = mean(pow_s1,2);
 pow_s2a = mean(pow_s2,2);
 pow_s3a = mean(pow_s3,2);
@@ -1650,9 +1706,34 @@ figure;
 hold on
 boxplot([pow_s1a pow_s2a pow_s3a])
 hline(0,'--r')
-%ylim([-1.5 1.5])
+xticks([1:3])
+xticklabels({'Rest','Hold','Move'})
+ylim([-1 1])
+plot_beautify
+ylabel('Z-score relative to rest')
+xlim([1.5 3.5])
+title('EC 176 Mu power')
 
+% plotting mu power
+val=pow_s2a-pow_s3a;
+figure;
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+good_ch=find(bad_chI==1);
+e_h = el_add(elecmatrix([good_ch],:), 'color', 'w', 'msize',2);
+for j=1:length(val)
+    ms = val(j)*8;    
+    if ms>=0.0 && bad_chI(j)
+        e_h = el_add(elecmatrix(j,:), 'color', 'b','msize',abs(ms));
+    % elseif ms<0 && bad_chI(j)
+    %     e_h = el_add(elecmatrix(j,:), 'color', 'b','msize',abs(ms));
+    % end
+    end
+end
+set(gcf,'Color','w')
+title('EC 176 Mu power (hold-move)')
+sum(val(bad_chI)>0)/sum(bad_chI)
 
+% plotting hG power
 tmp = mean(hg_pow,2);
 %tmp = pow_s2a;
 figure;
@@ -1801,18 +1882,20 @@ xticklabels({'Hold','Move'})
 [p,h]=signrank(a(bad_chI),b(bad_chI))
 
 % plot on brain
-val=a;
+val=b;
 figure;
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
-e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
+e_h = el_add(elecmatrix(good_ch,:), 'color', 'w', 'msize',2);
 for j=1:length(val)
-    ms = val(j)*20;
+    ms = val(j)*10;
     c='b';
-    if val(j)>0.3 && bad_chI(j)==1
+    if val(j)>0.0 && bad_chI(j)==1
         e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
     end
 end
-
+plot_beautify
+title('EC 179 mu hG PAC (move)')
+sum([a(bad_chI)'- b(bad_chI)'])
 
 
 
