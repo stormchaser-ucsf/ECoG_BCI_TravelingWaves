@@ -473,9 +473,9 @@ for ii=127:length(files)
         data_ep_hg = (data_ep_hg-m)./s;
 
         % store
-        ERP = cat(3,ERP,data_ep(1:3.2e3,:));
-        ERP_beta = cat(3,ERP_beta,data_ep_beta(1:3.2e3,:));
-        ERP_hg = cat(3,ERP_hg,data_ep_hg(1:3.2e3,:));
+        ERP = cat(3,ERP,data_ep(1:3.5e3,:));
+        ERP_beta = cat(3,ERP_beta,data_ep_beta(1:3.5e3,:));
+        ERP_hg = cat(3,ERP_hg,data_ep_hg(1:3.5e3,:));
 
     end
 
@@ -493,31 +493,32 @@ tmp_hg = squeeze(mean(ERP_hg,3));
 
 
 figure;hold on
-% ch=[137	143	148	152
-% 159	160	30	28
-% 134	140	170	174
-% 49	45	41	38
-% 221	62	59	56];
+ch=[137	143	148	152
+159	160	30	28
+134	140	170	174
+49	45	41	38
+221	62	59	56];
 %ch=137;
-ch=[185	188	191	64	61
-165	168	172	176	180
-43	39	36	33	161
-94	90	86	83	80
-210	213	216	220	224];
+% ch=[185	188	191	64	61
+% 165	168	172	176	180
+% 43	39	36	33	161
+% 94	90	86	83	80
+% 210	213	216	220	224];
 
 %plot(tmp(:,ch),'LineWidth',1)
 %plot(tmp_beta(:,ch),'LineWidth',1)
 plot(mean(tmp(:,ch),2),'LineWidth',2)
-plot(mean(tmp_beta(:,ch),2),'LineWidth',2)
+%plot(mean(tmp_beta(:,ch),2),'LineWidth',2)
 plot(mean(tmp_hg(:,ch),2),'LineWidth',2)
 %vline([1e3 2e3])
 vline([800 1800 ])
 plot_beautify
 %xlim([0 4000])
 hline(0,'--r')
-legend({'Mu','Alpha','hG'})
+%legend({'Mu','Alpha','hG'})
+legend({'Mu','hG'})
 xlabel('Time (ms)')
-ylabel('Amplit.')
+ylabel('Zscore Amplit.')
 title('Avg all M1/S1 channels')
 
 % 
@@ -3372,10 +3373,10 @@ set(gcf,'Color','w')
 sgtitle('Day 1 to Day 10: Channels with greatest drop in mu hG PAC')
 
 
-%% LOOKING AT THE AVERAGE ALPHA ERPS
+%% LOOKING AT THE STATE SPECIFIC MU POWER
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',15,'HalfPowerFrequency2',20, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 

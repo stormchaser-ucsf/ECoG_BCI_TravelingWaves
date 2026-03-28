@@ -22,8 +22,8 @@ if strcmp(subj,'B3')
         %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
         root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
         cd(root_path)
-        %load session_data_B3_Hand
-        load session_data_B3
+        load session_data_B3_Hand
+        %load session_data_B3
         load('ECOG_Grid_8596_000067_B3.mat')
         addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 
@@ -45,7 +45,7 @@ if strcmp(subj,'B3')
 
     imaging_B3_waves;
     len_days = min(11,length(session_data));
-    num_targets=7;
+    num_targets=12;
 end
 
 
@@ -696,4 +696,148 @@ end
 save B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData_PLVDetla -v7.3
 
 
-%%
+%% LOOKING AT MU POWER IN EACH STATE ACROSS DAYS
+% B3 HAND/ARROW
+
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',1e3);
+
+state_pow_days_ol={};
+state_pow_days_cl={};
+for days=1:len_days
+
+    disp(['Processing day ' num2str(days)])
+
+    folders_imag =  strcmp(session_data(days).folder_type,'I');
+    folders_online = strcmp(session_data(days).folder_type,'O');
+    folders_batch = strcmp(session_data(days).folder_type,'B');
+    folders_batch1 = strcmp(session_data(days).folder_type,'B1');
+    imag_idx = find(folders_imag==1);
+    online_idx = find(folders_online==1);
+    batch_idx = find(folders_batch==1);
+    batch_idx1 = find(folders_batch1==1);
+    online_idx=[online_idx batch_idx batch_idx1];
+    %online_idx=[online_idx batch_idx batch_idx1];
+    %online_idx = [batch_idx batch_idx1];
+
+
+
+    %%%%%% get imagined data files
+    folders = session_data(days).folders(imag_idx);
+    day_date = session_data(days).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
+        %folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'Imagined');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+
+    state_pow = get_state_pow(files,bpFilt);
+    title(['Day ' num2str(days) ' OL'])
+    state_pow_days_ol{days}=state_pow;
+    
+
+
+    %%%%%% get online data files %%%%%
+    folders = session_data(days).folders(online_idx);
+    day_date = session_data(days).Day;
+    files=[];
+    for ii=1:length(folders)
+        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        %folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+
+
+    state_pow = get_state_pow(files,bpFilt);
+    title(['Day ' num2str(days) ' CL'])
+    state_pow_days_cl{days}=state_pow;
+
+   
+end
+
+
+% 
+% tmp=state_pow(:,2)';
+% tmp1 = [tmp(1:107) 0 tmp(108:111) 0  tmp(112:115) 0 ...
+%     tmp(116:end)];
+% 
+% figure;imagesc(tmp1(ecog_grid))
+
+
+%% LOOKING AT MU POWER IN EACH STATE ACROSS DAYS
+% B1/B6 ARROW
+
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',1e3);
+
+state_pow_days_ol={};
+state_pow_days_cl={};
+for days=1:len_days
+
+    disp(['Processing day ' num2str(days)])
+
+    folderpath = fullfile(root_path,folders{days},'Robot3DArrow');
+    % if i<=2
+    %     folderpath = fullfile(root_path,folders_robot{i},'Robot3D');
+    % else
+    %     folderpath = fullfile(root_path,folders_robot{i},'RealRobotBatch');
+    % end
+    D= dir(folderpath);
+    D = D(3:end);
+    imag_idx=[];
+    online_idx=[];
+    for j=1:length(D)
+        subfoldername = dir(fullfile(folderpath,D(j).name));
+        if length(subfoldername)>2
+            if strcmp(subfoldername(3).name,'Imagined')
+                imag_idx=[imag_idx j];
+            elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+                online_idx=[online_idx j];
+            end
+        end
+    end
+
+
+
+    %%%%%% get imagined data files
+    files=[];
+    for ii=1:length(imag_idx)
+        imag_folderpath = fullfile(folderpath, D(imag_idx(ii)).name,'Imagined');
+        files = [files;findfiles('mat',imag_folderpath)'];
+    end
+
+    state_pow = get_state_pow(files,bpFilt);
+    title(['Day ' num2str(days) ' OL'])
+    state_pow_days_ol{days}=state_pow;
+    
+
+
+    %%%%%% get online data files %%%%%
+    files=[];
+    for ii=1:length(online_idx)
+        imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
+        files = [files;findfiles('mat',imag_folderpath)'];
+    end
+
+
+    state_pow = get_state_pow(files,bpFilt);
+    title(['Day ' num2str(days) ' CL'])
+    state_pow_days_cl{days}=state_pow;
+
+   
+end
+
+
+% 
+tmp=state_pow(:,2)';
+tmp1 = [tmp(1:107) 0 tmp(108:111) 0  tmp(112:115) 0 ...
+    tmp(116:end)];
+
+figure;imagesc(tmp1(ecog_grid))
+
+

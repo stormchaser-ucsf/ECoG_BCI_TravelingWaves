@@ -773,7 +773,7 @@ title('Amplitude ERPs M1 Channel')
 
 % phase amplitude coupling between the hG and mu at specific task phases
 %bpfilt is the one for mu
-
+close all
 
 % phase amplitude coupling between the hG and mu at specific task phases
 %bpfilt is the one for mu
@@ -858,10 +858,10 @@ xticklabels({'Hold','Move'})
 [p,h]=signrank(a(bad_chI),b(bad_chI))
 ylabel('PAC')
 plot_beautify
-title('EC189')
+title('EC189 hG LFO PAC')
 
 % plot on brain
-val=a;
+val=b-a;
 figure;
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
 e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
@@ -873,8 +873,8 @@ for j=1:length(val)
     end
 end
 plot_beautify
-title('EC 189 mu hG PAC (move)')
-sum((a(bad_chI)'- b(bad_chI)')>0)/sum(bad_chI)
+title('EC 189 LFO hG PAC (hold)')
+sum((b(bad_chI)'- a(bad_chI)')>0)/sum(bad_chI)
 
 
 %% LOOK AT 1/F AND POWER IN STATE 3 VS. 1
@@ -1259,7 +1259,7 @@ ylabel('Z score')
 plot_beautify
 axis tight
 
-
+close all
 
 % phase amplitude coupling between the hG and mu at specific task phases
 %bpfilt is the one for mu
@@ -1268,13 +1268,13 @@ hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',Fs);
 
 % mu 
-bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
-    'SampleRate',Fs);
+% bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
+%     'SampleRate',Fs);
 
 % Example: Low-pass FIR filter for LFO
-% bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
-%                'HalfPowerFrequency', 3, 'SampleRate', Fs);
+bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
+               'HalfPowerFrequency', 3, 'SampleRate', Fs);
 
 
 
@@ -1342,11 +1342,12 @@ boxplot([a(bad_chI)' b(bad_chI)'],'Notch','on')
 xticks(1:2)
 xticklabels({'Hold','Move'})
 [p,h]=signrank(a(bad_chI),b(bad_chI))
+title('EC 210')
 ylabel('PAC')
 plot_beautify
 
 % plot on brain
-val=b;
+val=a;
 figure;
 good_ch = find(bad_chI==1);
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'rh',1,1,1);
@@ -1360,7 +1361,7 @@ for j=1:length(val)
 end
 plot_beautify
 title('EC 210 mu hG PAC (hold)')
-sum((a(bad_chI)'- b(bad_chI)')>0)/sum(bad_chI)
+sum((b(bad_chI)'- a(bad_chI)')>0)/sum(bad_chI)
 
 
 
@@ -1798,6 +1799,7 @@ plot_beautify
 axis tight
 
 
+close all
 
 % phase amplitude coupling between the hG and mu at specific task phases
 %bpfilt is the one for mu
@@ -1806,13 +1808,13 @@ hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',Fs);
 
 % mu 
-bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',11,'HalfPowerFrequency2',17, ...
-    'SampleRate',Fs);
+% bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',11,'HalfPowerFrequency2',17, ...
+%     'SampleRate',Fs);
 
 % Example: Low-pass FIR filter for LFO
-% bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
-%                'HalfPowerFrequency', 3, 'SampleRate', Fs);
+bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
+               'HalfPowerFrequency', 3, 'SampleRate', Fs);
 
 
 
@@ -1880,9 +1882,12 @@ boxplot([a(bad_chI)' b(bad_chI)'],'Notch','on')
 xticks(1:2)
 xticklabels({'Hold','Move'})
 [p,h]=signrank(a(bad_chI),b(bad_chI))
+title('EC 176')
+ylabel('PAC')
+plot_beautify
 
 % plot on brain
-val=b;
+val=a-b;
 figure;
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
 e_h = el_add(elecmatrix(good_ch,:), 'color', 'w', 'msize',2);
@@ -1894,8 +1899,8 @@ for j=1:length(val)
     end
 end
 plot_beautify
-title('EC 179 mu hG PAC (move)')
-sum([a(bad_chI)'- b(bad_chI)'])
+title('EC 179 LFO hG PAC (hold)')
+sum( (b(bad_chI) - a(bad_chI) > 0 ))/sum(bad_chI)
 
 
 

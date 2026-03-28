@@ -34,8 +34,13 @@ elseif strcmp(subj,'B3')
     %load B3_waves_hand_stability_Muller_hG_plv
     %load B3_waves_stability_hgFilterBank_PLV_AccStatsCL
     %load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL
-    load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2
-    num_targets=7;
+    
+    %load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2
+    %num_targets=7;
+
+    load B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta
+    num_targets=12;
+    
 
 
 elseif strcmp(subj,'B6')
