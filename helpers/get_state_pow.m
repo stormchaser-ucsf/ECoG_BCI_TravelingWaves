@@ -110,13 +110,13 @@ for ch=1:256
         pow_channels =[pow_channels;median(pow)];
     end
 end
-figure;boxplot(pow_channels)
-h=hline(0,'--r');
-set(h,'LineWidth',1)
-xticklabels({'S1','S2','S3','S4'})
-ylabel('Alpha power Z score relative to S1')
-plot_beautify
-title(['All Channels']);
+% figure;boxplot(pow_channels)
+% h=hline(0,'--r');
+% set(h,'LineWidth',1)
+% xticklabels({'S1','S2','S3','S4'})
+% ylabel('Alpha power Z score relative to S1')
+% plot_beautify
+% title(['All Channels']);
 
 state_pow = pow_channels;
 

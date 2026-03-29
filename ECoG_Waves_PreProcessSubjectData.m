@@ -2,7 +2,7 @@
 clear
 clc
 close all
-subj='B1';
+subj='B3';
 %% LOAD SUBJECT SPECIFIC DATA
 
 if strcmp(subj,'B3')
@@ -735,7 +735,7 @@ for days=1:len_days
     end
 
     state_pow = get_state_pow(files,bpFilt);
-    title(['Day ' num2str(days) ' OL'])
+    %title(['Day ' num2str(days) ' OL'])
     state_pow_days_ol{days}=state_pow;
     
 
@@ -753,7 +753,7 @@ for days=1:len_days
 
 
     state_pow = get_state_pow(files,bpFilt);
-    title(['Day ' num2str(days) ' CL'])
+    %title(['Day ' num2str(days) ' CL'])
     state_pow_days_cl{days}=state_pow;
 
    
@@ -766,6 +766,34 @@ end
 %     tmp(116:end)];
 % 
 % figure;imagesc(tmp1(ecog_grid))
+
+days=1:10;
+pow=[];
+for i=1:10
+    tmp = state_pow_days_cl{i};
+    pow(:,i) = tmp(:,3);
+end
+figure;
+boxplot(pow)
+ylabel('Z-score')
+title('Mu power during BCI control')
+xlabel('Days')
+xticks(1:10)
+plot_beautify
+hline(0)
+
+% splitting early vs late
+early_pow = pow(:,1:5);
+late_pow = pow(:,6:end);
+figure;
+boxplot([early_pow(:) late_pow(:)],'Notch','on')
+ylabel('Z-score')
+title('Mu power during BCI control (All chan)')
+xticks(1:2)
+xticklabels({'1st 5 Days','2nd 5 Days'})
+plot_beautify
+hline(0)
+
 
 
 %% LOOKING AT MU POWER IN EACH STATE ACROSS DAYS

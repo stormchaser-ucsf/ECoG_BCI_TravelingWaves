@@ -3067,6 +3067,35 @@ figure;boxplot([ol' cl'])
 %%%% (MAIN) code for plotting phase angle and PLV on grid. Taken from ecog hand
 % project code
 
+
+%%% STEP 0: BOXPLOT OF UNCORRECTED PAC VALUES ACROSS DAYS %%%%
+cl_days=[2:2:14 17 20 23];
+pac_all=[];
+for i=1:length(cl_days)
+    tmp = pac_raw_values(cl_days(i)).pac;
+    tmp = abs(mean(tmp));
+    pac_all(:,i) = tmp;
+end
+figure;
+boxplot(pac_all)
+figure;
+plot(median(pac_all),'.','MarkerSize',20)
+y = median(pac_all,1);
+x= 1:10;
+lm = fitlm(x,y,'RobustOpts','on');
+figure;hold on
+boxplot(pac_all)
+plot(x,y,'.b','MarkerSize',20)
+yhat = lm.predict(x');
+plot(x,yhat,'k','LineWidth',2)
+xticks(1:10)
+xlim([0.5 10.5])
+ylabel('PAC across channels')
+xlabel('Days')
+plot_beautify
+ylim([0.0 0.55])
+yticks([0:0.1:1])
+
 %%%% STEP 1: JUST PLOTTING THE NUMBER OF SIG. CHANNELS ACROSS DAYS
 tmp=sum(pval_cl'<=0.05);
 figure;plot(tmp./253)
