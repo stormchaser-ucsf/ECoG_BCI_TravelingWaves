@@ -717,12 +717,14 @@ figure;
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
 e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
 for j=1:length(val)
-    ms = val(j)*8;
+    ms = val(j)*16;
     c='b';
     if ms>0.5
         e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
+        %e_h = el_add(elecmatrix(j,:), 'color', c,'msize',10);
     end
 end
+sgtitle('hG power during movement')
 
 % plotting PCs first
 [coeff,score,latent]=pca(aa);

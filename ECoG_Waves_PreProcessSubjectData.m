@@ -795,6 +795,13 @@ plot_beautify
 hline(0)
 
 
+% plot on brain
+tmp = (mean(late_pow,2) - mean(early_pow,2))';
+tmp1 = [tmp(1:107) 0 tmp(108:111) 0  tmp(112:115) 0 ...
+    tmp(116:end)];
+figure;
+imagesc(tmp1(ecog_grid))
+
 
 %% LOOKING AT MU POWER IN EACH STATE ACROSS DAYS
 % B1/B6 ARROW
