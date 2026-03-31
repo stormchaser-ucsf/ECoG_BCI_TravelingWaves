@@ -22,8 +22,8 @@ if strcmp(subj,'B3')
         %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
         root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
         cd(root_path)
-        load session_data_B3_Hand
-        %load session_data_B3
+        %load session_data_B3_Hand
+        load session_data_B3
         load('ECOG_Grid_8596_000067_B3.mat')
         addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 
@@ -45,7 +45,7 @@ if strcmp(subj,'B3')
 
     imaging_B3_waves;
     len_days = min(11,length(session_data));
-    num_targets=12;
+    num_targets=7;
 end
 
 
@@ -874,5 +874,389 @@ tmp1 = [tmp(1:107) 0 tmp(108:111) 0  tmp(112:115) 0 ...
     tmp(116:end)];
 
 figure;imagesc(tmp1(ecog_grid))
+
+
+
+%% (MAIN) GETTING PAC BETWEEN MU AND HG IN ARROW TASK
+% B1,B6
+
+% 
+% d1 = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+%     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
+
+
+
+d1 = designfilt('lowpassiir', 'FilterOrder', 4, ...
+               'HalfPowerFrequency', 3, 'SampleRate', 1e3);
+
+d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'SampleRate',1e3);
+
+pac_ol=[];pval_ol=[];
+pac_cl=[];pval_cl=[];
+pac_batch=[];pval_batch=[];
+rboot_ol=[];rboot_cl=[];rboot_batch=[];
+pac_raw_values={};k=1;
+tic
+for i=1:length(folders)-1%go up to 8
+
+
+    days=i;
+    disp(['Processing day ' num2str(days)])
+
+    folderpath = fullfile(root_path,folders{days},'Robot3DArrow');
+    % if i<=2
+    %     folderpath = fullfile(root_path,folders_robot{i},'Robot3D');
+    % else
+    %     folderpath = fullfile(root_path,folders_robot{i},'RealRobotBatch');
+    % end
+    D= dir(folderpath);
+    D = D(3:end);
+    imag_idx=[];
+    online_idx=[];
+    for j=1:length(D)
+        subfoldername = dir(fullfile(folderpath,D(j).name));
+        if length(subfoldername)>2
+            if strcmp(subfoldername(3).name,'Imagined')
+                imag_idx=[imag_idx j];
+            elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+                online_idx=[online_idx j];
+            end
+        end
+    end
+
+
+
+    %%%%%% get imagined data files
+    files=[];
+    for ii=1:length(imag_idx)
+        imag_folderpath = fullfile(folderpath, D(imag_idx(ii)).name,'Imagined');
+        files = [files;findfiles('mat',imag_folderpath)'];
+    end
+
+    len = min(80,length(files));
+    idx=randperm(length(files),len);
+    files=files(idx);
+
+    % get the phase locking value
+    if length(files)>0
+        disp(['Processing Day ' num2str(i) ' OL'])
+        [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+    else
+        pac=[];
+    end
+
+
+    % run permutation test and get pvalue for each channel
+    %[pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+    pval=[];
+    rboot=[];
+
+    %sum(pac_r>0.3)/253
+    %pval_ol(i,:) = pval;
+    %pac_ol(i,:) = abs(mean(pac));
+    pac_raw_values(k).pac = pac;
+    pac_raw_values(k).boot = rboot;
+    pac_raw_values(k).type = 'OL';
+    pac_raw_values(k).Day = i;
+    k=k+1;
+
+
+    %%%%%% get online data files %%%%%
+    files=[];
+    for ii=1:length(online_idx)
+        imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
+        files = [files;findfiles('mat',imag_folderpath)'];
+    end
+
+    len = min(80,length(files));
+    idx=randperm(length(files),len);
+    files=files(idx);
+
+    % get the phase locking value
+    if length(files)>0
+        disp(['Processing Day ' num2str(i) ' CL'])
+        [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+        % run permutation test and get pvalue for each channel
+        [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+    else
+        pac=[];
+        rboot=[];
+    end
+
+    
+
+    %sum(pac_r>0.3)/253
+    pval_cl(i,:) = pval;
+    pac_cl(i,:) = abs(mean(pac));
+    pac_raw_values(k).pac = pac;
+    pac_raw_values(k).boot = rboot;
+    pac_raw_values(k).type = 'CL';
+    pac_raw_values(k).Day = i;
+    k=k+1;
+
+    % %%%%%% getting batch udpated (CL2) files now
+    % folders = session_data(i).folders(batch_idx1);
+    % day_date = session_data(i).Day;
+    % files=[];
+    % for ii=1:length(folders)
+    %     folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+    %     %cd(folderpath)
+    %     files = [files;findfiles('mat',folderpath)'];
+    % end
+    % 
+    % if ~isempty(files)
+    % 
+    %     % get the phase locking value
+    %     disp(['Processing Day ' num2str(i) ' Batch'])
+    %     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+    % 
+    %     % run permutation test and get pvalue for each channel
+    %     [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+    % 
+    %     pval_batch(i,:) = pval;
+    %     pac_batch(i,:) = abs(mean(pac));
+    %     %rboot_batch(i,:,:) = rboot;
+    %     pac_raw_values(k).pac = pac;
+    %     pac_raw_values(k).boot = rboot;
+    %     pac_raw_values(k).type = 'Batch';
+    %     pac_raw_values(k).Day = i;
+    %     k=k+1;
+    % 
+    % 
+    % else
+    %     pac_batch(i,:)=NaN(1,253);
+    %     pval_batch(i,:)=NaN(1,253);
+    % end
+
+end
+
+toc
+
+
+%cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
+save PAC_B6_LFO_hG_rawValues_New -v7.3
+
+
+% plotting results
+cl_days=[2:2:length(pac_raw_values)];
+pac_all=[];
+cl=[];
+for i=1:length(cl_days)
+    tmp = pac_raw_values(cl_days(i)).pac;
+    tmp = abs(mean(tmp));
+    pac_all(i,:) = tmp;
+
+    ptmp=pval_cl(i,:);
+    [pfdr,pmask]=fdr(ptmp,0.05);    
+    %pfdr = 0.013;
+    cl(i) = sum(ptmp<=pfdr)/length(ptmp);
+end
+
+figure;boxplot(pac_all')
+xticks(1:size(pac_all,1))
+xlabel('Days')
+ylabel('PAC mu hG')
+xlim([0.5 11.5])
+
+figure;plot(1:size(pac_all,1),cl)
+xticks(1:size(pac_all,1))
+xlabel('Days')
+ylabel('No. sig chan')
+xlim([0.5 11.5])
+
+
+
+%% (MAIN) GETTING PAC BETWEEN MU AND HG IN ARROW TASK
+% B3
+
+% 
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',1e3); % 8 to 10 or 0.5 to 5
+
+
+
+% d1 = designfilt('lowpassiir', 'FilterOrder', 4, ...
+%                'HalfPowerFrequency', 3, 'SampleRate', 1e3);
+
+d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'SampleRate',1e3);
+
+pac_ol=[];pval_ol=[];
+pac_cl=[];pval_cl=[];
+pac_batch=[];pval_batch=[];
+rboot_ol=[];rboot_cl=[];rboot_batch=[];
+pac_raw_values={};k=1;
+len_days = min(11,length(session_data));
+
+for i=1:len_days
+
+
+    days=i;
+    disp(['Processing day ' num2str(days)])
+
+    folders_imag =  strcmp(session_data(days).folder_type,'I');
+    folders_online = strcmp(session_data(days).folder_type,'O');
+    folders_batch = strcmp(session_data(days).folder_type,'B');
+    folders_batch1 = strcmp(session_data(days).folder_type,'B1');
+    imag_idx = find(folders_imag==1);
+    online_idx = find(folders_online==1);
+    batch_idx = find(folders_batch==1);
+    batch_idx1 = find(folders_batch1==1);
+    online_idx=[online_idx batch_idx batch_idx1];
+    %online_idx=[online_idx batch_idx batch_idx1];
+    %online_idx = [batch_idx batch_idx1];
+
+
+
+    %%%%%% get imagined data files
+    folders = session_data(days).folders(imag_idx);
+    day_date = session_data(days).Day;
+    files=[];
+    for ii=1:length(folders)
+        %folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
+        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'Imagined');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+
+    len = min(120,length(files));
+    idx=randperm(length(files),len);
+    files=files(idx);
+
+    % get the phase locking value
+    if length(files)>0
+        disp(['Processing Day ' num2str(i) ' OL'])
+        [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+    else
+        pac=[];
+    end
+
+
+    % run permutation test and get pvalue for each channel
+    %[pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+    pval=[];
+    rboot=[];
+
+    %sum(pac_r>0.3)/253
+    %pval_ol(i,:) = pval;
+    %pac_ol(i,:) = abs(mean(pac));
+    pac_raw_values(k).pac = pac;
+    pac_raw_values(k).boot = rboot;
+    pac_raw_values(k).type = 'OL';
+    pac_raw_values(k).Day = i;
+    k=k+1;
+
+
+    %%%%%% get online data files %%%%%
+    folders = session_data(days).folders(online_idx);
+    day_date = session_data(days).Day;
+    files=[];
+    for ii=1:length(folders)
+        %folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+  
+    len = min(120,length(files));
+    idx=randperm(length(files),len);
+    files=files(idx);
+
+    % get the phase locking value
+    if length(files)>0
+        disp(['Processing Day ' num2str(i) ' CL'])
+        [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+        % run permutation test and get pvalue for each channel
+        [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+    else
+        pac=[];
+        rboot=[];
+    end
+
+    
+
+    %sum(pac_r>0.3)/253
+    pval_cl(i,:) = pval;
+    pac_cl(i,:) = abs(mean(pac));
+    pac_raw_values(k).pac = pac;
+    pac_raw_values(k).boot = rboot;
+    pac_raw_values(k).type = 'CL';
+    pac_raw_values(k).Day = i;
+    k=k+1;
+
+    % %%%%%% getting batch udpated (CL2) files now
+    % folders = session_data(i).folders(batch_idx1);
+    % day_date = session_data(i).Day;
+    % files=[];
+    % for ii=1:length(folders)
+    %     folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+    %     %cd(folderpath)
+    %     files = [files;findfiles('mat',folderpath)'];
+    % end
+    % 
+    % if ~isempty(files)
+    % 
+    %     % get the phase locking value
+    %     disp(['Processing Day ' num2str(i) ' Batch'])
+    %     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
+    % 
+    %     % run permutation test and get pvalue for each channel
+    %     [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+    % 
+    %     pval_batch(i,:) = pval;
+    %     pac_batch(i,:) = abs(mean(pac));
+    %     %rboot_batch(i,:,:) = rboot;
+    %     pac_raw_values(k).pac = pac;
+    %     pac_raw_values(k).boot = rboot;
+    %     pac_raw_values(k).type = 'Batch';
+    %     pac_raw_values(k).Day = i;
+    %     k=k+1;
+    % 
+    % 
+    % else
+    %     pac_batch(i,:)=NaN(1,253);
+    %     pval_batch(i,:)=NaN(1,253);
+    % end
+
+end
+
+
+
+
+%cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
+save PAC_B3_mu_hG_rawValues_Arrow_New -v7.3
+
+
+% plotting results
+cl_days=[2:2:length(pac_raw_values)];
+pac_all=[];
+cl=[];
+for i=1:length(cl_days)
+    tmp = pac_raw_values(cl_days(i)).pac;
+    tmp = abs(mean(tmp));
+    pac_all(i,:) = tmp;
+
+    ptmp=pval_cl(i,:);
+    [pfdr,pmask]=fdr(ptmp,0.05);    
+    %pfdr = 0.013;
+    cl(i) = sum(ptmp<=pfdr)/length(ptmp);
+end
+
+figure;boxplot(pac_all')
+xticks(1:size(pac_all,1))
+xlabel('Days')
+ylabel('PAC mu hG')
+xlim([0.5 11.5])
+
+figure;plot(1:size(pac_all,1),cl)
+xticks(1:size(pac_all,1))
+xlabel('Days')
+ylabel('No. sig chan')
+xlim([0.5 11.5])
 
 
