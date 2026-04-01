@@ -2,7 +2,7 @@
 clear
 clc
 close all
-subj='B3';
+subj='B1';
 %% LOAD SUBJECT SPECIFIC DATA
 
 if strcmp(subj,'B3')
@@ -936,7 +936,7 @@ for i=1:length(folders)-1%go up to 8
         files = [files;findfiles('mat',imag_folderpath)'];
     end
 
-    len = min(80,length(files));
+    len = min(120,length(files));
     idx=randperm(length(files),len);
     files=files(idx);
 
@@ -971,7 +971,7 @@ for i=1:length(folders)-1%go up to 8
         files = [files;findfiles('mat',imag_folderpath)'];
     end
 
-    len = min(80,length(files));
+    len = min(120,length(files));
     idx=randperm(length(files),len);
     files=files(idx);
 
@@ -1037,7 +1037,8 @@ toc
 
 
 %cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
-save PAC_B6_LFO_hG_rawValues_New -v7.3
+%save PAC_B6_LFO_hG_rawValues_New -v7.3
+save PAC_B1_LFO_hG_rawValues_New -v7.3
 
 
 % plotting results
@@ -1059,13 +1060,13 @@ figure;boxplot(pac_all')
 xticks(1:size(pac_all,1))
 xlabel('Days')
 ylabel('PAC mu hG')
-xlim([0.5 11.5])
+xlim([0.5 size(pac_all,1)+0.5])
 
 figure;plot(1:size(pac_all,1),cl)
 xticks(1:size(pac_all,1))
 xlabel('Days')
 ylabel('No. sig chan')
-xlim([0.5 11.5])
+xlim([0.5 size(pac_all,1)+0.5])
 
 
 
@@ -1073,9 +1074,9 @@ xlim([0.5 11.5])
 % B3
 
 % 
-d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
-    'SampleRate',1e3); % 8 to 10 or 0.5 to 5
+% d1 = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+%     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 
 
@@ -1229,7 +1230,7 @@ end
 
 
 %cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
-save PAC_B3_mu_hG_rawValues_Arrow_New -v7.3
+%save PAC_B3_LFO_hG_rawValues_Arrow_New -v7.3
 
 
 % plotting results
