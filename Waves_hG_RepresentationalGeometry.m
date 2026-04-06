@@ -26,8 +26,8 @@ if strcmp(subj,'B1')
 elseif strcmp(subj,'B3')    
     root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
     cd(root_path)
-    load session_data_B3_Hand
-    %load session_data_B3
+    %load session_data_B3_Hand
+    load session_data_B3
     load('ECOG_Grid_8596_000067_B3.mat')
     addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
     %load B3_waves_hand_stability_Muller_hG
@@ -35,11 +35,11 @@ elseif strcmp(subj,'B3')
     %load B3_waves_stability_hgFilterBank_PLV_AccStatsCL
     %load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL
     
-    %load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2
-    %num_targets=7;
+    load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2
+    num_targets=7;
 
-    load B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta
-    num_targets=12;
+    % load B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta
+    % num_targets=12;
     
 
 
@@ -2322,6 +2322,69 @@ ylabel('Duty Cycle')
 plot_beautify
 
 [p,h] = signrank(res_days(:,1),res_days(:,2))
+
+%% ANALYSIS 6 (EXAMINING RAW STABILITY VALUES TO CV PREDICT WAVE EPOCHS)
+
+
+% have to get it from the vector field in stats_cl
+wave_data={};idx=1;
+for days=1:length(stats_cl_days)    
+    stats_cl = stats_cl_days{days};    
+    for i=1:length(stats_cl)
+        stab = stats_cl(i).stab;
+        stab1 = zscore(stab(15:end));
+        [out,st,stp] = wave_stability_detect(stab1);
+        st = st+14;
+        stp = stp+14;
+
+        I = zeros(size(stab));
+        for j=1:length(st)
+            I(st(j):stp(j)) = 1;            
+        end
+
+        wave_data(idx).stab = stab;
+        wave_data(idx).I = I;
+        idx=idx+1;
+    end
+end
+
+% first examining if there is a difference at all
+wave_stab_val=[];
+nonwave_stab_val=[];
+for i=1:length(wave_data)
+    tmp = wave_data(i).stab;
+    I = wave_data(i).I;
+    idx = find(I==1);
+    idx0 = find(I==0);
+    wave_stab_val = [wave_stab_val ;[mean(tmp(idx)) std(tmp(idx))]];
+    nonwave_stab_val = [nonwave_stab_val;[mean(tmp(idx0)) std(tmp(idx0))]];
+end
+
+figure;
+hold on
+ksdensity(wave_stab_val(:,2))
+ksdensity(nonwave_stab_val(:,2))
+legend({'Wave','Non wave'})
+
+figure;
+hold on
+plot(wave_stab_val(:,1),wave_stab_val(:,2),'.','MarkerSize',15)
+plot(nonwave_stab_val(:,1),nonwave_stab_val(:,2),'.','MarkerSize',15)
+legend({'Wave','Non wave'})
+xlabel('Mean stability value')
+ylabel('Std stability value')
+
+
+
+% 5 bins, run over by 2 samples. 
+% want to see if cnn model can completely distinguish b/w wave and non wave
+% samples
+all_data = cell2mat(stats_cl_hg_days);
+wave_samples={};
+nonwave_samples={};
+
+
+
 
 %%
 %%% ANALYSIS 2

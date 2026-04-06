@@ -106,8 +106,78 @@ def training_split_wavesAE_recon(condn_data,prop=0.7):
     
     return train_data,val_data
 
+def  get_train_data(mu_d,idx_train,train_data,label_train,ch):
+    from numpy.lib.stride_tricks import sliding_window_view
+    for i in np.arange(len(idx_train)):
+        a = mu_d[idx_train[i]]
+        for j in np.arange(len(a)):
+            tmp = a[j]
+            if tmp.shape[0]>=5 and len(tmp.shape)>1:
+               win = 5
+               step = 2
     
+               # sliding along time (axis=0)
+               w = sliding_window_view(tmp, window_shape=win, axis=0)   # (T-win+1, 253, 5)
+                
+               # apply step
+               w_step = w[::step, :, :]                                 # (k, 253, 5)
+                
+               # check if last window is included
+               last_window = w[-1:, :, :]                               # (1, 253, 5)
+                
+               # compare start indices implicitly via equality
+               if not np.array_equal(w_step[-1], last_window[0]):
+                   w_step = np.concatenate([w_step, last_window], axis=0)
+                
+               # final shape: (num_windows, 5, 253)
+               w_final = np.transpose(w_step, (0, 2, 1))
+               label = ch*np.ones((w_final.shape[0],1))
+               
+               # add
+               train_data.extend(w_final)
+               label_train.extend(label)
+         
+    return  train_data,label_train
+               
+           
 
+
+# training and test split across trials for wave detector
+def training_test_val_split_CNN3D_waveMu_equal(data,prop=0.70):
+    l=len(data['mu_wave'])
+    p = round(prop*l)
+    idx_train = rnd.choice(range(0,l),size=p,replace=False)
+    
+    # get the remaining numbers
+    full = set(range(0,l))
+    rem_idx = sorted(full-set(idx_train))
+    rem_idx = np.array(rem_idx)
+    
+    # split these into validation and test indices
+    q = round(0.5*len(rem_idx))
+    idx_val = rnd.choice(range(0,len(rem_idx)),size=q,replace=False)
+    full_tmp = set(range(0,len(rem_idx)))
+    idx_test = sorted(full_tmp-set(idx_val))
+    idx_val = rem_idx[idx_val]
+    idx_test = rem_idx[idx_test]
+    
+    # get training data
+    mu_wave = data['mu_wave']
+    mu_nonwave = data['mu_nonwave']
+    train_data=[]
+    label_train=[]
+    
+    # get data
+    train_data,label_train = get_train_data(mu_wave,idx_train,train_data,label_train,1)
+    train_data,label_train = get_train_data(mu_nonwave,idx_train,train_data,label_train,0)
+    
+    # normalize training samples to be equal 
+    
+                
+                
+    
+    
+    
 
 
 def set_equal_3d_axes(ax, X):
