@@ -129,6 +129,8 @@ for ii=1:length(files)
         % detect planar waves across mini-grid location
         planar_val_time=[];planar_val_time_hg=[];
         planar_val_time_local=[];
+        smooth1_vals=[];
+        smooth2_vals=[];
         parfor t=1:size(df,1)
             %disp(t)
             
@@ -136,7 +138,9 @@ for ii=1:length(files)
             tmp = df(t,:);
             xph = tmp(ecog_grid);
                        
-            planar_val = planar_stats_muller(xph);        
+            [planar_val,aa,bb] = planar_stats_muller(xph);        
+            smooth1_vals(t)=aa;
+            smooth2_vals(t)=bb;
             planar_val_time(t,:,:) = planar_val;
 
             % doing it local over M1                        

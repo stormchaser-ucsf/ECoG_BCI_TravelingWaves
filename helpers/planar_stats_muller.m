@@ -1,8 +1,8 @@
-function planar_val = planar_stats_muller(xph)
+function [planar_val,s1,s2] = planar_stats_muller(xph)
 
 M = real(xph);
 N = imag(xph);
-tmp = smoothn({M,N},'robust');
+[tmp,s1] = smoothn({M,N},'robust');
 M = tmp{1}; N = tmp{2};
 xphs = M+1j*N;
 
@@ -13,7 +13,7 @@ xphs = M+1j*N;
 ph=pd;
 M =  pm.*cos(ph);
 N =  pm.*sin(ph);
-tmp = smoothn({M,N},'robust');
+[tmp,s2] = smoothn({M,N},'robust');
 M = tmp{1}; N = tmp{2};
 planar_val = M + 1j*N;
 
