@@ -66,7 +66,8 @@ else:
     #filepath = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/'
     
     filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/'
-    filename ='all_data.mat'
+    #filename ='all_data.mat'
+    filename ='all_data_B3_arrow.mat'
     filename = filepath + filename
     
         
@@ -80,6 +81,8 @@ else:
 
 data_dict = mat73.loadmat(filename)
 data =  data_dict.get('all_data')
+ecog_grid = data_dict.get('ecog_grid1')
+ecog_grid=ecog_grid-1
 
 # xdata = data_dict.get('xdata')
 # ydata = data_dict.get('ydata')
@@ -108,8 +111,18 @@ for iterr in np.arange(iterations):
    
     # parse into training, validation and testing datasets
     
-    Xtrain,Xtest,Xval,labels_train,labels_test,labels_val=training_test_val_split_CNN3D_waveMu_equal(data,0.75)                        
-    #del xdata, ydata
+    Xtrain,Xtest,Xval,labels_train,labels_test,labels_val=training_test_val_split_CNN3D_waveMu_equal(data,0.70)                        
+    grid = ecog_grid.astype(int)
+    Xtrain = Xtrain[:,:,grid]
+    Xtest = Xtest[:,:,grid]
+    Xval = Xval[:,:,grid]
+    
+    # expand dimensions for cnn 
+    Xtrain= np.expand_dims(Xtrain,axis=1)
+    Xtest= np.expand_dims(Xtest,axis=1)
+    Xval= np.expand_dims(Xval,axis=1)
+    
+   
     
     # # circular shifting the data for null stats
     # random_shifts = np.random.randint(0,Xtrain.shape[-1],size=Xtrain.shape[0])
@@ -121,19 +134,13 @@ for iterr in np.arange(iterations):
     
 
     
-    # expand dimensions for cnn 
-    Xtrain= np.expand_dims(Xtrain,axis=1)
-    Xtest= np.expand_dims(Xtest,axis=1)
-    Xval= np.expand_dims(Xval,axis=1)
-    Ytrain= np.expand_dims(Ytrain,axis=1)
-    Ytest= np.expand_dims(Ytest,axis=1)
-    Yval= np.expand_dims(Yval,axis=1)
-    Xtrain = np.transpose(Xtrain,(0,1,3,4,2)) 
-    Xtest = np.transpose(Xtest,(0,1,3,4,2)) 
-    Xval = np.transpose(Xval,(0,1,3,4,2)) 
-    Ytrain = np.transpose(Ytrain,(0,1,3,4,2)) 
-    Ytest = np.transpose(Ytest,(0,1,3,4,2)) 
-    Yval = np.transpose(Yval,(0,1,3,4,2)) 
+
+    
+    #Xtrain = np.transpose(Xtrain,(0,1,3,4,2)) 
+    #Xtest = np.transpose(Xtest,(0,1,3,4,2)) 
+    #Xval = np.transpose(Xval,(0,1,3,4,2)) 
+    
+    #dim (samples, 1, 11, 23, 40) #time is last
     
     # data augmentation
     # augmentation_factor=2
@@ -226,6 +233,7 @@ for iterr in np.arange(iterations):
         tmp_recon_r = recon_r[idx_days,:]
         tmp_recon_i = recon_i[idx_days,:]
         tmp_decodes = decodes[idx_days,:]
+        #tmp_decodes = decodes[idx_days]
         #decodes1 = convert_to_ClassNumbers(tmp_decodes).cpu().detach().numpy()           
         decodes1 = convert_to_ClassNumbers_sigmoid_list(tmp_decodes)
         tmp_ydata = Ytest[idx_days,:]
@@ -382,7 +390,7 @@ print(res)
 
 #%% SAVING 
 
-np.savez('Alpha_200Hz_AllDays_B3_Complex_DataAug_1Iter_New', 
+np.savez('Alpha_200Hz_AllDays_B3_Complex_DataAug_1Iter_New_TimeDimFirstConv3D', 
           ce_loss = ce_loss,
           balanced_acc_days = balanced_acc_days,
           ol_mse_days = ol_mse_days,
@@ -395,7 +403,7 @@ np.savez('Alpha_200Hz_AllDays_B3_Complex_DataAug_1Iter_New',
 
 os.chdir('/media/user/Data/ECoG_BCI_TravelingWave_Data/')
 #os.chdir('/mnt/DataDrive/ECoG_TravelingWaveProject_Nik/Analyses_Data/')
-np.savez('WaveAnalyses_Nov15_2025_B3Complex_New',
+np.savez('WaveAnalyses_Apr8_2026_B3Complex_New_TimeDimFirstConv3D',
          Xval=Xval,
          Yval=Yval,
          labels_val=labels_val,

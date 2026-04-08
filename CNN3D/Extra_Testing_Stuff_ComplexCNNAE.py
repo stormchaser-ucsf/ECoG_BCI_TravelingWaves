@@ -823,3 +823,183 @@ out = torch.matmul(whitened,weight) + bias[:,None,:]
 
 # reshape
 out = out.reshape(C, B, D, H, W, 2).permute(1, 0, 2, 3, 4, 5)
+
+
+#%% TESTING CNN CLASSIFIER WITH COMPLEX DATA CNN3D WAVE VS NON WAVES
+
+from iAE_utils_models import *
+
+
+class ComplexWaveCNN8_Reduced(nn.Module):
+    def __init__(self, dropout=0.30):
+        super().__init__()
+
+        # Input: (B, 1, 8, 11, 23)
+
+        self.conv1 = ComplexConv3D(1,  12, (3, 3, 3), (1, 1, 1), (1, 1, 1), (1, 1, 1))
+        self.conv2 = ComplexConv3D(12, 20, (3, 3, 3), (1, 1, 1), (1, 1, 1), (1, 1, 1))
+        self.conv3 = ComplexConv3D(20, 28, (3, 3, 3), (1, 2, 2), (1, 1, 1), (1, 1, 1))
+        self.conv4 = ComplexConv3D(28, 40, (3, 3, 3), (1, 1, 1), (1, 1, 1), (1, 1, 1))
+        self.conv5 = ComplexConv3D(40, 48, (3, 3, 3), (1, 1, 1), (1, 1, 1), (1, 1, 1))
+
+        # Bottleneck to cut parameter count
+        self.conv6 = ComplexConv3D(48, 16, (1, 1, 1), (1, 1, 1), (0, 0, 0), (1, 1, 1))
+
+        self.act1 = ModReLU(12)
+        self.act2 = ModReLU(20)
+        self.act3 = ModReLU(28)
+        self.act4 = ModReLU(40)
+        self.act5 = ModReLU(48)
+        self.act6 = ModReLU(16)
+
+        self.dropout = nn.Dropout(dropout)
+
+        # After conv3 stride:
+        # T: 8 -> 8
+        # H: 11 -> 6
+        # W: 23 -> 12
+        feat_dim = 16 * 8 * 6 * 12   # 9216 per stream
+
+        self.fc1 = nn.Linear(2 * feat_dim, 128)
+        self.fc2 = nn.Linear(128, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, real, imag):
+        real, imag = self.conv1(real, imag)
+        real, imag = self.act1(real, imag)
+
+        real, imag = self.conv2(real, imag)
+        real, imag = self.act2(real, imag)
+
+        real, imag = self.conv3(real, imag)
+        real, imag = self.act3(real, imag)
+
+        real, imag = self.conv4(real, imag)
+        real, imag = self.act4(real, imag)
+
+        real, imag = self.conv5(real, imag)
+        real, imag = self.act5(real, imag)
+
+        real, imag = self.conv6(real, imag)
+        real, imag = self.act6(real, imag)
+
+        real = torch.flatten(real, start_dim=1)
+        imag = torch.flatten(imag, start_dim=1)
+
+        z = torch.cat([real, imag], dim=1)
+        z = self.dropout(z)
+        z = torch.relu(self.fc1(z))
+        z = self.dropout(z)
+        z = torch.relu(self.fc2(z))
+        logits = self.fc3(z)
+
+        return logits
+
+model = ComplexWaveCNN8_Reduced().to(device)
+
+trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print(f"Number of trainable parameters: {trainable_params}")
+
+Xtrain_batch =Xtrain[:32]
+
+xr = torch.from_numpy(Xtrain_batch.real).to(device).float()   # shape (B,1,5,11,23)
+xi = torch.from_numpy(Xtrain_batch.imag).to(device).float()
+
+logits = model(xr, xi)
+
+
+
+def train_model(model, Xtrain, labels_train, Xval, labels_val,
+                epochs=20, batch_size=128, lr=1e-3):
+
+    device = next(model.parameters()).device
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    N = Xtrain.shape[0]
+    Nv = Xval.shape[0]
+
+    for epoch in range(epochs):
+        # -----------------
+        # Train
+        # -----------------
+        model.train()
+        idx = np.random.permutation(N)
+
+        train_loss_sum = 0.0
+        train_correct = 0
+
+        for i in range(0, N, batch_size):
+            batch_idx = idx[i:i + batch_size]
+
+            x = Xtrain[batch_idx]                 # (B, 1, 5, 11, 23), complex
+            y = labels_train[batch_idx]           # (B, 1)
+
+            xr = torch.from_numpy(x.real).to(device).float()
+            xi = torch.from_numpy(x.imag).to(device).float()
+            y = torch.from_numpy(y).to(device).float()
+
+            optimizer.zero_grad()
+
+            logits = model(xr, xi)                # (B, 1)
+            loss = criterion(logits, y)
+
+            loss.backward()
+            optimizer.step()
+
+            train_loss_sum += loss.item() * x.shape[0]
+
+            probs = torch.sigmoid(logits)
+            preds = (probs >= 0.5).float()        # (B, 1)
+            train_correct += (preds == y).sum().item()
+
+        train_loss = train_loss_sum / N
+        train_acc = train_correct / N
+
+        # -----------------
+        # Validation
+        # -----------------
+        model.eval()
+        val_loss_sum = 0.0
+        val_correct = 0
+
+        with torch.no_grad():
+            for i in range(0, Nv, batch_size):
+                x = Xval[i:i + batch_size]        # (B, 1, 5, 11, 23), complex
+                y = labels_val[i:i + batch_size]  # (B, 1)
+
+                xr = torch.from_numpy(x.real).to(device).float()
+                xi = torch.from_numpy(x.imag).to(device).float()
+                y = torch.from_numpy(y).to(device).float()
+
+                logits = model(xr, xi)            # (B, 1)
+                loss = criterion(logits, y)
+
+                val_loss_sum += loss.item() * x.shape[0]
+
+                probs = torch.sigmoid(logits)
+                preds = (probs >= 0.5).float()    # (B, 1)
+                val_correct += (preds == y).sum().item()
+
+        val_loss = val_loss_sum / Nv
+        val_acc = val_correct / Nv
+
+        print(
+            f"Epoch {epoch+1:02d} | "
+            f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | "
+            f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}"
+        )
+
+    return model
+
+
+
+model = train_model(
+    model,
+    Xtrain, labels_train,
+    Xval, labels_val,
+    epochs=15,
+    batch_size=128,
+    lr=1e-3
+)
+

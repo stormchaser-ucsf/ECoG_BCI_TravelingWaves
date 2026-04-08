@@ -112,8 +112,8 @@ def  get_train_data(mu_d,idx_train,train_data,label_train,ch):
         a = mu_d[idx_train[i]]
         for j in np.arange(len(a)):
             tmp = a[j]
-            if tmp.shape[0]>=5 and len(tmp.shape)>1:
-               win = 5
+            if tmp.shape[0]>=8 and len(tmp.shape)>1:
+               win = 8
                step = 2
     
                # sliding along time (axis=0)
@@ -139,7 +139,32 @@ def  get_train_data(mu_d,idx_train,train_data,label_train,ch):
          
     return  train_data,label_train
                
-           
+
+
+def equal_sample_count(train_data,label_train):
+    label_train = np.array(label_train)
+    idx1 = np.where(label_train==0)[0]
+    idx2 = np.where(label_train==1)[0]
+    train_data1 = [train_data[i] for i in idx1]
+    train_data2 = [train_data[i] for i in idx2]
+    label_train1 = label_train[idx1]
+    label_train2 = label_train[idx2]
+    i1=len(idx1)
+    i2=len(idx2)
+    if i1>i2:
+        idx = rnd.choice(range(0,i1),size=i2,replace=False)
+        train_data1 = [train_data1[i] for i in idx]
+        label_train1 = label_train1[idx]
+    elif i2>i1:
+        idx = rnd.choice(range(0,i2),size=i1,replace=False)
+        train_data2 = [train_data2[i] for i in idx]
+        label_train2 = label_train2[idx]
+        
+    train_data = train_data1 + train_data2
+    label_train = np.concatenate((label_train1,label_train2))
+    
+    return train_data,label_train
+    
 
 
 # training and test split across trials for wave detector
@@ -161,17 +186,39 @@ def training_test_val_split_CNN3D_waveMu_equal(data,prop=0.70):
     idx_val = rem_idx[idx_val]
     idx_test = rem_idx[idx_test]
     
-    # get training data
     mu_wave = data['mu_wave']
-    mu_nonwave = data['mu_nonwave']
+    mu_nonwave = data['mu_nonwave']    
+    
+    #### get training data
     train_data=[]
     label_train=[]
-    
-    # get data
     train_data,label_train = get_train_data(mu_wave,idx_train,train_data,label_train,1)
-    train_data,label_train = get_train_data(mu_nonwave,idx_train,train_data,label_train,0)
+    train_data,label_train = get_train_data(mu_nonwave,idx_train,train_data,label_train,0)        
+    train_data,label_train = equal_sample_count(train_data,label_train)
     
-    # normalize training samples to be equal 
+    
+    #### get validation data
+    val_data=[]
+    label_val=[]
+    val_data,label_val = get_train_data(mu_wave,idx_val,val_data,label_val,1)
+    val_data,label_val = get_train_data(mu_nonwave,idx_val,val_data,label_val,0)    
+    val_data,label_val = equal_sample_count(val_data,label_val)
+    
+    #### get testing data
+    test_data=[]
+    label_test=[]
+    test_data,label_test = get_train_data(mu_wave,idx_test,test_data,label_test,1)
+    test_data,label_test = get_train_data(mu_nonwave,idx_test,test_data,label_test,0)    
+    test_data,label_test = equal_sample_count(test_data,label_test)
+    
+    train_data = np.array(train_data)
+    test_data = np.array(test_data)
+    val_data = np.array(val_data)    
+    
+    return train_data,test_data,val_data,label_train,label_test,label_val
+    
+    
+    
     
                 
                 
@@ -1758,21 +1805,340 @@ class Autoencoder3D_Complex(nn.Module):
         logits = self.classifier(latent_a,latent_b)
         #return recon,logits  
         return recon_a,recon_b,logits
+#%%
 
 ############ DEEPER LAYERS ####
 
 
+# class Encoder3D_Complex_deep(nn.Module):
+#     def __init__(self,ksize):
+#         super(Encoder3D_Complex_deep, self).__init__()
+#         self.conv1 = ComplexConv3D(1, 12, (2,2,3), (1, 1, 1),0,(1,1,2)) 
+#         self.conv2 = ComplexConv3D(12, 12, (2,2,3), (1, 1, 1),0,(1,1,2)) 
+#         self.conv3 = ComplexConv3D(12, 12, (2,2,3), (1, 1, 1),0,(1,1,2))  
+#         self.conv4 = ComplexConv3D(12, 16, (2,3,3), (1, 1, 1),0,(1,2,2))  
+#         self.conv5 = ComplexConv3D(16, 16, (2,3,3), (1, 1, 1),0,(1,2,2))  
+#         self.conv6 = ComplexConv3D(16, 16, (2,3,3), (1, 1, 1),0,(1,2,2))  
+#         self.conv7 = ComplexConv3D(16, 24, (2,3,4), (1, 1, 1),0,(1,2,3))  
+#         #self.elu = nn.ELU()
+#         self.elu1 = ModELU()
+#         self.elu2 = ModELU()
+#         self.elu3 = ModELU()
+#         self.elu4 = ModELU()
+#         self.elu5 = ModELU()
+#         self.elu6 = ModELU()
+#         self.elu7 = ModELU()
+        
+#         # self.bn1 = MagnitudeBatchNorm(12)
+#         # self.bn2 = MagnitudeBatchNorm(12)
+#         # self.bn3 = MagnitudeBatchNorm(12)
+#         # self.bn4 = MagnitudeBatchNorm(16)
+#         # self.bn5 = MagnitudeBatchNorm(16)
+#         # self.bn6 = MagnitudeBatchNorm(16)
+#         # self.bn7 = MagnitudeBatchNorm(24)
+        
+#         # self.bn1 = ComplexBatchNorm(12)
+#         # self.bn2 = ComplexBatchNorm(12)
+#         # self.bn3 = ComplexBatchNorm(12)
+#         # self.bn4 = ComplexBatchNorm(16)
+#         # self.bn5 = ComplexBatchNorm(16)
+#         # self.bn6 = ComplexBatchNorm(16)
+#         # self.bn7 = ComplexBatchNorm(24)
+        
+
+#     def forward(self, a,b):        
+#         a,b = self.conv1(a,b) 
+#         #z=torch.square(a) + torch.square(b)
+#         # z = ((a**2) + (b**2))**0.5
+#         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+#         #a,b = self.elu(a),self.elu(b)    
+#         #a,b=self.bn1(a,b)
+#         a,b=self.elu1(a,b)
+        
+#         a,b = self.conv2(a,b)        
+#         #z = ((a**2) + (b**2))**0.5
+#         #a,b = a*self.elu(z)/z, b*self.elu(z)/z
+#         #a,b = self.elu(a),self.elu(b)    
+#         #a,b=self.bn2(a,b)
+#         a,b=self.elu2(a,b)
+        
+#         a,b = self.conv3(a,b)        
+#         # z = ((a**2) + (b**2))**0.5
+#         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+#         #a,b = self.elu(a),self.elu(b) 
+#         #a,b=self.bn3(a,b)
+#         a,b=self.elu3(a,b)
+        
+#         a,b = self.conv4(a,b)        
+#         # z = ((a**2) + (b**2))**0.5
+#         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+#         #a,b = self.elu(a),self.elu(b)    
+#         #a,b=self.bn4(a,b)
+#         a,b=self.elu4(a,b)             
+        
+#         a,b = self.conv5(a,b)        
+#         # z = ((a**2) + (b**2))**0.5
+#         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+#         #a,b = self.elu(a),self.elu(b)  
+#         #a,b=self.bn5(a,b)
+#         a,b=self.elu5(a,b)      
+
+#         a,b = self.conv6(a,b)        
+#         # z = ((a**2) + (b**2))**0.5
+#         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+#         #a,b = self.elu(a),self.elu(b)   
+#         #a,b=self.bn6(a,b)
+#         a,b=self.elu6(a,b)
+
+#         a,b = self.conv7(a,b)        
+#         # z = ((a**2) + (b**2))**0.5
+#         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+#         #a,b = self.elu(a),self.elu(b)  
+#         #a,b=self.bn7(a,b)
+#         a,b=self.elu7(a,b)                    
+        
+#         return a,b
+
+
+
+
+# class Decoder3D_Complex_deep(nn.Module):
+#     def __init__(self,ksize):
+#         super(Decoder3D_Complex_deep, self).__init__()
+        
+#         self.deconv1 = ComplexConvTranspose3D(24, 16, (2,3,4), (1, 1, 1),(0,0,0),(1,2,3))
+#         self.deconv2 = ComplexConvTranspose3D(16, 16, (2,3,3), (1, 1, 1),(0,0,0),(1,2,2))
+#         self.deconv3 = ComplexConvTranspose3D(16, 16, (2,3,3), (1, 1, 1),(0,0,0),(1,2,2))
+#         self.deconv4 = ComplexConvTranspose3D(16, 12, (2,3,3), (1, 1, 1),(0,0,0),(1,2,2))
+#         self.deconv5 = ComplexConvTranspose3D(12, 12, (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
+#         self.deconv6 = ComplexConvTranspose3D(12, 12, (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
+#         self.deconv7 = ComplexConvTranspose3D(12, 1,  (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
+#         #self.elu = nn.ELU()        
+#         self.elu1 = ModELU()
+#         self.elu2 = ModELU()
+#         self.elu3 = ModELU()
+#         self.elu4 = ModELU()
+#         self.elu5 = ModELU()
+#         self.elu6 = ModELU()
+        
+#         # self.bn1 = MagnitudeBatchNorm(16)
+#         # self.bn2 = MagnitudeBatchNorm(16)
+#         # self.bn3 = MagnitudeBatchNorm(16)
+#         # self.bn4 = MagnitudeBatchNorm(12)
+#         # self.bn5 = MagnitudeBatchNorm(12)
+#         # self.bn6 = MagnitudeBatchNorm(12)
+        
+        
+#         # self.bn1 = ComplexBatchNorm(16)
+#         # self.bn2 = ComplexBatchNorm(16)
+#         # self.bn3 = ComplexBatchNorm(16)
+#         # self.bn4 = ComplexBatchNorm(12)
+#         # self.bn5 = ComplexBatchNorm(12)
+#         # self.bn6 = ComplexBatchNorm(12)
+             
+        
+#     def forward(self, a,b):        
+#          a,b = self.deconv1(a,b)        
+#          #z = ((a**2) + (b**2))**0.5
+#          #a,b = a*self.elu(z)/z, b*self.elu(z)/z
+#          #a,b = self.elu(a),self.elu(b)   
+#          #a,b=self.bn1(a,b)
+#          a,b=self.elu1(a,b)  
+         
+#          a,b = self.deconv2(a,b)        
+#          # z = ((a**2) + (b**2))**0.5
+#          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+#          #a,b = self.elu(a),self.elu(b)    
+#          #a,b=self.bn2(a,b)
+#          a,b=self.elu2(a,b)          
+         
+#          a,b = self.deconv3(a,b)        
+#          # z = ((a**2) + (b**2))**0.5
+#          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+#          #a,b = self.elu(a),self.elu(b)  
+#          #a,b=self.bn3(a,b)
+#          a,b=self.elu3(a,b)              
+         
+#          a,b = self.deconv4(a,b)        
+#          # z = ((a**2) + (b**2))**0.5
+#          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+#          #a,b = self.elu(a),self.elu(b)   
+#          #a,b=self.bn4(a,b)
+#          a,b=self.elu4(a,b)               
+         
+#          a,b = self.deconv5(a,b)         
+#          # z = ((a**2) + (b**2))**0.5
+#          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+#          #a,b = self.elu(a),self.elu(b) 
+#          #a,b=self.bn5(a,b)
+#          a,b=self.elu5(a,b)        
+         
+#          a,b = self.deconv6(a,b)         
+#          # z = ((a**2) + (b**2))**0.5
+#          # a,b = a*self.elu(z)/z, b*self.elu(z)/z
+#          #a,b = self.elu(a),self.elu(b)  
+#          #a,b=self.bn6(a,b)
+#          a,b=self.elu6(a,b)      
+         
+#          a,b = self.deconv7(a,b)         
+         
+                
+         
+#          #x = self.elu(x)        
+#          #x = self.deconv4(x)
+#          #x = torch.tanh(x) # squish between -1 and 1
+         
+#          return a,b
+
+# class rnn_lstm_complex_deep(nn.Module):
+#     def __init__(self,num_classes,input_size,lstm_size):
+#         super(rnn_lstm_complex_deep,self).__init__()
+#         self.num_classes = num_classes        
+#         self.input_size = round(input_size)
+#         self.lstm_size = round(lstm_size)
+        
+#         self.rnn1=nn.LSTM(input_size=self.input_size,hidden_size=self.lstm_size,
+#                           num_layers=1,batch_first=True,bidirectional=False)        
+#         # self.rnn2=nn.LSTM(input_size=round(self.lstm_size*2),
+#         #                   hidden_size=round(self.lstm_size/2),
+#         #                   num_layers=1,batch_first=True,bidirectional=False)      
+#         self.linear0 = nn.Linear(round(self.lstm_size),num_classes)
+                
+    
+#     def forward(self,a,b):        
+#         # convert to batch, seq, feature
+#         x = torch.flatten(a,start_dim=1,end_dim=3)
+#         x = torch.permute(x,(0,2,1))
+#         y = torch.flatten(b,start_dim=1,end_dim=3)
+#         y = torch.permute(y,(0,2,1))
+#         z = torch.concat((x,y),dim=-1)
+#         output1, (hn1,cn1) = self.rnn1(z) 
+#         #output2, (hn2,cn2) = self.rnn2(output1) 
+#         hn1 = torch.squeeze(hn1)        
+#         out = self.linear0(hn1)        
+#         return out
+
+# class Autoencoder3D_Complex_deep(nn.Module):
+#     def __init__(self, ksize,num_classes,input_size,lstm_size):
+#     #def __init__(self, ksize):
+#         super(Autoencoder3D_Complex_deep, self).__init__()
+#         self.encoder = Encoder3D_Complex_deep(ksize)
+#         self.decoder = Decoder3D_Complex_deep(ksize)
+#         self.classifier = rnn_lstm_complex_deep(num_classes,input_size,lstm_size)
+#         #self.classifier = nn.Linear(num_nodes, num_classes)  
+        
+        
+#     def forward(self,a,b):
+#         latent_a,latent_b = self.encoder(a,b)
+#         recon_a,recon_b = self.decoder(latent_a,latent_b)
+#         logits = self.classifier(latent_a,latent_b)
+#         #return recon,logits  
+#         return recon_a,recon_b,logits
+
+
+
+# class ComplexConv3D(nn.Module):
+#     def __init__(self, in_channels, out_channels, ksize, strd, pad,dil):
+#         super(ComplexConv3D, self).__init__()
+#         self.real_conv = nn.Conv3d(in_channels, out_channels, kernel_size=ksize, stride=strd, padding=pad,dilation=dil)
+#         self.imag_conv = nn.Conv3d(in_channels, out_channels, kernel_size=ksize, stride=strd, padding=pad,dilation=dil)
+
+#     def forward(self, real, imag):
+#         real_out = self.real_conv(real) - self.imag_conv(imag)
+#         imag_out = self.real_conv(imag) + self.imag_conv(real)
+#         return real_out, imag_out
+
+# class ComplexConvTranspose3D(nn.Module):
+#     def __init__(self, in_channels, out_channels, ksize, strd, pad,dil):
+#         super(ComplexConvTranspose3D, self).__init__()
+#         self.real_deconv  = nn.ConvTranspose3d(in_channels, out_channels,kernel_size=ksize,
+#                                                stride=strd, padding=pad,dilation=dil)
+#         self.imag_deconv  = nn.ConvTranspose3d(in_channels, out_channels, kernel_size=ksize,
+#                                                stride=strd, padding=pad,dilation=dil)
+
+#     def forward(self, real, imag):
+#         real_out = self.real_deconv(real) - self.imag_deconv(imag)
+#         imag_out = self.real_deconv(imag) + self.imag_deconv(real)
+#         return real_out, imag_out
+
+
+class ComplexConv3D(nn.Module):
+    def __init__(self, in_channels, out_channels, ksize, strd, pad, dil):
+        super(ComplexConv3D, self).__init__()
+        self.real_conv = nn.Conv3d(
+            in_channels, out_channels,
+            kernel_size=ksize, stride=strd, padding=pad, dilation=dil
+        )
+        self.imag_conv = nn.Conv3d(
+            in_channels, out_channels,
+            kernel_size=ksize, stride=strd, padding=pad, dilation=dil
+        )
+
+    def forward(self, real, imag):
+        real_out = self.real_conv(real) - self.imag_conv(imag)
+        imag_out = self.real_conv(imag) + self.imag_conv(real)
+        return real_out, imag_out
+
+
+class ComplexConvTranspose3D(nn.Module):
+    def __init__(self, in_channels, out_channels, ksize, strd, pad, dil):
+        super(ComplexConvTranspose3D, self).__init__()
+        self.real_deconv = nn.ConvTranspose3d(
+            in_channels, out_channels,
+            kernel_size=ksize, stride=strd, padding=pad, dilation=dil
+        )
+        self.imag_deconv = nn.ConvTranspose3d(
+            in_channels, out_channels,
+            kernel_size=ksize, stride=strd, padding=pad, dilation=dil
+        )
+
+    def forward(self, real, imag):
+        real_out = self.real_deconv(real) - self.imag_deconv(imag)
+        imag_out = self.real_deconv(imag) + self.imag_deconv(real)
+        return real_out, imag_out
+
+
+# class ModELU(nn.Module):
+#     def __init__(self, eps=1e-8):
+#         super(ModELU, self).__init__()
+#         self.elu = nn.ELU()
+#         self.eps = eps
+
+#     def forward(self, a, b):
+#         mag = torch.sqrt(a**2 + b**2 + self.eps)
+#         scale = self.elu(mag) / (mag + self.eps)
+#         return a * scale, b * scale
+
+
+class ModReLU(nn.Module):
+    def __init__(self, num_features, eps=1e-8):
+        super().__init__()
+        self.bias = nn.Parameter(torch.zeros(1, num_features, 1, 1, 1))
+        self.eps = eps
+
+    def forward(self, a, b):
+        mag = torch.sqrt(a**2 + b**2 + self.eps)
+        scale = torch.relu(mag + self.bias) / (mag + self.eps)
+        return a * scale, b * scale
+
 class Encoder3D_Complex_deep(nn.Module):
-    def __init__(self,ksize):
+    def __init__(self, ksize=None):
         super(Encoder3D_Complex_deep, self).__init__()
-        self.conv1 = ComplexConv3D(1, 12, (2,2,3), (1, 1, 1),0,(1,1,2)) 
-        self.conv2 = ComplexConv3D(12, 12, (2,2,3), (1, 1, 1),0,(1,1,2)) 
-        self.conv3 = ComplexConv3D(12, 12, (2,2,3), (1, 1, 1),0,(1,1,2))  
-        self.conv4 = ComplexConv3D(12, 16, (2,3,3), (1, 1, 1),0,(1,2,2))  
-        self.conv5 = ComplexConv3D(16, 16, (2,3,3), (1, 1, 1),0,(1,2,2))  
-        self.conv6 = ComplexConv3D(16, 16, (2,3,3), (1, 1, 1),0,(1,2,2))  
-        self.conv7 = ComplexConv3D(16, 24, (2,3,4), (1, 1, 1),0,(1,2,3))  
-        #self.elu = nn.ELU()
+
+        # Input format: (B, C, T, H, W)
+        # Old code was effectively designed as if tuples were (H, W, T).
+        # Reordered here to proper PyTorch order: (T, H, W).
+
+        self.conv1 = ComplexConv3D(1, 12, (3, 2, 2), (1, 1, 1), 0, (2, 1, 1))
+        self.conv2 = ComplexConv3D(12, 12, (3, 2, 2), (1, 1, 1), 0, (2, 1, 1))
+        self.conv3 = ComplexConv3D(12, 12, (3, 2, 2), (1, 1, 1), 0, (2, 1, 1))
+
+        self.conv4 = ComplexConv3D(12, 16, (3, 2, 3), (1, 1, 1), 0, (2, 1, 2))
+        self.conv5 = ComplexConv3D(16, 16, (3, 2, 3), (1, 1, 1), 0, (2, 1, 2))
+        self.conv6 = ComplexConv3D(16, 16, (3, 2, 3), (1, 1, 1), 0, (2, 1, 2))
+
+        self.conv7 = ComplexConv3D(16, 24, (4, 2, 3), (1, 1, 1), 0, (3, 1, 2))
+
         self.elu1 = ModELU()
         self.elu2 = ModELU()
         self.elu3 = ModELU()
@@ -1780,77 +2146,127 @@ class Encoder3D_Complex_deep(nn.Module):
         self.elu5 = ModELU()
         self.elu6 = ModELU()
         self.elu7 = ModELU()
-        
-        # self.bn1 = MagnitudeBatchNorm(12)
-        # self.bn2 = MagnitudeBatchNorm(12)
-        # self.bn3 = MagnitudeBatchNorm(12)
-        # self.bn4 = MagnitudeBatchNorm(16)
-        # self.bn5 = MagnitudeBatchNorm(16)
-        # self.bn6 = MagnitudeBatchNorm(16)
-        # self.bn7 = MagnitudeBatchNorm(24)
-        
-        # self.bn1 = ComplexBatchNorm(12)
-        # self.bn2 = ComplexBatchNorm(12)
-        # self.bn3 = ComplexBatchNorm(12)
-        # self.bn4 = ComplexBatchNorm(16)
-        # self.bn5 = ComplexBatchNorm(16)
-        # self.bn6 = ComplexBatchNorm(16)
-        # self.bn7 = ComplexBatchNorm(24)
-        
 
-    def forward(self, a,b):        
-        a,b = self.conv1(a,b) 
-        #z=torch.square(a) + torch.square(b)
-        # z = ((a**2) + (b**2))**0.5
-        # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        #a,b = self.elu(a),self.elu(b)    
-        #a,b=self.bn1(a,b)
-        a,b=self.elu1(a,b)
-        
-        a,b = self.conv2(a,b)        
-        #z = ((a**2) + (b**2))**0.5
-        #a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        #a,b = self.elu(a),self.elu(b)    
-        #a,b=self.bn2(a,b)
-        a,b=self.elu2(a,b)
-        
-        a,b = self.conv3(a,b)        
-        # z = ((a**2) + (b**2))**0.5
-        # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        #a,b = self.elu(a),self.elu(b) 
-        #a,b=self.bn3(a,b)
-        a,b=self.elu3(a,b)
-        
-        a,b = self.conv4(a,b)        
-        # z = ((a**2) + (b**2))**0.5
-        # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        #a,b = self.elu(a),self.elu(b)    
-        #a,b=self.bn4(a,b)
-        a,b=self.elu4(a,b)             
-        
-        a,b = self.conv5(a,b)        
-        # z = ((a**2) + (b**2))**0.5
-        # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        #a,b = self.elu(a),self.elu(b)  
-        #a,b=self.bn5(a,b)
-        a,b=self.elu5(a,b)      
+    def forward(self, a, b):
+        a, b = self.conv1(a, b)
+        a, b = self.elu1(a, b)
 
-        a,b = self.conv6(a,b)        
-        # z = ((a**2) + (b**2))**0.5
-        # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        #a,b = self.elu(a),self.elu(b)   
-        #a,b=self.bn6(a,b)
-        a,b=self.elu6(a,b)
+        a, b = self.conv2(a, b)
+        a, b = self.elu2(a, b)
 
-        a,b = self.conv7(a,b)        
-        # z = ((a**2) + (b**2))**0.5
-        # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-        #a,b = self.elu(a),self.elu(b)  
-        #a,b=self.bn7(a,b)
-        a,b=self.elu7(a,b)                    
-        
-        return a,b
+        a, b = self.conv3(a, b)
+        a, b = self.elu3(a, b)
 
+        a, b = self.conv4(a, b)
+        a, b = self.elu4(a, b)
+
+        a, b = self.conv5(a, b)
+        a, b = self.elu5(a, b)
+
+        a, b = self.conv6(a, b)
+        a, b = self.elu6(a, b)
+
+        a, b = self.conv7(a, b)
+        a, b = self.elu7(a, b)
+
+        return a, b
+
+
+class Decoder3D_Complex_deep(nn.Module):
+    def __init__(self, ksize=None):
+        super(Decoder3D_Complex_deep, self).__init__()
+
+        # These are the transpose-conv counterparts, also in (T, H, W) order.
+        self.deconv1 = ComplexConvTranspose3D(24, 16, (4, 2, 3), (1, 1, 1), (0, 0, 0), (3, 1, 2))
+        self.deconv2 = ComplexConvTranspose3D(16, 16, (3, 2, 3), (1, 1, 1), (0, 0, 0), (2, 1, 2))
+        self.deconv3 = ComplexConvTranspose3D(16, 16, (3, 2, 3), (1, 1, 1), (0, 0, 0), (2, 1, 2))
+        self.deconv4 = ComplexConvTranspose3D(16, 12, (3, 2, 3), (1, 1, 1), (0, 0, 0), (2, 1, 2))
+        self.deconv5 = ComplexConvTranspose3D(12, 12, (3, 2, 2), (1, 1, 1), (0, 0, 0), (2, 1, 1))
+        self.deconv6 = ComplexConvTranspose3D(12, 12, (3, 2, 2), (1, 1, 1), (0, 0, 0), (2, 1, 1))
+        self.deconv7 = ComplexConvTranspose3D(12, 1,  (3, 2, 2), (1, 1, 1), (0, 0, 0), (2, 1, 1))
+
+        self.elu1 = ModELU()
+        self.elu2 = ModELU()
+        self.elu3 = ModELU()
+        self.elu4 = ModELU()
+        self.elu5 = ModELU()
+        self.elu6 = ModELU()
+
+    def forward(self, a, b):
+        a, b = self.deconv1(a, b)
+        a, b = self.elu1(a, b)
+
+        a, b = self.deconv2(a, b)
+        a, b = self.elu2(a, b)
+
+        a, b = self.deconv3(a, b)
+        a, b = self.elu3(a, b)
+
+        a, b = self.deconv4(a, b)
+        a, b = self.elu4(a, b)
+
+        a, b = self.deconv5(a, b)
+        a, b = self.elu5(a, b)
+
+        a, b = self.deconv6(a, b)
+        a, b = self.elu6(a, b)
+
+        a, b = self.deconv7(a, b)
+
+        return a, b
+
+
+class rnn_lstm_complex_deep(nn.Module):
+    def __init__(self, num_classes, input_size, lstm_size):
+        super(rnn_lstm_complex_deep, self).__init__()
+        self.num_classes = num_classes
+        self.input_size = int(round(input_size))
+        self.lstm_size = int(round(lstm_size))
+
+        self.rnn1 = nn.LSTM(
+            input_size=self.input_size,
+            hidden_size=self.lstm_size,
+            num_layers=1,
+            batch_first=True,
+            bidirectional=False
+        )
+
+        self.linear0 = nn.Linear(self.lstm_size, num_classes)
+
+    def forward(self, a, b):
+        # a, b: (B, C, T, H, W)
+        # We want time to be the sequence axis for the LSTM.
+        # So convert to (B, T, C*H*W) for real and imag, then concat.
+
+        a_seq = a.permute(0, 2, 1, 3, 4).contiguous()   # (B, T, C, H, W)
+        b_seq = b.permute(0, 2, 1, 3, 4).contiguous()   # (B, T, C, H, W)
+
+        a_seq = a_seq.view(a_seq.size(0), a_seq.size(1), -1)  # (B, T, C*H*W)
+        b_seq = b_seq.view(b_seq.size(0), b_seq.size(1), -1)  # (B, T, C*H*W)
+
+        z = torch.cat((a_seq, b_seq), dim=-1)  # (B, T, 2*C*H*W)
+
+        output1, (hn1, cn1) = self.rnn1(z)
+
+        hn1 = hn1[-1]  # final hidden state, shape (B, lstm_size)
+        out = self.linear0(hn1)
+
+        return out
+
+
+class Autoencoder3D_Complex_deep(nn.Module):
+    def __init__(self, ksize, num_classes, input_size, lstm_size):
+        super(Autoencoder3D_Complex_deep, self).__init__()
+        self.encoder = Encoder3D_Complex_deep(ksize)
+        self.decoder = Decoder3D_Complex_deep(ksize)
+        self.classifier = rnn_lstm_complex_deep(num_classes, input_size, lstm_size)
+
+    def forward(self, a, b):
+        latent_a, latent_b = self.encoder(a, b)
+        recon_a, recon_b = self.decoder(latent_a, latent_b)
+        logits = self.classifier(latent_a, latent_b)
+        return recon_a, recon_b, logits
+#%%
 
 class Decoder3D_Complex_deep_VectorField(nn.Module):
     def __init__(self,ksize):
@@ -2032,139 +2448,6 @@ class Encoder3D_Complex_deep_VectorField(nn.Module):
         
         return a,b
 
-
-class Decoder3D_Complex_deep(nn.Module):
-    def __init__(self,ksize):
-        super(Decoder3D_Complex_deep, self).__init__()
-        
-        self.deconv1 = ComplexConvTranspose3D(24, 16, (2,3,4), (1, 1, 1),(0,0,0),(1,2,3))
-        self.deconv2 = ComplexConvTranspose3D(16, 16, (2,3,3), (1, 1, 1),(0,0,0),(1,2,2))
-        self.deconv3 = ComplexConvTranspose3D(16, 16, (2,3,3), (1, 1, 1),(0,0,0),(1,2,2))
-        self.deconv4 = ComplexConvTranspose3D(16, 12, (2,3,3), (1, 1, 1),(0,0,0),(1,2,2))
-        self.deconv5 = ComplexConvTranspose3D(12, 12, (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
-        self.deconv6 = ComplexConvTranspose3D(12, 12, (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
-        self.deconv7 = ComplexConvTranspose3D(12, 1,  (2,2,3), (1, 1, 1),(0,0,0),(1,1,2))
-        #self.elu = nn.ELU()        
-        self.elu1 = ModELU()
-        self.elu2 = ModELU()
-        self.elu3 = ModELU()
-        self.elu4 = ModELU()
-        self.elu5 = ModELU()
-        self.elu6 = ModELU()
-        
-        # self.bn1 = MagnitudeBatchNorm(16)
-        # self.bn2 = MagnitudeBatchNorm(16)
-        # self.bn3 = MagnitudeBatchNorm(16)
-        # self.bn4 = MagnitudeBatchNorm(12)
-        # self.bn5 = MagnitudeBatchNorm(12)
-        # self.bn6 = MagnitudeBatchNorm(12)
-        
-        
-        # self.bn1 = ComplexBatchNorm(16)
-        # self.bn2 = ComplexBatchNorm(16)
-        # self.bn3 = ComplexBatchNorm(16)
-        # self.bn4 = ComplexBatchNorm(12)
-        # self.bn5 = ComplexBatchNorm(12)
-        # self.bn6 = ComplexBatchNorm(12)
-             
-        
-    def forward(self, a,b):        
-         a,b = self.deconv1(a,b)        
-         #z = ((a**2) + (b**2))**0.5
-         #a,b = a*self.elu(z)/z, b*self.elu(z)/z
-         #a,b = self.elu(a),self.elu(b)   
-         #a,b=self.bn1(a,b)
-         a,b=self.elu1(a,b)  
-         
-         a,b = self.deconv2(a,b)        
-         # z = ((a**2) + (b**2))**0.5
-         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-         #a,b = self.elu(a),self.elu(b)    
-         #a,b=self.bn2(a,b)
-         a,b=self.elu2(a,b)          
-         
-         a,b = self.deconv3(a,b)        
-         # z = ((a**2) + (b**2))**0.5
-         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-         #a,b = self.elu(a),self.elu(b)  
-         #a,b=self.bn3(a,b)
-         a,b=self.elu3(a,b)              
-         
-         a,b = self.deconv4(a,b)        
-         # z = ((a**2) + (b**2))**0.5
-         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-         #a,b = self.elu(a),self.elu(b)   
-         #a,b=self.bn4(a,b)
-         a,b=self.elu4(a,b)               
-         
-         a,b = self.deconv5(a,b)         
-         # z = ((a**2) + (b**2))**0.5
-         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-         #a,b = self.elu(a),self.elu(b) 
-         #a,b=self.bn5(a,b)
-         a,b=self.elu5(a,b)        
-         
-         a,b = self.deconv6(a,b)         
-         # z = ((a**2) + (b**2))**0.5
-         # a,b = a*self.elu(z)/z, b*self.elu(z)/z
-         #a,b = self.elu(a),self.elu(b)  
-         #a,b=self.bn6(a,b)
-         a,b=self.elu6(a,b)      
-         
-         a,b = self.deconv7(a,b)         
-         
-                
-         
-         #x = self.elu(x)        
-         #x = self.deconv4(x)
-         #x = torch.tanh(x) # squish between -1 and 1
-         
-         return a,b
-
-class rnn_lstm_complex_deep(nn.Module):
-    def __init__(self,num_classes,input_size,lstm_size):
-        super(rnn_lstm_complex_deep,self).__init__()
-        self.num_classes = num_classes        
-        self.input_size = round(input_size)
-        self.lstm_size = round(lstm_size)
-        
-        self.rnn1=nn.LSTM(input_size=self.input_size,hidden_size=self.lstm_size,
-                          num_layers=1,batch_first=True,bidirectional=False)        
-        # self.rnn2=nn.LSTM(input_size=round(self.lstm_size*2),
-        #                   hidden_size=round(self.lstm_size/2),
-        #                   num_layers=1,batch_first=True,bidirectional=False)      
-        self.linear0 = nn.Linear(round(self.lstm_size),num_classes)
-                
-    
-    def forward(self,a,b):        
-        # convert to batch, seq, feature
-        x = torch.flatten(a,start_dim=1,end_dim=3)
-        x = torch.permute(x,(0,2,1))
-        y = torch.flatten(b,start_dim=1,end_dim=3)
-        y = torch.permute(y,(0,2,1))
-        z = torch.concat((x,y),dim=-1)
-        output1, (hn1,cn1) = self.rnn1(z) 
-        #output2, (hn2,cn2) = self.rnn2(output1) 
-        hn1 = torch.squeeze(hn1)        
-        out = self.linear0(hn1)        
-        return out
-
-class Autoencoder3D_Complex_deep(nn.Module):
-    def __init__(self, ksize,num_classes,input_size,lstm_size):
-    #def __init__(self, ksize):
-        super(Autoencoder3D_Complex_deep, self).__init__()
-        self.encoder = Encoder3D_Complex_deep(ksize)
-        self.decoder = Decoder3D_Complex_deep(ksize)
-        self.classifier = rnn_lstm_complex_deep(num_classes,input_size,lstm_size)
-        #self.classifier = nn.Linear(num_nodes, num_classes)  
-        
-        
-    def forward(self,a,b):
-        latent_a,latent_b = self.encoder(a,b)
-        recon_a,recon_b = self.decoder(latent_a,latent_b)
-        logits = self.classifier(latent_a,latent_b)
-        #return recon,logits  
-        return recon_a,recon_b,logits
 
 class Autoencoder3D_Complex_deep_VectorField(nn.Module):
     def __init__(self, ksize,num_classes,input_size,lstm_size):
@@ -2564,81 +2847,154 @@ def validation_loss_3DCNNAE_fullVal_complex(model,Xval,Yval,labels_val,batch_val
     return loss_val,accuracy,recon_error      
 
 
-# function to validate model 
-def validation_loss_3DCNNAE_complex(model,X_test,Y_test,labels_val,
-                                    batch_val,alp_factor):    
+# # function to validate model 
+# def validation_loss_3DCNNAE_complex(model,X_test,Y_test,labels_val,
+#                                     batch_val,alp_factor):    
     
+#     crit_classif_val = nn.BCEWithLogitsLoss(reduction='mean')
+#     crit_recon_val = nn.MSELoss(reduction='mean') # if mean, it is over all elements         
+    
+#     total_val_loss=0    
+#     accuracy=0
+    
+#     if batch_val > X_test.shape[0]:
+#         batch_val = X_test.shape[0]
+    
+#     idx=np.arange(0,X_test.shape[0],batch_val)    
+#     if idx[-1]<X_test.shape[0]:
+#         idx=np.append(idx,X_test.shape[0])
+#     else:
+#         print('something wrong here')
+    
+#     iters=(idx.shape[0]-1)
+#     model.eval()
+    
+#     loss_recon_batch=[]
+#     loss_class_batch=[]
+    
+#     for i in np.arange(iters):
+#         x=X_test[idx[i]:idx[i+1],:]
+#         y=Y_test[idx[i]:idx[i+1],:]     
+#         z=labels_val[idx[i]:idx[i+1]]        
+        
+#         with torch.no_grad():
+            
+#             Xval_real,Xval_imag  = x.real,x.imag
+#             Yval_real,Yval_imag  = y.real,y.imag
+#             xreal = torch.from_numpy(Xval_real).to(device).float()
+#             ximag = torch.from_numpy(Xval_imag).to(device).float()
+#             yreal = torch.from_numpy(Yval_real).to(device).float()
+#             yimag = torch.from_numpy(Yval_imag).to(device).float()
+#             z=torch.from_numpy(z).to(device).float()
+            
+#             out_r,out_i,zpred = model(xreal,ximag) 
+#             loss1 = crit_recon_val(out_r,yreal)
+#             loss2 = crit_recon_val(out_i,yimag)
+#             loss_recon = loss1+loss2
+#             zpred=zpred.squeeze()
+#             loss_class = crit_classif_val(zpred,z)   
+            
+#             # normalize loss in  batch size in prop to overall val size (weighted mean)
+#             alp = x.shape[0]/X_test.shape[0]
+#             loss_recon = loss_recon.item() * alp
+#             loss_class = loss_class.item() * alp
+#             #loss_val = 2.5*loss_recon.item() + loss_class.item()    #30
+#             loss_recon_batch.append(loss_recon)
+#             loss_class_batch.append(loss_class)
+            
+#             #zlabels = convert_to_ClassNumbers(z)        
+#             zlabels=z
+#             #zpred_labels = convert_to_ClassNumbers(zpred)     
+#             zpred_labels = convert_to_ClassNumbers_sigmoid(zpred).to(device)     
+            
+              
+#             accuracy += torch.sum(zlabels == zpred_labels).item()
+           
+                
+    
+#     total_val_loss= alp_factor * sum(loss_recon_batch) + sum(loss_class_batch)
+#     recon_error = alp_factor * sum(loss_recon_batch)    
+#     accuracy = accuracy/X_test.shape[0]
+   
+#     model.train()
+#     del xreal, ximag, yreal, yimag, z, out_r, out_i, zpred, zpred_labels
+#     torch.cuda.empty_cache()
+    
+#     return total_val_loss,accuracy,recon_error
+
+
+# function to validate model
+def validation_loss_3DCNNAE_complex(model, X_test, Y_test, labels_val,
+                                    batch_val, alp_factor):
+
     crit_classif_val = nn.BCEWithLogitsLoss(reduction='mean')
-    crit_recon_val = nn.MSELoss(reduction='mean') # if mean, it is over all elements         
-    
-    total_val_loss=0    
-    accuracy=0
-    
+    crit_recon_val = nn.MSELoss(reduction='mean')
+
+    total_val_loss = 0
+    accuracy = 0
+
     if batch_val > X_test.shape[0]:
         batch_val = X_test.shape[0]
-    
-    idx=np.arange(0,X_test.shape[0],batch_val)    
-    if idx[-1]<X_test.shape[0]:
-        idx=np.append(idx,X_test.shape[0])
+
+    idx = np.arange(0, X_test.shape[0], batch_val)
+    if idx[-1] < X_test.shape[0]:
+        idx = np.append(idx, X_test.shape[0])
     else:
         print('something wrong here')
-    
-    iters=(idx.shape[0]-1)
+
+    iters = idx.shape[0] - 1
     model.eval()
-    
-    loss_recon_batch=[]
-    loss_class_batch=[]
-    
+
+    loss_recon_batch = []
+    loss_class_batch = []
+
     for i in np.arange(iters):
-        x=X_test[idx[i]:idx[i+1],:]
-        y=Y_test[idx[i]:idx[i+1],:]     
-        z=labels_val[idx[i]:idx[i+1]]        
-        
+        x = X_test[idx[i]:idx[i+1]]
+        y = Y_test[idx[i]:idx[i+1]]
+        z = labels_val[idx[i]:idx[i+1]]
+
         with torch.no_grad():
-            
-            Xval_real,Xval_imag  = x.real,x.imag
-            Yval_real,Yval_imag  = y.real,y.imag
+            Xval_real, Xval_imag = x.real, x.imag
+            Yval_real, Yval_imag = y.real, y.imag
+
             xreal = torch.from_numpy(Xval_real).to(device).float()
             ximag = torch.from_numpy(Xval_imag).to(device).float()
             yreal = torch.from_numpy(Yval_real).to(device).float()
             yimag = torch.from_numpy(Yval_imag).to(device).float()
-            z=torch.from_numpy(z).to(device).float()
-            
-            out_r,out_i,zpred = model(xreal,ximag) 
-            loss1 = crit_recon_val(out_r,yreal)
-            loss2 = crit_recon_val(out_i,yimag)
-            loss_recon = loss1+loss2
-            zpred=zpred.squeeze()
-            loss_class = crit_classif_val(zpred,z)   
-            
-            # normalize loss in  batch size in prop to overall val size (weighted mean)
-            alp = x.shape[0]/X_test.shape[0]
+            z = torch.from_numpy(z).to(device).float()
+
+            out_r, out_i, zpred = model(xreal, ximag)
+
+            loss1 = crit_recon_val(out_r, yreal)
+            loss2 = crit_recon_val(out_i, yimag)
+            loss_recon = loss1 + loss2
+
+            zpred = zpred.squeeze()
+            loss_class = crit_classif_val(zpred, z)
+
+            # weighted mean over validation set
+            alp = x.shape[0] / X_test.shape[0]
             loss_recon = loss_recon.item() * alp
             loss_class = loss_class.item() * alp
-            #loss_val = 2.5*loss_recon.item() + loss_class.item()    #30
+
             loss_recon_batch.append(loss_recon)
             loss_class_batch.append(loss_class)
-            
-            #zlabels = convert_to_ClassNumbers(z)        
-            zlabels=z
-            #zpred_labels = convert_to_ClassNumbers(zpred)     
-            zpred_labels = convert_to_ClassNumbers_sigmoid(zpred).to(device)     
-            
-              
-            accuracy += torch.sum(zlabels == zpred_labels).item()
-           
-                
-    
-    total_val_loss= alp_factor * sum(loss_recon_batch) + sum(loss_class_batch)
-    recon_error = alp_factor * sum(loss_recon_batch)    
-    accuracy = accuracy/X_test.shape[0]
-   
+
+            zlabels = z
+            zpred_labels = convert_to_ClassNumbers_sigmoid(zpred).to(device)
+
+            accuracy += torch.sum(zlabels == zpred_labels.squeeze()).item()
+
+    total_val_loss = alp_factor * sum(loss_recon_batch) + sum(loss_class_batch)
+    recon_error = alp_factor * sum(loss_recon_batch)
+    accuracy = accuracy / X_test.shape[0]
+
     model.train()
+
     del xreal, ximag, yreal, yimag, z, out_r, out_i, zpred, zpred_labels
     torch.cuda.empty_cache()
-    
-    return total_val_loss,accuracy,recon_error
 
+    return total_val_loss, accuracy, recon_error
 
 # TRAINING LOOP
 def training_loop_iAE3D_Complex(model,num_epochs,batch_size,learning_rate,batch_val,
@@ -2826,6 +3182,47 @@ def test_model_complex(model,Xtest):
     
     return recon_r,recon_i,decodes
 
+# def test_model_complex(model, Xtest):
+
+#     Xtest_real, Xtest_imag = Xtest.real, Xtest.imag
+
+#     recon_r = []
+#     recon_i = []
+#     decodes = []
+
+#     num_batches = math.ceil(Xtest_real.shape[0] / 512)
+
+#     idx = np.arange(Xtest_real.shape[0])
+#     idx_split = np.array_split(idx, num_batches)
+
+#     model.eval()
+
+#     for batch in range(num_batches):
+#         samples = idx_split[batch]
+
+#         Xtest_real_batch = torch.from_numpy(Xtest_real[samples]).to(device).float()
+#         Xtest_imag_batch = torch.from_numpy(Xtest_imag[samples]).to(device).float()
+
+#         with torch.no_grad():
+#             out_r, out_i, dec = model(Xtest_real_batch, Xtest_imag_batch)
+
+#         # move to CPU
+#         out_r = out_r.cpu().numpy()
+#         out_i = out_i.cpu().numpy()
+
+#         dec = dec.squeeze(-1)              # safer than squeeze()
+#         dec = dec.cpu().numpy()
+
+#         recon_r.append(out_r)
+#         recon_i.append(out_i)
+#         decodes.append(dec)
+
+#     recon_r = np.concatenate(recon_r, axis=0)
+#     recon_i = np.concatenate(recon_i, axis=0)
+#     decodes = np.concatenate(decodes, axis=0)
+
+#     return recon_r, recon_i, decodes
+
 #%% BATCH NORM COMPLEX CNN
 
 class MagnitudeBatchNorm(nn.Module):
@@ -2999,15 +3396,77 @@ def complex_data_augmentation(Xtrain,Ytrain,labels_train,sigma,iterations):
     return Xtrain_aug,Ytrain_aug,labels_train_aug
         
         
+# def complex_data_augmentation_torch(Xtrain, Ytrain, labels_train, sigma, iterations):
+#     """
+#     Xtrain, Ytrain: complex-valued torch tensors of shape (N, C, H, W, T), dtype=torch.cfloat
+#     labels_train: torch tensor of shape (N,)
+#     sigma: float, stddev of noise
+#     iterations: number of augmentation iterations
+#     """
+#     device = Xtrain.device
+#     n, c, h, w, t = Xtrain.shape
+
+#     Xtrain_aug = []
+#     Ytrain_aug = []
+#     labels_train_aug = []
+
+#     for _ in range(iterations):
+#         # Global complex phase shift
+#         thetas = torch.rand(n, device=device) * 2 * torch.pi  # shape: (n,)
+#         phase_shifts = torch.exp(1j * thetas).reshape(n, 1, 1, 1, 1)  # shape: (n,1,1,1,1)
+
+#         tmp = Xtrain * phase_shifts
+#         tmp1 = Ytrain * phase_shifts
+        
+#         #tmp = Xtrain 
+#         #tmp1 = Ytrain
+
+#         # Temporal roll
+#         # shifts = torch.randint(0, t, (n,), device=device)  # shape: (n,)
+#         # idx = (torch.arange(t, device=device)[None, :] - shifts[:, None]) % t  # (n, t)
+#         # idx = idx.view(n, 1, 1, 1, t).expand(n, c, h, w, t)  # (n, c, h, w, t)
+
+#         # tmp = torch.gather(tmp, -1, idx)
+#         # tmp1 = torch.gather(tmp1, -1, idx)
+        
+#         # Add small mean amplitude fluctuations, only to the input, by 5% plus/minus per channel
+#         amp, phases = torch.abs(tmp), torch.angle(tmp)
+#         amp_m = torch.mean(amp,axis=-1)
+#         pos_neg = torch.rand(amp_m.shape,device=device)
+#         pos_neg[pos_neg>=0.5]=1
+#         pos_neg[pos_neg<0.5]=-1
+#         amp_m = 0.05*amp_m*pos_neg
+#         amp_m = amp_m.unsqueeze(-1).expand(-1,-1,-1,-1,t)
+#         amp = amp + amp_m
+#         tmp = torch.polar(amp,phases)
+
+#         # Add complex Gaussian noise to input only, both real and imaginary part
+#         noise_real = torch.randn(n, c, h, w, t, device=device) * sigma
+#         noise_imag = torch.randn(n, c, h, w, t, device=device) * sigma
+#         noise = torch.complex(noise_real, noise_imag)
+#         tmp = tmp + noise
+
+#         Xtrain_aug.append(tmp)
+#         Ytrain_aug.append(tmp1)
+#         labels_train_aug.append(labels_train)
+
+#     # Concatenate augmented data
+#     Xtrain_aug = torch.cat([Xtrain] + Xtrain_aug, dim=0)
+#     Ytrain_aug = torch.cat([Ytrain] + Ytrain_aug, dim=0)
+#     labels_train_aug = torch.cat([labels_train] + labels_train_aug, dim=0)
+
+#     return Xtrain_aug, Ytrain_aug, labels_train_aug    
+    
+
 def complex_data_augmentation_torch(Xtrain, Ytrain, labels_train, sigma, iterations):
     """
-    Xtrain, Ytrain: complex-valued torch tensors of shape (N, C, H, W, T), dtype=torch.cfloat
+    Xtrain, Ytrain: complex-valued torch tensors of shape (N, C, T, H, W), dtype=torch.cfloat
     labels_train: torch tensor of shape (N,)
     sigma: float, stddev of noise
     iterations: number of augmentation iterations
     """
     device = Xtrain.device
-    n, c, h, w, t = Xtrain.shape
+    n, c, t, h, w = Xtrain.shape
 
     Xtrain_aug = []
     Ytrain_aug = []
@@ -3015,37 +3474,36 @@ def complex_data_augmentation_torch(Xtrain, Ytrain, labels_train, sigma, iterati
 
     for _ in range(iterations):
         # Global complex phase shift
-        thetas = torch.rand(n, device=device) * 2 * torch.pi  # shape: (n,)
-        phase_shifts = torch.exp(1j * thetas).reshape(n, 1, 1, 1, 1)  # shape: (n,1,1,1,1)
+        thetas = torch.rand(n, device=device) * 2 * torch.pi
+        phase_shifts = torch.exp(1j * thetas).reshape(n, 1, 1, 1, 1)
 
         tmp = Xtrain * phase_shifts
         tmp1 = Ytrain * phase_shifts
-        
-        #tmp = Xtrain 
-        #tmp1 = Ytrain
 
         # Temporal roll
-        # shifts = torch.randint(0, t, (n,), device=device)  # shape: (n,)
-        # idx = (torch.arange(t, device=device)[None, :] - shifts[:, None]) % t  # (n, t)
-        # idx = idx.view(n, 1, 1, 1, t).expand(n, c, h, w, t)  # (n, c, h, w, t)
+        # shifts = torch.randint(0, t, (n,), device=device)
+        # idx = (torch.arange(t, device=device)[None, :] - shifts[:, None]) % t
+        # idx = idx.view(n, 1, t, 1, 1).expand(n, c, t, h, w)
+        # tmp = torch.gather(tmp, 2, idx)
+        # tmp1 = torch.gather(tmp1, 2, idx)
 
-        # tmp = torch.gather(tmp, -1, idx)
-        # tmp1 = torch.gather(tmp1, -1, idx)
-        
         # Add small mean amplitude fluctuations, only to the input, by 5% plus/minus per channel
-        amp, phases = torch.abs(tmp), torch.angle(tmp)
-        amp_m = torch.mean(amp,axis=-1)
-        pos_neg = torch.rand(amp_m.shape,device=device)
-        pos_neg[pos_neg>=0.5]=1
-        pos_neg[pos_neg<0.5]=-1
-        amp_m = 0.05*amp_m*pos_neg
-        amp_m = amp_m.unsqueeze(-1).expand(-1,-1,-1,-1,t)
+        amp = torch.abs(tmp)
+        phases = torch.angle(tmp)
+
+        amp_m = torch.mean(amp, dim=2)  # mean over time axis
+        pos_neg = torch.rand(amp_m.shape, device=device)
+        pos_neg[pos_neg >= 0.5] = 1
+        pos_neg[pos_neg < 0.5] = -1
+
+        amp_m = 0.05 * amp_m * pos_neg
+        amp_m = amp_m.unsqueeze(2).expand(-1, -1, t, -1, -1)
         amp = amp + amp_m
-        tmp = torch.polar(amp,phases)
+        tmp = torch.polar(amp, phases)
 
         # Add complex Gaussian noise to input only, both real and imaginary part
-        noise_real = torch.randn(n, c, h, w, t, device=device) * sigma
-        noise_imag = torch.randn(n, c, h, w, t, device=device) * sigma
+        noise_real = torch.randn(n, c, t, h, w, device=device) * sigma
+        noise_imag = torch.randn(n, c, t, h, w, device=device) * sigma
         noise = torch.complex(noise_real, noise_imag)
         tmp = tmp + noise
 
@@ -3058,9 +3516,8 @@ def complex_data_augmentation_torch(Xtrain, Ytrain, labels_train, sigma, iterati
     Ytrain_aug = torch.cat([Ytrain] + Ytrain_aug, dim=0)
     labels_train_aug = torch.cat([labels_train] + labels_train_aug, dim=0)
 
-    return Xtrain_aug, Ytrain_aug, labels_train_aug    
+    return Xtrain_aug, Ytrain_aug, labels_train_aug
     
-        
 #%% PLOTTING FOR COMPLEX KERNELS
 
 
@@ -3315,48 +3772,112 @@ def zscore_complex(data, axis=0):
     std = np.sqrt(np.mean(np.abs(data - mu)**2, axis=axis, keepdims=True))
     return (data - mu) / std
 
+# def complex_pca(activations, n_components=5):
+#     """
+#     Complex PCA on channel activations.
+#     activations: torch.Tensor, shape [B, H, W, T] complex dtype
+#     """
+#     #B, W, H, T = activations.shape
+#     B, T, H, W = activations.shape
+#     #X = np.transpose(activations,(0,3,1,2)) # no need if dimensions is B,T,H,W
+#     X = activations
+#     X = X.reshape(B*T,W*H)   
+    
+#     # Mean-center
+#     X_mean = np.mean(X,axis=0)
+#     X_centered = X - X_mean
+
+#     # Complex covariance (Hermitian)
+#     C = (X_centered.conj().T @ X_centered) / (B-1)  # [D, D]
+
+#     # Eigendecomposition
+#     eigvals, eigvecs = np.linalg.eigh(C)  # since Hermitian
+    
+#     # Sort by descending eigenvalue
+#     idx = np.argsort(eigvals)[::-1]
+#     eigvals = eigvals[idx]
+#     eigvecs = eigvecs[:, idx]    
+    
+#     # get cumulative VAF
+#     VAF = np.cumsum(eigvals)/np.sum(eigvals)
+    
+#     # Keep top n_components
+#     eigvals = eigvals[:n_components]
+#     eigvecs = eigvecs[:, :n_components]  # [D, n_components]
+
+#     # Project data
+#     Z = X_centered @ eigvecs  # [B, n_components]
+    
+#     # reshape the projected data in the form of the trials 
+#     Z = Z.reshape(B,T,n_components);
+    
+#     # Reshape eigenvectors 
+#     eigmaps = eigvecs.reshape(W,H,n_components)    
+
+#     return eigvals, eigmaps, Z, VAF,eigvecs,C
+
+
 def complex_pca(activations, n_components=5):
     """
-    Complex PCA on channel activations.
-    activations: torch.Tensor, shape [B, H, W, T] complex dtype
+    Complex PCA on activations.
+
+    Parameters
+    ----------
+    activations : np.ndarray
+        Complex array of shape [B, T, H, W]
+    n_components : int
+        Number of principal components to keep
+
+    Returns
+    -------
+    eigvals : np.ndarray
+        Top eigenvalues
+    eigmaps : np.ndarray
+        Spatial eigenmaps of shape [H, W, n_components]
+    Z : np.ndarray
+        Projected data of shape [B, T, n_components]
+    VAF : np.ndarray
+        Cumulative variance accounted for
+    eigvecs : np.ndarray
+        Top eigenvectors of shape [H*W, n_components]
+    C : np.ndarray
+        Full complex covariance matrix
     """
-    B, W, H, T = activations.shape
-    X = np.transpose(activations,(0,3,1,2))
-    X = X.reshape(B*T,W*H)   
-    
-    # Mean-center
-    X_mean = np.mean(X,axis=0)
+    B, T, H, W = activations.shape
+
+    # reshape so each sample-timepoint is one observation, features are spatial locations
+    X = activations.reshape(B * T, H * W)
+
+    # mean center
+    X_mean = np.mean(X, axis=0)
     X_centered = X - X_mean
 
-    # Complex covariance (Hermitian)
-    C = (X_centered.conj().T @ X_centered) / (B-1)  # [D, D]
+    # complex Hermitian covariance
+    C = (X_centered.conj().T @ X_centered) / (X_centered.shape[0] - 1)
 
-    # Eigendecomposition
-    eigvals, eigvecs = np.linalg.eigh(C)  # since Hermitian
-    
-    # Sort by descending eigenvalue
+    # eigendecomposition
+    eigvals, eigvecs = np.linalg.eigh(C)
+
+    # sort descending
     idx = np.argsort(eigvals)[::-1]
     eigvals = eigvals[idx]
-    eigvecs = eigvecs[:, idx]    
-    
-    # get cumulative VAF
-    VAF = np.cumsum(eigvals)/np.sum(eigvals)
-    
-    # Keep top n_components
-    eigvals = eigvals[:n_components]
-    eigvecs = eigvecs[:, :n_components]  # [D, n_components]
+    eigvecs = eigvecs[:, idx]
 
-    # Project data
-    Z = X_centered @ eigvecs  # [B, n_components]
-    
-    # reshape the projected data in the form of the trials 
-    Z = Z.reshape(B,T,n_components);
-    
-    # Reshape eigenvectors 
-    eigmaps = eigvecs.reshape(W,H,n_components)    
+    # cumulative VAF
+    VAF = np.cumsum(eigvals) / np.sum(eigvals)
 
-    return eigvals, eigmaps, Z, VAF,eigvecs,C
+    # keep top components
+    eigvals_top = eigvals[:n_components]
+    eigvecs_top = eigvecs[:, :n_components]
 
+    # project data
+    Z = X_centered @ eigvecs_top          # shape: [B*T, n_components]
+    Z = Z.reshape(B, T, n_components)     # back to trial x time x component
+
+    # spatial maps
+    eigmaps = eigvecs_top.reshape(H, W, n_components)
+
+    return eigvals_top, eigmaps, Z, VAF, eigvecs_top, C
 
 def complex_pca_PerCondition(activations, labels_tmp, n_components=5):
     """

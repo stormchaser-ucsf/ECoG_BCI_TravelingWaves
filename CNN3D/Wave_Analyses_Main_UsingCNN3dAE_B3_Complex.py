@@ -139,12 +139,15 @@ for iterr in np.arange(iterations):
     Ytrain= np.expand_dims(Ytrain,axis=1)
     Ytest= np.expand_dims(Ytest,axis=1)
     Yval= np.expand_dims(Yval,axis=1)
-    Xtrain = np.transpose(Xtrain,(0,1,3,4,2)) 
-    Xtest = np.transpose(Xtest,(0,1,3,4,2)) 
-    Xval = np.transpose(Xval,(0,1,3,4,2)) 
-    Ytrain = np.transpose(Ytrain,(0,1,3,4,2)) 
-    Ytest = np.transpose(Ytest,(0,1,3,4,2)) 
-    Yval = np.transpose(Yval,(0,1,3,4,2)) 
+    # Xtrain = np.transpose(Xtrain,(0,1,3,4,2)) 
+    # Xtest = np.transpose(Xtest,(0,1,3,4,2)) 
+    # Xval = np.transpose(Xval,(0,1,3,4,2)) 
+    # Ytrain = np.transpose(Ytrain,(0,1,3,4,2)) 
+    # Ytest = np.transpose(Ytest,(0,1,3,4,2)) 
+    # Yval = np.transpose(Yval,(0,1,3,4,2)) 
+    
+    #dim (samples, 1, 11, 23, 40) #time is last
+    # dim should be (samples, 1, time or depth, height, width)
     
     # data augmentation
     # augmentation_factor=2

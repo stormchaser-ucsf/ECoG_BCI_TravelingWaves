@@ -2379,10 +2379,16 @@ ylabel('Std stability value')
 % 5 bins, run over by 2 samples. 
 % want to see if cnn model can completely distinguish b/w wave and non wave
 % samples
-all_data = cell2mat(stats_cl_hg_days);
-wave_samples={};
-nonwave_samples={};
+ecog_grid1=ecog_grid;
+aa1=(ecog_grid>=109) .* (ecog_grid<=112);
+aa2=(ecog_grid>=114) .* (ecog_grid<=117);
+aa3= logical( (ecog_grid>=119) .* (ecog_grid<=256) );
+ecog_grid1(logical(aa1))=ecog_grid1(logical(aa1))-1;
+ecog_grid1(logical(aa2))=ecog_grid1(logical(aa2))-2;
+ecog_grid1(aa3)=ecog_grid1(aa3)-3;
 
+all_data = cell2mat(stats_cl_hg_days);
+save all_data_B3_arrow ecog_grid1 all_data -v7.3
 
 
 
