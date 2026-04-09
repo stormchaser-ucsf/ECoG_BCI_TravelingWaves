@@ -2139,13 +2139,22 @@ class Encoder3D_Complex_deep(nn.Module):
 
         self.conv7 = ComplexConv3D(16, 24, (4, 2, 3), (1, 1, 1), 0, (3, 1, 2))
 
-        self.elu1 = ModELU()
-        self.elu2 = ModELU()
-        self.elu3 = ModELU()
-        self.elu4 = ModELU()
-        self.elu5 = ModELU()
-        self.elu6 = ModELU()
-        self.elu7 = ModELU()
+        # self.elu1 = ModELU()
+        # self.elu2 = ModELU()
+        # self.elu3 = ModELU()
+        # self.elu4 = ModELU()
+        # self.elu5 = ModELU()
+        # self.elu6 = ModELU()
+        # self.elu7 = ModELU()
+        
+        self.elu1 = ModReLU(12)
+        self.elu2 = ModReLU(12)
+        self.elu3 = ModReLU(12)
+        self.elu4 = ModReLU(16)
+        self.elu5 = ModReLU(16)
+        self.elu6 = ModReLU(16)
+        self.elu7 = ModReLU(24)
+        
 
     def forward(self, a, b):
         a, b = self.conv1(a, b)
@@ -2185,12 +2194,21 @@ class Decoder3D_Complex_deep(nn.Module):
         self.deconv6 = ComplexConvTranspose3D(12, 12, (3, 2, 2), (1, 1, 1), (0, 0, 0), (2, 1, 1))
         self.deconv7 = ComplexConvTranspose3D(12, 1,  (3, 2, 2), (1, 1, 1), (0, 0, 0), (2, 1, 1))
 
-        self.elu1 = ModELU()
-        self.elu2 = ModELU()
-        self.elu3 = ModELU()
-        self.elu4 = ModELU()
-        self.elu5 = ModELU()
-        self.elu6 = ModELU()
+        # self.elu1 = ModELU()
+        # self.elu2 = ModELU()
+        # self.elu3 = ModELU()
+        # self.elu4 = ModELU()
+        # self.elu5 = ModELU()
+        # self.elu6 = ModELU()
+        
+        
+        self.elu1 = ModReLU(16)
+        self.elu2 = ModReLU(16)
+        self.elu3 = ModReLU(16)
+        self.elu4 = ModReLU(12)
+        self.elu5 = ModReLU(12)
+        self.elu6 = ModReLU(12)
+        
 
     def forward(self, a, b):
         a, b = self.deconv1(a, b)

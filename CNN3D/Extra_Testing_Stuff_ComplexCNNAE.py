@@ -999,7 +999,1292 @@ model = train_model(
     Xtrain, labels_train,
     Xval, labels_val,
     epochs=15,
-    batch_size=128,
+    batch_size=64,
     lr=1e-3
 )
 
+
+
+#%% REAL MODEL ONLY (ABOVE CONTROL)
+
+
+import numpy as np
+import torch
+import torch.nn as nn
+
+
+# ----------------------------
+# Real-valued 3D CNN baseline
+# ----------------------------
+class RealWaveCNN3D(nn.Module):
+    def __init__(self, dropout=0.30):
+        super().__init__()
+
+        self.conv1 = nn.Conv3d(1, 12, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+        self.conv2 = nn.Conv3d(12, 20, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+        self.conv3 = nn.Conv3d(20, 28, kernel_size=(3,3,3), stride=(1,2,2), padding=(1,1,1))
+        self.conv4 = nn.Conv3d(28, 40, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+        self.conv5 = nn.Conv3d(40, 48, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+        self.conv6 = nn.Conv3d(48, 16, kernel_size=(1,1,1), stride=(1,1,1), padding=(0,0,0))
+
+        self.act = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+
+        # input: (B,1,8,11,23)
+        # after conv3 stride (1,2,2): (B,28,8,6,12)
+        # conv4/5/6 keep shape -> (B,16,8,6,12)
+        feat_dim = 16 * 8 * 6 * 12
+
+        self.fc1 = nn.Linear(feat_dim, 128)
+        self.fc2 = nn.Linear(128, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = self.act(self.conv1(x))
+        x = self.act(self.conv2(x))
+        x = self.act(self.conv3(x))
+        x = self.act(self.conv4(x))
+        x = self.act(self.conv5(x))
+        x = self.act(self.conv6(x))
+
+        x = torch.flatten(x, start_dim=1)
+        x = self.dropout(x)
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        logits = self.fc3(x)
+        return logits
+
+
+# ----------------------------
+# Training function
+# ----------------------------
+def train_real_model(model, Xtrain, labels_train, Xval, labels_val,
+                     epochs=15, batch_size=128, lr=1e-3, device="cuda"):
+
+    model = model.to(device)
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    N = Xtrain.shape[0]
+    Nv = Xval.shape[0]
+
+    best_val_acc = -np.inf
+    best_state = None
+
+    # use only real part
+    Xtrain_real = Xtrain.real.astype(np.float32)
+    Xval_real   = Xval.real.astype(np.float32)
+
+    for epoch in range(epochs):
+        model.train()
+        idx = np.random.permutation(N)
+
+        train_loss_sum = 0.0
+        train_correct = 0
+
+        for i in range(0, N, batch_size):
+            batch_idx = idx[i:i+batch_size]
+
+            x = torch.from_numpy(Xtrain_real[batch_idx]).to(device)
+            y = torch.from_numpy(labels_train[batch_idx].astype(np.float32)).to(device)
+
+            optimizer.zero_grad()
+            logits = model(x)              # (B,1)
+            loss = criterion(logits, y)
+            loss.backward()
+            optimizer.step()
+
+            train_loss_sum += loss.item() * x.shape[0]
+            preds = (torch.sigmoid(logits) >= 0.5).float()
+            train_correct += (preds == y).sum().item()
+
+        train_loss = train_loss_sum / N
+        train_acc = train_correct / N
+
+        model.eval()
+        val_loss_sum = 0.0
+        val_correct = 0
+
+        with torch.no_grad():
+            for i in range(0, Nv, batch_size):
+                x = torch.from_numpy(Xval_real[i:i+batch_size]).to(device)
+                y = torch.from_numpy(labels_val[i:i+batch_size].astype(np.float32)).to(device)
+
+                logits = model(x)
+                loss = criterion(logits, y)
+
+                val_loss_sum += loss.item() * x.shape[0]
+                preds = (torch.sigmoid(logits) >= 0.5).float()
+                val_correct += (preds == y).sum().item()
+
+        val_loss = val_loss_sum / Nv
+        val_acc = val_correct / Nv
+
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+
+        print(
+            f"Epoch {epoch+1:02d} | "
+            f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | "
+            f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}"
+        )
+
+    if best_state is not None:
+        model.load_state_dict(best_state)
+
+    return model, best_val_acc
+
+
+# ----------------------------
+# Run
+# ----------------------------
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+model = RealWaveCNN3D(dropout=0.30)
+n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print("Number of trainable parameters:", n_params)
+
+model, best_val_acc = train_real_model(
+    model,
+    Xtrain, labels_train,
+    Xval, labels_val,
+    epochs=15,
+    batch_size=128,
+    lr=1e-3,
+    device=device
+)
+
+print("Best validation accuracy:", best_val_acc)
+
+
+#%% ABSOLUTE VALUE MAGNITUDE (FROM ABOVE)
+
+import numpy as np
+import torch
+import torch.nn as nn
+
+
+# ----------------------------
+# Amplitude-only 3D CNN
+# ----------------------------
+class AmplitudeWaveCNN3D(nn.Module):
+    def __init__(self, dropout=0.30):
+        super().__init__()
+
+        self.conv1 = nn.Conv3d(1, 12, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+        self.conv2 = nn.Conv3d(12, 20, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+        self.conv3 = nn.Conv3d(20, 28, kernel_size=(3,3,3), stride=(1,2,2), padding=(1,1,1))
+        self.conv4 = nn.Conv3d(28, 40, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+        self.conv5 = nn.Conv3d(40, 48, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+        self.conv6 = nn.Conv3d(48, 16, kernel_size=(1,1,1), stride=(1,1,1), padding=(0,0,0))
+
+        self.act = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+
+        # input: (B,1,8,11,23)
+        # after conv3 stride (1,2,2): (B,28,8,6,12)
+        # conv4/5/6 keep shape -> (B,16,8,6,12)
+        feat_dim = 16 * 8 * 6 * 12
+
+        self.fc1 = nn.Linear(feat_dim, 128)
+        self.fc2 = nn.Linear(128, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = self.act(self.conv1(x))
+        x = self.act(self.conv2(x))
+        x = self.act(self.conv3(x))
+        x = self.act(self.conv4(x))
+        x = self.act(self.conv5(x))
+        x = self.act(self.conv6(x))
+
+        x = torch.flatten(x, start_dim=1)
+        x = self.dropout(x)
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        logits = self.fc3(x)
+        return logits
+
+
+# ----------------------------
+# Training function
+# ----------------------------
+def train_amplitude_model(model, Xtrain, labels_train, Xval, labels_val,
+                          epochs=15, batch_size=128, lr=1e-3, device="cuda"):
+
+    model = model.to(device)
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    N = Xtrain.shape[0]
+    Nv = Xval.shape[0]
+
+    best_val_acc = -np.inf
+    best_state = None
+
+    # amplitude only
+    Xtrain_amp = np.abs(Xtrain).astype(np.float32)
+    Xval_amp   = np.abs(Xval).astype(np.float32)
+
+    for epoch in range(epochs):
+        model.train()
+        idx = np.random.permutation(N)
+
+        train_loss_sum = 0.0
+        train_correct = 0
+
+        for i in range(0, N, batch_size):
+            batch_idx = idx[i:i+batch_size]
+
+            x = torch.from_numpy(Xtrain_amp[batch_idx]).to(device)
+            y = torch.from_numpy(labels_train[batch_idx].astype(np.float32)).to(device)
+
+            optimizer.zero_grad()
+            logits = model(x)   # (B,1)
+            loss = criterion(logits, y)
+            loss.backward()
+            optimizer.step()
+
+            train_loss_sum += loss.item() * x.shape[0]
+            preds = (torch.sigmoid(logits) >= 0.5).float()
+            train_correct += (preds == y).sum().item()
+
+        train_loss = train_loss_sum / N
+        train_acc = train_correct / N
+
+        model.eval()
+        val_loss_sum = 0.0
+        val_correct = 0
+
+        with torch.no_grad():
+            for i in range(0, Nv, batch_size):
+                x = torch.from_numpy(Xval_amp[i:i+batch_size]).to(device)
+                y = torch.from_numpy(labels_val[i:i+batch_size].astype(np.float32)).to(device)
+
+                logits = model(x)
+                loss = criterion(logits, y)
+
+                val_loss_sum += loss.item() * x.shape[0]
+                preds = (torch.sigmoid(logits) >= 0.5).float()
+                val_correct += (preds == y).sum().item()
+
+        val_loss = val_loss_sum / Nv
+        val_acc = val_correct / Nv
+
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+
+        print(
+            f"Epoch {epoch+1:02d} | "
+            f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | "
+            f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}"
+        )
+
+    if best_state is not None:
+        model.load_state_dict(best_state)
+
+    return model, best_val_acc
+
+
+# ----------------------------
+# Run
+# ----------------------------
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+model = AmplitudeWaveCNN3D(dropout=0.30)
+n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print("Number of trainable parameters:", n_params)
+
+model, best_val_acc = train_amplitude_model(
+    model,
+    Xtrain, labels_train,
+    Xval, labels_val,
+    epochs=15,
+    batch_size=128,
+    lr=1e-3,
+    device=device
+)
+
+print("Best validation accuracy:", best_val_acc)
+
+
+#%% phase only model (from abvove)
+
+Xtrain_phase = Xtrain / (np.abs(Xtrain) + 1e-8)
+Xval_phase   = Xval   / (np.abs(Xval)   + 1e-8)
+
+import torch
+import torch.nn as nn
+
+
+class PhaseWaveCNN3D(nn.Module):
+    def __init__(self, dropout=0.30):
+        super().__init__()
+
+        self.conv1 = nn.Conv3d(2, 12, (3,3,3), (1,1,1), (1,1,1))
+        self.conv2 = nn.Conv3d(12,20, (3,3,3), (1,1,1), (1,1,1))
+        self.conv3 = nn.Conv3d(20,28, (3,3,3), (1,2,2), (1,1,1))
+        self.conv4 = nn.Conv3d(28,40, (3,3,3), (1,1,1), (1,1,1))
+        self.conv5 = nn.Conv3d(40,48, (3,3,3), (1,1,1), (1,1,1))
+        self.conv6 = nn.Conv3d(48,16, (1,1,1), (1,1,1), (0,0,0))
+
+        self.act = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+
+        feat_dim = 16 * 8 * 6 * 12
+
+        self.fc1 = nn.Linear(feat_dim, 128)
+        self.fc2 = nn.Linear(128, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = self.act(self.conv1(x))
+        x = self.act(self.conv2(x))
+        x = self.act(self.conv3(x))
+        x = self.act(self.conv4(x))
+        x = self.act(self.conv5(x))
+        x = self.act(self.conv6(x))
+
+        x = torch.flatten(x, start_dim=1)
+        x = self.dropout(x)
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        logits = self.fc3(x)
+        return logits
+    
+    
+def train_phase_model(model, Xtrain, labels_train, Xval, labels_val,
+                      epochs=15, batch_size=128, lr=1e-3, device="cuda"):
+
+    model = model.to(device)
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    N = Xtrain.shape[0]
+    Nv = Xval.shape[0]
+
+    best_val_acc = -1
+    best_state = None
+
+    for epoch in range(epochs):
+        model.train()
+        idx = np.random.permutation(N)
+
+        train_correct = 0
+        train_loss_sum = 0
+
+        for i in range(0, N, batch_size):
+            bidx = idx[i:i+batch_size]
+
+            xr = Xtrain[bidx].real.astype(np.float32)
+            xi = Xtrain[bidx].imag.astype(np.float32)
+
+            x = np.concatenate([xr, xi], axis=1)   # (B,2,8,11,23)
+            x = torch.from_numpy(x).to(device)
+
+            y = torch.from_numpy(labels_train[bidx].astype(np.float32)).to(device)
+
+            optimizer.zero_grad()
+            logits = model(x)
+            loss = criterion(logits, y)
+            loss.backward()
+            optimizer.step()
+
+            train_loss_sum += loss.item() * x.shape[0]
+            preds = (torch.sigmoid(logits) >= 0.5).float()
+            train_correct += (preds == y).sum().item()
+
+        train_loss = train_loss_sum / N
+        train_acc = train_correct / N
+
+        model.eval()
+        val_correct = 0
+        val_loss_sum = 0
+
+        with torch.no_grad():
+            for i in range(0, Nv, batch_size):
+                xr = Xval[i:i+batch_size].real.astype(np.float32)
+                xi = Xval[i:i+batch_size].imag.astype(np.float32)
+
+                x = np.concatenate([xr, xi], axis=1)
+                x = torch.from_numpy(x).to(device)
+
+                y = torch.from_numpy(labels_val[i:i+batch_size].astype(np.float32)).to(device)
+
+                logits = model(x)
+                loss = criterion(logits, y)
+
+                val_loss_sum += loss.item() * x.shape[0]
+                preds = (torch.sigmoid(logits) >= 0.5).float()
+                val_correct += (preds == y).sum().item()
+
+        val_loss = val_loss_sum / Nv
+        val_acc = val_correct / Nv
+
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+
+        print(f"Epoch {epoch+1:02d} | Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+
+    model.load_state_dict(best_state)
+    return model, best_val_acc
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+model = PhaseWaveCNN3D()
+print("Params:", sum(p.numel() for p in model.parameters() if p.requires_grad))
+
+model, best_val_acc = train_phase_model(
+    model,
+    Xtrain_phase,
+    labels_train,
+    Xval_phase,
+    labels_val,
+    device=device
+)
+
+print("Best val acc:", best_val_acc)
+
+
+#%% real only after amplitude normalization 
+
+import numpy as np
+import torch
+import torch.nn as nn
+
+
+# ----------------------------
+# Model (same as real baseline)
+# ----------------------------
+class RealNormWaveCNN3D(nn.Module):
+    def __init__(self, dropout=0.30):
+        super().__init__()
+
+        self.conv1 = nn.Conv3d(1, 12, (3,3,3), (1,1,1), (1,1,1))
+        self.conv2 = nn.Conv3d(12,20, (3,3,3), (1,1,1), (1,1,1))
+        self.conv3 = nn.Conv3d(20,28, (3,3,3), (1,2,2), (1,1,1))
+        self.conv4 = nn.Conv3d(28,40, (3,3,3), (1,1,1), (1,1,1))
+        self.conv5 = nn.Conv3d(40,48, (3,3,3), (1,1,1), (1,1,1))
+        self.conv6 = nn.Conv3d(48,16, (1,1,1), (1,1,1), (0,0,0))
+
+        self.act = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+
+        feat_dim = 16 * 8 * 6 * 12
+
+        self.fc1 = nn.Linear(feat_dim, 128)
+        self.fc2 = nn.Linear(128, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = self.act(self.conv1(x))
+        x = self.act(self.conv2(x))
+        x = self.act(self.conv3(x))
+        x = self.act(self.conv4(x))
+        x = self.act(self.conv5(x))
+        x = self.act(self.conv6(x))
+
+        x = torch.flatten(x, start_dim=1)
+        x = self.dropout(x)
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        logits = self.fc3(x)
+        return logits
+
+
+# ----------------------------
+# Training function
+# ----------------------------
+def train_realnorm_model(model, Xtrain, labels_train, Xval, labels_val,
+                         epochs=15, batch_size=128, lr=1e-3, device="cuda"):
+
+    model = model.to(device)
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    N = Xtrain.shape[0]
+    Nv = Xval.shape[0]
+
+    best_val_acc = -1
+    best_state = None
+
+    # ---- real normalized input ----
+    Xtrain_realnorm = (Xtrain.imag / (np.abs(Xtrain) + 1e-8)).astype(np.float32)
+    Xval_realnorm   = (Xval.imag   / (np.abs(Xval)   + 1e-8)).astype(np.float32)
+
+    for epoch in range(epochs):
+        model.train()
+        idx = np.random.permutation(N)
+
+        train_loss_sum = 0
+        train_correct = 0
+
+        for i in range(0, N, batch_size):
+            bidx = idx[i:i+batch_size]
+
+            x = torch.from_numpy(Xtrain_realnorm[bidx]).to(device)
+            y = torch.from_numpy(labels_train[bidx].astype(np.float32)).to(device)
+
+            optimizer.zero_grad()
+            logits = model(x)
+            loss = criterion(logits, y)
+            loss.backward()
+            optimizer.step()
+
+            train_loss_sum += loss.item() * x.shape[0]
+            preds = (torch.sigmoid(logits) >= 0.5).float()
+            train_correct += (preds == y).sum().item()
+
+        train_loss = train_loss_sum / N
+        train_acc = train_correct / N
+
+        model.eval()
+        val_loss_sum = 0
+        val_correct = 0
+
+        with torch.no_grad():
+            for i in range(0, Nv, batch_size):
+                x = torch.from_numpy(Xval_realnorm[i:i+batch_size]).to(device)
+                y = torch.from_numpy(labels_val[i:i+batch_size].astype(np.float32)).to(device)
+
+                logits = model(x)
+                loss = criterion(logits, y)
+
+                val_loss_sum += loss.item() * x.shape[0]
+                preds = (torch.sigmoid(logits) >= 0.5).float()
+                val_correct += (preds == y).sum().item()
+
+        val_loss = val_loss_sum / Nv
+        val_acc = val_correct / Nv
+
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+
+        print(f"Epoch {epoch+1:02d} | Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+
+    model.load_state_dict(best_state)
+    return model, best_val_acc
+
+
+# ----------------------------
+# Run
+# ----------------------------
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+model = RealNormWaveCNN3D(dropout=0.30)
+print("Params:", sum(p.numel() for p in model.parameters() if p.requires_grad))
+
+model, best_val_acc = train_realnorm_model(
+    model,
+    Xtrain,
+    labels_train,
+    Xval,
+    labels_val,
+    device=device
+)
+
+print("Best validation accuracy:", best_val_acc)
+
+#%% CONTROL SHUFFLING OF TIME
+
+import numpy as np
+import torch
+import torch.nn as nn
+
+
+# ----------------------------
+# Phase-only model
+# ----------------------------
+class PhaseWaveCNN3D(nn.Module):
+    def __init__(self, dropout=0.30):
+        super().__init__()
+
+        self.conv1 = nn.Conv3d(2, 12, (3,3,3), (1,1,1), (1,1,1))
+        self.conv2 = nn.Conv3d(12,20, (3,3,3), (1,1,1), (1,1,1))
+        self.conv3 = nn.Conv3d(20,28, (3,3,3), (1,2,2), (1,1,1))
+        self.conv4 = nn.Conv3d(28,40, (3,3,3), (1,1,1), (1,1,1))
+        self.conv5 = nn.Conv3d(40,48, (3,3,3), (1,1,1), (1,1,1))
+        self.conv6 = nn.Conv3d(48,16, (1,1,1), (1,1,1), (0,0,0))
+
+        self.act = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+
+        feat_dim = 16 * 8 * 6 * 12
+        self.fc1 = nn.Linear(feat_dim, 128)
+        self.fc2 = nn.Linear(128, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = self.act(self.conv1(x))
+        x = self.act(self.conv2(x))
+        x = self.act(self.conv3(x))
+        x = self.act(self.conv4(x))
+        x = self.act(self.conv5(x))
+        x = self.act(self.conv6(x))
+
+        x = torch.flatten(x, start_dim=1)
+        x = self.dropout(x)
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        logits = self.fc3(x)
+        return logits
+
+
+# ----------------------------
+# Phase-only preprocessing
+# ----------------------------
+def make_phase_only(X):
+    return X / (np.abs(X) + 1e-8)
+
+
+# ----------------------------
+# Temporal shuffle along time axis
+# X shape: (N, 1, T, H, W), complex
+# same permutation applied to all samples
+# ----------------------------
+def temporal_shuffle(X):
+    Xs = X.copy()
+    perm = np.random.permutation(X.shape[2])
+    Xs = Xs[:, :, perm, :, :]
+    return Xs, perm
+
+
+# ----------------------------
+# Training
+# ----------------------------
+def train_phase_model(model, Xtrain, labels_train, Xval, labels_val,
+                      epochs=15, batch_size=128, lr=1e-3, device="cuda"):
+
+    model = model.to(device)
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    N = Xtrain.shape[0]
+    Nv = Xval.shape[0]
+
+    best_val_acc = -1
+    best_state = None
+
+    for epoch in range(epochs):
+        model.train()
+        idx = np.random.permutation(N)
+
+        train_correct = 0
+        train_loss_sum = 0
+
+        for i in range(0, N, batch_size):
+            bidx = idx[i:i+batch_size]
+
+            xr = Xtrain[bidx].real.astype(np.float32)
+            xi = Xtrain[bidx].imag.astype(np.float32)
+
+            x = np.concatenate([xr, xi], axis=1)   # (B,2,T,H,W)
+            x = torch.from_numpy(x).to(device)
+
+            y = torch.from_numpy(labels_train[bidx].astype(np.float32)).to(device)
+
+            optimizer.zero_grad()
+            logits = model(x)
+            loss = criterion(logits, y)
+            loss.backward()
+            optimizer.step()
+
+            train_loss_sum += loss.item() * x.shape[0]
+            preds = (torch.sigmoid(logits) >= 0.5).float()
+            train_correct += (preds == y).sum().item()
+
+        train_loss = train_loss_sum / N
+        train_acc = train_correct / N
+
+        model.eval()
+        val_correct = 0
+        val_loss_sum = 0
+
+        with torch.no_grad():
+            for i in range(0, Nv, batch_size):
+                xr = Xval[i:i+batch_size].real.astype(np.float32)
+                xi = Xval[i:i+batch_size].imag.astype(np.float32)
+
+                x = np.concatenate([xr, xi], axis=1)
+                x = torch.from_numpy(x).to(device)
+
+                y = torch.from_numpy(labels_val[i:i+batch_size].astype(np.float32)).to(device)
+
+                logits = model(x)
+                loss = criterion(logits, y)
+
+                val_loss_sum += loss.item() * x.shape[0]
+                preds = (torch.sigmoid(logits) >= 0.5).float()
+                val_correct += (preds == y).sum().item()
+
+        val_loss = val_loss_sum / Nv
+        val_acc = val_correct / Nv
+
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+
+        print(f"Epoch {epoch+1:02d} | Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+
+    model.load_state_dict(best_state)
+    return model, best_val_acc
+
+
+# ----------------------------
+# Run temporal-shuffle control
+# ----------------------------
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# phase only
+Xtrain_phase = make_phase_only(Xtrain)
+Xval_phase   = make_phase_only(Xval)
+
+# temporal shuffle
+# Xtrain_phase_shuf, perm_train = temporal_shuffle(Xtrain_phase)
+# Xval_phase_shuf, perm_val     = temporal_shuffle(Xval_phase)
+
+perm = np.random.permutation(Xtrain_phase.shape[2])
+
+Xtrain_phase_shuf = Xtrain_phase[:, :, perm, :, :]
+Xval_phase_shuf   = Xval_phase[:, :, perm, :, :]
+
+print("Shared time permutation:", perm)
+
+print("Train time permutation:", perm_train)
+print("Val time permutation:", perm_val)
+
+model = PhaseWaveCNN3D(dropout=0.30)
+print("Params:", sum(p.numel() for p in model.parameters() if p.requires_grad))
+
+model, best_val_acc = train_phase_model(
+    model,
+    Xtrain_phase_shuf,
+    labels_train,
+    Xval_phase_shuf,
+    labels_val,
+    epochs=15,
+    batch_size=128,
+    lr=1e-3,
+    device=device
+)
+
+print("Best validation accuracy after temporal shuffle:", best_val_acc)
+
+#%% differing size of model
+
+
+import numpy as np
+import torch
+import torch.nn as nn
+
+
+# ============================
+# Model (~2.5M params)
+# ============================
+class PhaseWaveCNN3D_2p5M(nn.Module):
+    def __init__(self, dropout=0.30):
+        super().__init__()
+
+        self.conv1 = nn.Conv3d(2,  12, (3,3,3), (1,1,1), (1,1,1))
+        self.conv2 = nn.Conv3d(12, 20, (3,3,3), (1,1,1), (1,1,1))
+        self.conv3 = nn.Conv3d(20, 28, (3,3,3), (1,2,2), (1,1,1))
+        self.conv4 = nn.Conv3d(28, 40, (3,3,3), (1,1,1), (1,1,1))
+        self.conv5 = nn.Conv3d(40, 48, (3,3,3), (1,1,1), (1,1,1))
+        self.conv6 = nn.Conv3d(48, 16, (1,1,1), (1,1,1), (0,0,0))
+
+        self.act = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+
+        feat_dim = 16 * 8 * 6 * 12  # 9216
+
+        self.fc1 = nn.Linear(feat_dim, 256)
+        self.fc2 = nn.Linear(256, 64)
+        self.fc3 = nn.Linear(64, 1)
+
+    def forward(self, x):
+        x = self.act(self.conv1(x))
+        x = self.act(self.conv2(x))
+        x = self.act(self.conv3(x))
+        x = self.act(self.conv4(x))
+        x = self.act(self.conv5(x))
+        x = self.act(self.conv6(x))
+
+        x = torch.flatten(x, start_dim=1)
+        x = self.dropout(x)
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        logits = self.fc3(x)
+        return logits
+
+
+# ============================
+# Utilities
+# ============================
+def make_phase_only(X):
+    return X / (np.abs(X) + 1e-8)
+
+def pack_phase(X):
+    xr = X.real.astype(np.float32)
+    xi = X.imag.astype(np.float32)
+    return np.concatenate([xr, xi], axis=1)
+
+
+# ============================
+# Training
+# ============================
+def train_model(model, Xtrain, labels_train, Xval, labels_val,
+                epochs=20, batch_size=128, lr=1e-3, device="cuda"):
+
+    model = model.to(device)
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    N = Xtrain.shape[0]
+    Nv = Xval.shape[0]
+
+    best_val_loss = np.inf
+    best_state = None
+
+    for epoch in range(epochs):
+        # ===== TRAIN =====
+        model.train()
+        idx = np.random.permutation(N)
+
+        train_loss_sum = 0
+        train_correct = 0
+
+        for i in range(0, N, batch_size):
+            bidx = idx[i:i+batch_size]
+
+            x = torch.from_numpy(pack_phase(Xtrain[bidx])).to(device)
+            y = torch.from_numpy(labels_train[bidx].astype(np.float32)).to(device)
+
+            optimizer.zero_grad()
+            logits = model(x)
+            loss = criterion(logits, y)
+            loss.backward()
+            optimizer.step()
+
+            train_loss_sum += loss.item() * x.shape[0]
+            preds = (torch.sigmoid(logits) >= 0.5).float()
+            train_correct += (preds == y).sum().item()
+
+        train_loss = train_loss_sum / N
+        train_acc = train_correct / N
+
+        # ===== VALIDATION =====
+        model.eval()
+        val_loss_sum = 0
+        val_correct = 0
+
+        with torch.no_grad():
+            for i in range(0, Nv, batch_size):
+                x = torch.from_numpy(pack_phase(Xval[i:i+batch_size])).to(device)
+                y = torch.from_numpy(labels_val[i:i+batch_size].astype(np.float32)).to(device)
+
+                logits = model(x)
+                loss = criterion(logits, y)
+
+                val_loss_sum += loss.item() * x.shape[0]
+                preds = (torch.sigmoid(logits) >= 0.5).float()
+                val_correct += (preds == y).sum().item()
+
+        val_loss = val_loss_sum / Nv
+        val_acc = val_correct / Nv
+
+        # ===== SAVE BEST (BY VAL LOSS) =====
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+
+        print(f"Epoch {epoch+1:02d} | "
+              f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | "
+              f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+
+    model.load_state_dict(best_state)
+    return model, best_val_loss
+
+
+# ============================
+# Run
+# ============================
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# prepare phase-only data
+Xtrain_phase = make_phase_only(Xtrain)
+Xval_phase   = make_phase_only(Xval)
+
+# init model
+model = PhaseWaveCNN3D_2p5M()
+n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print("Number of trainable parameters:", n_params)
+
+# train
+model, best_val_loss = train_model(
+    model,
+    Xtrain_phase,
+    labels_train,
+    Xval_phase,
+    labels_val,
+    epochs=20,
+    batch_size=128,
+    lr=1e-3,
+    device=device
+)
+
+print("Best validation loss:", best_val_loss)
+
+#%% MODEL WITH MINOR CONTROLS 
+
+import numpy as np
+import torch
+import torch.nn as nn
+
+
+# ----------------------------
+# Model
+# ----------------------------
+class PhaseWaveCNN3D(nn.Module):
+    def __init__(self, dropout=0.30):
+        super().__init__()
+
+        self.conv1 = nn.Conv3d(2, 12, (3,3,3), (1,1,1), (1,1,1))
+        self.conv2 = nn.Conv3d(12,20, (3,3,3), (1,1,1), (1,1,1))
+        self.conv3 = nn.Conv3d(20,28, (3,3,3), (1,2,2), (1,1,1))
+        self.conv4 = nn.Conv3d(28,40, (3,3,3), (1,1,1), (1,1,1))
+        self.conv5 = nn.Conv3d(40,48, (3,3,3), (1,1,1), (1,1,1))
+        self.conv6 = nn.Conv3d(48,16, (1,1,1), (1,1,1), (0,0,0))
+
+        self.act = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+
+        feat_dim = 16 * 8 * 6 * 12
+        self.fc1 = nn.Linear(feat_dim, 128)
+        self.fc2 = nn.Linear(128, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = self.act(self.conv1(x))
+        x = self.act(self.conv2(x))
+        x = self.act(self.conv3(x))
+        x = self.act(self.conv4(x))
+        x = self.act(self.conv5(x))
+        x = self.act(self.conv6(x))
+
+        x = torch.flatten(x, start_dim=1)
+        x = self.dropout(x)
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        logits = self.fc3(x)
+        return logits
+
+
+# ----------------------------
+# Utilities
+# ----------------------------
+def make_phase_only(X):
+    return X / (np.abs(X) + 1e-8)
+
+
+def apply_temporal_permutation(X, perm):
+    return X[:, :, perm, :, :]
+
+
+# ----------------------------
+# Training
+# ----------------------------
+def train_model(model, Xtrain, labels_train, Xval, labels_val,
+                epochs=15, batch_size=128, lr=1e-3, device="cuda"):
+
+    model = model.to(device)
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    N = Xtrain.shape[0]
+    Nv = Xval.shape[0]
+
+    best_val_acc = -1
+
+    for epoch in range(epochs):
+        model.train()
+        idx = np.random.permutation(N)
+
+        train_correct = 0
+        train_loss_sum = 0
+
+        for i in range(0, N, batch_size):
+            bidx = idx[i:i+batch_size]
+
+            xr = Xtrain[bidx].real.astype(np.float32)
+            xi = Xtrain[bidx].imag.astype(np.float32)
+
+            x = np.concatenate([xr, xi], axis=1)
+            x = torch.from_numpy(x).to(device)
+
+            y = torch.from_numpy(labels_train[bidx].astype(np.float32)).to(device)
+
+            optimizer.zero_grad()
+            logits = model(x)
+            loss = criterion(logits, y)
+            loss.backward()
+            optimizer.step()
+
+            train_loss_sum += loss.item() * x.shape[0]
+            preds = (torch.sigmoid(logits) >= 0.5).float()
+            train_correct += (preds == y).sum().item()
+
+        train_acc = train_correct / N
+
+        model.eval()
+        val_correct = 0
+
+        with torch.no_grad():
+            for i in range(0, Nv, batch_size):
+                xr = Xval[i:i+batch_size].real.astype(np.float32)
+                xi = Xval[i:i+batch_size].imag.astype(np.float32)
+
+                x = np.concatenate([xr, xi], axis=1)
+                x = torch.from_numpy(x).to(device)
+
+                y = torch.from_numpy(labels_val[i:i+batch_size].astype(np.float32)).to(device)
+
+                logits = model(x)
+                preds = (torch.sigmoid(logits) >= 0.5).float()
+                val_correct += (preds == y).sum().item()
+
+        val_acc = val_correct / Nv
+        best_val_acc = max(best_val_acc, val_acc)
+
+        print(f"Epoch {epoch+1:02d} | Train Acc: {train_acc:.4f} | Val Acc: {val_acc:.4f}")
+
+    return best_val_acc
+
+
+# ----------------------------
+# Run experiment
+# ----------------------------
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# Phase-only data
+Xtrain_phase = make_phase_only(Xtrain)
+Xval_phase   = make_phase_only(Xval)
+
+print("\n=== BASELINE (PHASE ONLY) ===")
+model = PhaseWaveCNN3D()
+baseline_acc = train_model(
+    model, Xtrain_phase, labels_train, Xval_phase, labels_val, device=device
+)
+
+print("\n=== TEMPORAL SHUFFLE ===")
+T = Xtrain_phase.shape[2]
+perm = np.random.permutation(T)
+
+Xtrain_shuf = apply_temporal_permutation(Xtrain_phase, perm)
+Xval_shuf   = apply_temporal_permutation(Xval_phase, perm)
+
+print("Permutation:", perm)
+
+model = PhaseWaveCNN3D()
+shuffle_acc = train_model(
+    model, Xtrain_shuf, labels_train, Xval_shuf, labels_val, device=device
+)
+
+print("\nRESULTS")
+print("Baseline accuracy:", baseline_acc)
+print("Shuffled accuracy:", shuffle_acc)
+
+#%% MODEL WITH CONTROLS
+
+
+import numpy as np
+import torch
+import torch.nn as nn
+
+
+# ============================
+# Model
+# ============================
+class PhaseWaveCNN3D(nn.Module):
+    def __init__(self, dropout=0.30):
+        super().__init__()
+
+        self.conv1 = nn.Conv3d(2, 12, (3,3,3), (1,1,1), (1,1,1))
+        self.conv2 = nn.Conv3d(12,20, (3,3,3), (1,1,1), (1,1,1))
+        self.conv3 = nn.Conv3d(20,28, (3,3,3), (1,2,2), (1,1,1))
+        self.conv4 = nn.Conv3d(28,40, (3,3,3), (1,1,1), (1,1,1))
+        self.conv5 = nn.Conv3d(40,48, (3,3,3), (1,1,1), (1,1,1))
+        self.conv6 = nn.Conv3d(48,16, (1,1,1), (1,1,1), (0,0,0))
+
+        self.act = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+
+        feat_dim = 16 * 8 * 6 * 12
+        self.fc1 = nn.Linear(feat_dim, 128)
+        self.fc2 = nn.Linear(128, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = self.act(self.conv1(x))
+        x = self.act(self.conv2(x))
+        x = self.act(self.conv3(x))
+        x = self.act(self.conv4(x))
+        x = self.act(self.conv5(x))
+        x = self.act(self.conv6(x))
+
+        x = torch.flatten(x, start_dim=1)
+        x = self.dropout(x)
+        x = torch.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = torch.relu(self.fc2(x))
+        logits = self.fc3(x)
+        return logits
+
+
+# ============================
+# Utilities
+# ============================
+def make_phase_only(X):
+    return X / (np.abs(X) + 1e-8)
+
+
+def pack_phase_channels(X):
+    xr = X.real.astype(np.float32)
+    xi = X.imag.astype(np.float32)
+    return np.concatenate([xr, xi], axis=1)   # (N,2,T,H,W)
+
+
+# 1) Destroy cross-time consistency at each spatial location
+# same independent voxelwise permutation applied to all samples
+def shuffle_time_independently_per_voxel(X):
+    Xs = X.copy()
+    N, C, T, H, W = X.shape
+    perms = np.zeros((H, W, T), dtype=int)
+
+    for h in range(H):
+        for w in range(W):
+            perm = np.random.permutation(T)
+            perms[h, w] = perm
+            Xs[:, :, :, h, w] = X[:, :, perm, h, w]
+
+    return Xs, perms
+
+
+# 2) Single-frame repeated across time
+def repeat_single_frame(X, frame_idx=0):
+    Xr = X.copy()
+    frame = X[:, :, frame_idx:frame_idx+1, :, :]      # (N,C,1,H,W)
+    Xr = np.repeat(frame, X.shape[2], axis=2)         # repeat to full T
+    return Xr
+
+
+# ============================
+# Training
+# ============================
+def train_model(model, Xtrain, labels_train, Xval, labels_val,
+                epochs=15, batch_size=128, lr=1e-3, device="cuda"):
+
+    model = model.to(device)
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    N = Xtrain.shape[0]
+    Nv = Xval.shape[0]
+    best_val_acc = -1
+
+    for epoch in range(epochs):
+        model.train()
+        idx = np.random.permutation(N)
+
+        train_correct = 0
+        train_loss_sum = 0.0
+
+        for i in range(0, N, batch_size):
+            bidx = idx[i:i+batch_size]
+
+            x = torch.from_numpy(pack_phase_channels(Xtrain[bidx])).to(device)
+            y = torch.from_numpy(labels_train[bidx].astype(np.float32)).to(device)
+
+            optimizer.zero_grad()
+            logits = model(x)
+            loss = criterion(logits, y)
+            loss.backward()
+            optimizer.step()
+
+            train_loss_sum += loss.item() * x.shape[0]
+            preds = (torch.sigmoid(logits) >= 0.5).float()
+            train_correct += (preds == y).sum().item()
+
+        train_acc = train_correct / N
+        train_loss = train_loss_sum / N
+
+        model.eval()
+        val_correct = 0
+        val_loss_sum = 0.0
+
+        with torch.no_grad():
+            for i in range(0, Nv, batch_size):
+                x = torch.from_numpy(pack_phase_channels(Xval[i:i+batch_size])).to(device)
+                y = torch.from_numpy(labels_val[i:i+batch_size].astype(np.float32)).to(device)
+
+                logits = model(x)
+                loss = criterion(logits, y)
+
+                val_loss_sum += loss.item() * x.shape[0]
+                preds = (torch.sigmoid(logits) >= 0.5).float()
+                val_correct += (preds == y).sum().item()
+
+        val_acc = val_correct / Nv
+        val_loss = val_loss_sum / Nv
+        best_val_acc = max(best_val_acc, val_acc)
+
+        print(f"Epoch {epoch+1:02d} | Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+
+    return best_val_acc
+
+
+# ============================
+# Run all 3 conditions
+# ============================
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# phase only baseline
+Xtrain_phase = make_phase_only(Xtrain)
+Xval_phase   = make_phase_only(Xval)
+
+print("\n=== BASELINE PHASE-ONLY ===")
+model = PhaseWaveCNN3D()
+baseline_acc = train_model(model, Xtrain_phase, labels_train, Xval_phase, labels_val, device=device)
+
+# 1) voxelwise temporal shuffle
+print("\n=== VOXELWISE TIME SHUFFLE ===")
+Xtrain_voxshuf, perms_train = shuffle_time_independently_per_voxel(Xtrain_phase)
+Xval_voxshuf, perms_val     = shuffle_time_independently_per_voxel(Xval_phase)
+
+model = PhaseWaveCNN3D()
+voxshuf_acc = train_model(model, Xtrain_voxshuf, labels_train, Xval_voxshuf, labels_val, device=device)
+
+# 2) single-frame repeated
+print("\n=== SINGLE FRAME REPEATED ===")
+frame_idx = 0   # you can try 0, 3, 7, etc.
+Xtrain_repeat = repeat_single_frame(Xtrain_phase, frame_idx=frame_idx)
+Xval_repeat   = repeat_single_frame(Xval_phase, frame_idx=frame_idx)
+
+model = PhaseWaveCNN3D()
+repeat_acc = train_model(model, Xtrain_repeat, labels_train, Xval_repeat, labels_val, device=device)
+
+print("\nRESULTS")
+print("Baseline phase-only accuracy       :", baseline_acc)
+print("Voxelwise time-shuffle accuracy    :", voxshuf_acc)
+print("Single-frame repeated accuracy     :", repeat_acc)
+print("Repeated frame index used          :", frame_idx)

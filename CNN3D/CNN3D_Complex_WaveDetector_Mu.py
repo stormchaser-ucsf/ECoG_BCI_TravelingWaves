@@ -67,7 +67,8 @@ else:
     
     filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/'
     #filename ='all_data.mat'
-    filename ='all_data_B3_arrow.mat'
+    #filename ='all_data_B3_arrow.mat'
+    filename ='all_data_B3_arrow_ol_cl.mat'
     filename = filepath + filename
     
         

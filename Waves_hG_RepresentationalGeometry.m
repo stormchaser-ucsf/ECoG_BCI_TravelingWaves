@@ -2387,8 +2387,9 @@ ecog_grid1(logical(aa1))=ecog_grid1(logical(aa1))-1;
 ecog_grid1(logical(aa2))=ecog_grid1(logical(aa2))-2;
 ecog_grid1(aa3)=ecog_grid1(aa3)-3;
 
-all_data = cell2mat(stats_cl_hg_days);
-save all_data_B3_arrow ecog_grid1 all_data -v7.3
+%all_data = cell2mat(stats_cl_hg_days);
+all_data = [cell2mat(stats_ol_hg_days) cell2mat(stats_cl_hg_days)];
+save all_data_B3_arrow_ol_cl ecog_grid1 all_data -v7.3
 
 
 
