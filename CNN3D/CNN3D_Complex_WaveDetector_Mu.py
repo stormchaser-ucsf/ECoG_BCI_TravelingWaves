@@ -70,6 +70,8 @@ else:
     #filename ='all_data_B3_arrow.mat'
     filename ='all_data_B3_arrow_ol_cl.mat'
     filename = filepath + filename
+    filename1 = 'all_data_B3_Hand_ol_cl.mat'
+    filename1 = filepath + filename1 
     
         
 
@@ -84,6 +86,10 @@ data_dict = mat73.loadmat(filename)
 data =  data_dict.get('all_data')
 ecog_grid = data_dict.get('ecog_grid1')
 ecog_grid=ecog_grid-1
+
+data_dict1 = mat73.loadmat(filename1)
+data1 =  data_dict1.get('all_data_hand')
+
 
 # xdata = data_dict.get('xdata')
 # ydata = data_dict.get('ydata')
@@ -100,7 +106,8 @@ balanced_decoding_accuracy=[]
 
 
 
-del data_dict
+del data_dict,data_dict1
+
 
 
 
@@ -113,14 +120,21 @@ for iterr in np.arange(iterations):
     # parse into training, validation and testing datasets
     
     Xtrain,Xtest,Xval,labels_train,labels_test,labels_val=training_test_val_split_CNN3D_waveMu_equal(data,0.70)                        
+    Xtrain1,Xtest1,Xval1,labels_train1,labels_test1,labels_val1=training_test_val_split_CNN3D_waveMu_equal(data1,0.70)                        
+    
+    Xtrain = np.concatenate((Xtrain,Xtest,Xtrain1,Xtest1),axis=0)
+    labels_train = np.concatenate((labels_train,labels_test,
+                                   labels_train1,labels_test1),axis=0)
+    
+    Xval = np.concatenate((Xval,Xval1),axis=0)
+    labels_val =  np.concatenate((labels_val,labels_val1),axis=0)
+    
     grid = ecog_grid.astype(int)
-    Xtrain = Xtrain[:,:,grid]
-    Xtest = Xtest[:,:,grid]
+    Xtrain = Xtrain[:,:,grid]    
     Xval = Xval[:,:,grid]
     
     # expand dimensions for cnn 
     Xtrain= np.expand_dims(Xtrain,axis=1)
-    Xtest= np.expand_dims(Xtest,axis=1)
     Xval= np.expand_dims(Xval,axis=1)
     
    

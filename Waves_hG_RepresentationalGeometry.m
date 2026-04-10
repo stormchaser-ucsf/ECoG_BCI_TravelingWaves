@@ -26,8 +26,8 @@ if strcmp(subj,'B1')
 elseif strcmp(subj,'B3')    
     root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
     cd(root_path)
-    %load session_data_B3_Hand
-    load session_data_B3
+    load session_data_B3_Hand
+    %load session_data_B3
     load('ECOG_Grid_8596_000067_B3.mat')
     addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
     %load B3_waves_hand_stability_Muller_hG
@@ -35,11 +35,11 @@ elseif strcmp(subj,'B3')
     %load B3_waves_stability_hgFilterBank_PLV_AccStatsCL
     %load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL
     
-    load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2
-    num_targets=7;
+    % load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2
+    % num_targets=7;
 
-    % load B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta
-    % num_targets=12;
+    load B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta
+    num_targets=12;
     
 
 
@@ -2388,8 +2388,8 @@ ecog_grid1(logical(aa2))=ecog_grid1(logical(aa2))-2;
 ecog_grid1(aa3)=ecog_grid1(aa3)-3;
 
 %all_data = cell2mat(stats_cl_hg_days);
-all_data = [cell2mat(stats_ol_hg_days) cell2mat(stats_cl_hg_days)];
-save all_data_B3_arrow_ol_cl ecog_grid1 all_data -v7.3
+all_data_hand = [cell2mat(stats_ol_hg_days) cell2mat(stats_cl_hg_days)];
+save all_data_B3_Hand_ol_cl ecog_grid1 all_data_hand -v7.3
 
 
 

@@ -2288,3 +2288,575 @@ print("Baseline phase-only accuracy       :", baseline_acc)
 print("Voxelwise time-shuffle accuracy    :", voxshuf_acc)
 print("Single-frame repeated accuracy     :", repeat_acc)
 print("Repeated frame index used          :", frame_idx)
+
+
+#%%
+
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+# =========================================================
+# Utilities
+# =========================================================
+def make_phase_only(X):
+    # X: complex array, shape (N, 1, T, H, W)
+    return X / (np.abs(X) + 1e-8)
+
+
+def pack_phase_channels(X):
+    # returns real-valued array of shape (N, 2, T, H, W)
+    xr = X.real.astype(np.float32)
+    xi = X.imag.astype(np.float32)
+    return np.concatenate([xr, xi], axis=1)
+
+
+# =========================================================
+# Model: explicit temporal-consistency head
+# =========================================================
+class PhaseWaveCNN3D_TemporalConsistency(nn.Module):
+    def __init__(self, dropout=0.30):
+        super().__init__()
+
+        # Input: (B, 2, 8, 11, 23)
+
+        self.conv1 = nn.Conv3d(2,  12, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+        self.conv2 = nn.Conv3d(12, 20, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+
+        # spatial downsample only
+        self.conv3 = nn.Conv3d(20, 28, kernel_size=(3,3,3), stride=(1,2,2), padding=(1,1,1))
+
+        self.conv4 = nn.Conv3d(28, 40, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+        self.conv5 = nn.Conv3d(40, 48, kernel_size=(3,3,3), stride=(1,1,1), padding=(1,1,1))
+
+        # bottleneck
+        self.conv6 = nn.Conv3d(48, 24, kernel_size=(1,1,1), stride=(1,1,1), padding=(0,0,0))
+
+        self.act = nn.ReLU()
+        self.dropout = nn.Dropout(dropout)
+
+        # features:
+        # mean_t   -> 24
+        # std_t    -> 24
+        # diff_t   -> 24
+        # sim_mean -> 1
+        # sim_std  -> 1
+        feat_dim = 24 * 3 + 2
+
+        self.fc1 = nn.Linear(feat_dim, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def forward(self, x):
+        # x: (B, 2, T, H, W)
+
+        x = self.act(self.conv1(x))
+        x = self.act(self.conv2(x))
+        x = self.act(self.conv3(x))
+        x = self.act(self.conv4(x))
+        x = self.act(self.conv5(x))
+        x = self.act(self.conv6(x))
+
+        # x shape ~ (B, 24, T, H', W')
+        # pool only over space, keep time
+        z = x.mean(dim=(3, 4))   # (B, 24, T)
+
+        # temporal summary features
+        mean_t = z.mean(dim=2)                  # (B, 24)
+        std_t  = z.std(dim=2, unbiased=False)   # (B, 24)
+
+        diff_t = torch.abs(z[:, :, 1:] - z[:, :, :-1]).mean(dim=2)   # (B, 24)
+
+        # cosine similarity between adjacent time embeddings
+        z1 = F.normalize(z[:, :, :-1], dim=1)   # (B, 24, T-1)
+        z2 = F.normalize(z[:, :, 1:],  dim=1)   # (B, 24, T-1)
+        sim = (z1 * z2).sum(dim=1)              # (B, T-1)
+
+        sim_mean = sim.mean(dim=1, keepdim=True)                 # (B, 1)
+        sim_std  = sim.std(dim=1, unbiased=False, keepdim=True)  # (B, 1)
+
+        feats = torch.cat([mean_t, std_t, diff_t, sim_mean, sim_std], dim=1)
+
+        feats = self.dropout(feats)
+        feats = torch.relu(self.fc1(feats))
+        feats = self.dropout(feats)
+        feats = torch.relu(self.fc2(feats))
+        logits = self.fc3(feats)
+
+        return logits
+
+
+# =========================================================
+# Training loop
+# =========================================================
+def train_model(model, Xtrain, labels_train, Xval, labels_val,
+                epochs=20, batch_size=128, lr=1e-3, device="cuda"):
+
+    model = model.to(device)
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    N = Xtrain.shape[0]
+    Nv = Xval.shape[0]
+
+    best_val_loss = np.inf
+    best_val_acc = -np.inf
+    best_state = None
+
+    for epoch in range(epochs):
+        # -----------------------------
+        # Train
+        # -----------------------------
+        model.train()
+        idx = np.random.permutation(N)
+
+        train_loss_sum = 0.0
+        train_correct = 0
+
+        for i in range(0, N, batch_size):
+            bidx = idx[i:i+batch_size]
+
+            x = torch.from_numpy(pack_phase_channels(Xtrain[bidx])).to(device)
+            y = torch.from_numpy(labels_train[bidx].astype(np.float32)).to(device)
+
+            optimizer.zero_grad()
+            logits = model(x)
+            loss = criterion(logits, y)
+            loss.backward()
+            optimizer.step()
+
+            train_loss_sum += loss.item() * x.shape[0]
+            preds = (torch.sigmoid(logits) >= 0.5).float()
+            train_correct += (preds == y).sum().item()
+
+        train_loss = train_loss_sum / N
+        train_acc = train_correct / N
+
+        # -----------------------------
+        # Validation
+        # -----------------------------
+        model.eval()
+        val_loss_sum = 0.0
+        val_correct = 0
+
+        with torch.no_grad():
+            for i in range(0, Nv, batch_size):
+                x = torch.from_numpy(pack_phase_channels(Xval[i:i+batch_size])).to(device)
+                y = torch.from_numpy(labels_val[i:i+batch_size].astype(np.float32)).to(device)
+
+                logits = model(x)
+                loss = criterion(logits, y)
+
+                val_loss_sum += loss.item() * x.shape[0]
+                preds = (torch.sigmoid(logits) >= 0.5).float()
+                val_correct += (preds == y).sum().item()
+
+        val_loss = val_loss_sum / Nv
+        val_acc = val_correct / Nv
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_val_acc = val_acc
+            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+
+        print(
+            f"Epoch {epoch+1:02d} | "
+            f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | "
+            f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}"
+        )
+
+    model.load_state_dict(best_state)
+    return model, best_val_loss, best_val_acc
+
+
+# =========================================================
+# Run
+# =========================================================
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# phase-only input
+Xtrain_phase = make_phase_only(Xtrain)
+Xval_phase   = make_phase_only(Xval)
+
+model = PhaseWaveCNN3D_TemporalConsistency(dropout=0.30)
+n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print("Number of trainable parameters:", n_params)
+
+model, best_val_loss, best_val_acc = train_model(
+    model,
+    Xtrain_phase,
+    labels_train,
+    Xval_phase,
+    labels_val,
+    epochs=20,
+    batch_size=128,
+    lr=1e-3,
+    device=device
+)
+
+print("Best validation loss:", best_val_loss)
+print("Best validation accuracy:", best_val_acc)
+
+
+#%% USING CNN TO GET STABLE PHASE GRADIENT OVER TIME
+
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+# =========================================================
+# Utilities
+# =========================================================
+def pack_real_imag(X):
+    # X: complex, shape (N, 1, T, H, W)
+    xr = X.real.astype(np.float32)
+    xi = X.imag.astype(np.float32)
+    return np.concatenate([xr, xi], axis=1)   # (N, 2, T, H, W)
+
+
+def to_label_vector(y):
+    y = np.asarray(y).astype(np.float32)
+    if y.ndim == 2 and y.shape[1] == 1:
+        y = y[:, 0]
+    return y
+
+
+# =========================================================
+# Model: dense phase-gradient predictor
+# output shape = (B, 2, T, H, W)
+# =========================================================
+class PhaseGradientCNN3D(nn.Module):
+    def __init__(self, dropout=0.15):
+        super().__init__()
+
+        self.conv1 = nn.Conv3d(2,  16, kernel_size=(3,3,3), stride=1, padding=1)
+        self.conv2 = nn.Conv3d(16, 24, kernel_size=(3,3,3), stride=1, padding=1)
+        self.conv3 = nn.Conv3d(24, 32, kernel_size=(3,3,3), stride=1, padding=1)
+        self.conv4 = nn.Conv3d(32, 32, kernel_size=(3,3,3), stride=1, padding=1)
+        self.conv5 = nn.Conv3d(32, 24, kernel_size=(3,3,3), stride=1, padding=1)
+        self.conv6 = nn.Conv3d(24, 16, kernel_size=(3,3,3), stride=1, padding=1)
+
+        self.head  = nn.Conv3d(16, 2, kernel_size=(1,1,1), stride=1, padding=0)
+
+        self.act = nn.ReLU()
+        self.drop = nn.Dropout3d(dropout)
+
+    def forward(self, x):
+        x = self.act(self.conv1(x))
+        x = self.act(self.conv2(x))
+        x = self.drop(x)
+
+        x = self.act(self.conv3(x))
+        x = self.act(self.conv4(x))
+        x = self.drop(x)
+
+        x = self.act(self.conv5(x))
+        x = self.act(self.conv6(x))
+
+        out = self.head(x)   # (B,2,T,H,W)
+        return out
+
+
+# =========================================================
+# Loss: smooth L1 + direction cosine loss
+# =========================================================
+def gradient_loss(pred, target, eps=1e-8, lambda_dir=0.25):
+    """
+    pred, target: (B, 2, T, H, W)
+    """
+    loss_mag = F.smooth_l1_loss(pred, target)
+
+    pred_n = pred / (torch.sqrt(torch.sum(pred**2, dim=1, keepdim=True)) + eps)
+    targ_n = target / (torch.sqrt(torch.sum(target**2, dim=1, keepdim=True)) + eps)
+
+    cos = torch.sum(pred_n * targ_n, dim=1)   # (B,T,H,W)
+
+    targ_mag = torch.sqrt(torch.sum(target**2, dim=1))   # (B,T,H,W)
+    mask = (targ_mag > 1e-6).float()
+
+    loss_dir = ((1.0 - cos) * mask).sum() / (mask.sum() + eps)
+
+    return loss_mag + lambda_dir * loss_dir
+
+
+# =========================================================
+# Stability score from predicted gradients
+# =========================================================
+def gradient_stability_score(G, eps=1e-8):
+    """
+    G: numpy array, shape (N, 2, T, H, W)
+
+    Returns:
+        score: shape (N,)
+        pixel_stability: shape (N, H, W)
+    """
+    gx = G[:, 0]
+    gy = G[:, 1]
+
+    mag = np.sqrt(gx**2 + gy**2 + eps)
+    ux = gx / mag
+    uy = gy / mag
+
+    mean_ux = np.mean(ux, axis=1)   # average over time
+    mean_uy = np.mean(uy, axis=1)
+
+    pixel_stability = np.sqrt(mean_ux**2 + mean_uy**2)   # (N,H,W), in [0,1]
+    score = pixel_stability.mean(axis=(1, 2))            # one score per epoch
+
+    return score, pixel_stability
+
+
+# =========================================================
+# Threshold selection
+# =========================================================
+def best_threshold_from_scores(scores, labels):
+    labels = to_label_vector(labels)
+    best_thr = 0.5
+    best_acc = -1.0
+
+    for thr in np.linspace(scores.min(), scores.max(), 201):
+        preds = (scores >= thr).astype(np.float32)
+        acc = np.mean(preds == labels)
+        if acc > best_acc:
+            best_acc = acc
+            best_thr = thr
+
+    return best_thr, best_acc
+
+
+# =========================================================
+# Prediction helper
+# =========================================================
+def predict_gradients(model, X, batch_size=128, device="cuda"):
+    model.eval()
+    Xp = pack_real_imag(X)
+    N = Xp.shape[0]
+    outs = []
+
+    with torch.no_grad():
+        for i in range(0, N, batch_size):
+            xb = torch.from_numpy(Xp[i:i+batch_size]).to(device)
+            yb = model(xb)
+            outs.append(yb.cpu().numpy())
+
+    return np.concatenate(outs, axis=0)   # (N,2,T,H,W)
+
+
+# =========================================================
+# Training loop
+# =========================================================
+def train_gradient_model(model,
+                         Xtrain, Gtrain, labels_train,
+                         Xval, Gval, labels_val,
+                         epochs=20, batch_size=128, lr=1e-3,
+                         device="cuda"):
+
+    model = model.to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    Xtrain_p = pack_real_imag(Xtrain)
+    Xval_p   = pack_real_imag(Xval)
+
+    labels_train_vec = to_label_vector(labels_train)
+    labels_val_vec   = to_label_vector(labels_val)
+
+    N = Xtrain_p.shape[0]
+    Nv = Xval_p.shape[0]
+
+    best_val_loss = np.inf
+    best_state = None
+    best_thr = None
+    best_val_acc = None
+
+    for epoch in range(epochs):
+        # ---------------------
+        # Train
+        # ---------------------
+        model.train()
+        idx = np.random.permutation(N)
+
+        train_loss_sum = 0.0
+
+        for i in range(0, N, batch_size):
+            bidx = idx[i:i+batch_size]
+
+            xb = torch.from_numpy(Xtrain_p[bidx]).to(device)
+            gb = torch.from_numpy(Gtrain[bidx].astype(np.float32)).to(device)
+
+            optimizer.zero_grad()
+            pred = model(xb)
+            loss = gradient_loss(pred, gb)
+            loss.backward()
+            optimizer.step()
+
+            train_loss_sum += loss.item() * xb.shape[0]
+
+        train_loss = train_loss_sum / N
+
+        # ---------------------
+        # Validation loss
+        # ---------------------
+        model.eval()
+        val_loss_sum = 0.0
+
+        with torch.no_grad():
+            for i in range(0, Nv, batch_size):
+                xb = torch.from_numpy(Xval_p[i:i+batch_size]).to(device)
+                gb = torch.from_numpy(Gval[i:i+batch_size].astype(np.float32)).to(device)
+
+                pred = model(xb)
+                loss = gradient_loss(pred, gb)
+                val_loss_sum += loss.item() * xb.shape[0]
+
+        val_loss = val_loss_sum / Nv
+
+        # ---------------------
+        # Validation wave/non-wave from stability
+        # ---------------------
+        Gpred_val = predict_gradients(model, Xval, batch_size=batch_size, device=device)
+        val_scores, _ = gradient_stability_score(Gpred_val)
+        thr, val_acc = best_threshold_from_scores(val_scores, labels_val_vec)
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+            best_thr = thr
+            best_val_acc = val_acc
+
+        print(
+            f"Epoch {epoch+1:02d} | "
+            f"Train GradLoss: {train_loss:.4f} | "
+            f"Val GradLoss: {val_loss:.4f} | "
+            f"Val WaveAcc: {val_acc:.4f} | "
+            f"Thr: {thr:.4f}"
+        )
+
+    model.load_state_dict(best_state)
+    return model, best_val_loss, best_thr, best_val_acc
+
+
+# =========================================================
+# Final evaluation helper
+# =========================================================
+def evaluate_wave_detection(model, X, labels, thr, batch_size=128, device="cuda"):
+    labels = to_label_vector(labels)
+
+    Gpred = predict_gradients(model, X, batch_size=batch_size, device=device)
+    scores, pixel_stability = gradient_stability_score(Gpred)
+
+    preds = (scores >= thr).astype(np.float32)
+    acc = np.mean(preds == labels)
+
+    return {
+        "accuracy": acc,
+        "scores": scores,
+        "preds": preds,
+        "pixel_stability": pixel_stability,
+        "pred_gradients": Gpred,
+    }
+
+
+# =========================================================
+# Run
+# =========================================================
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+model = PhaseGradientCNN3D(dropout=0.15)
+n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print("Number of trainable parameters:", n_params)
+
+import numpy as np
+
+import numpy as np
+from scipy.ndimage import gaussian_filter
+
+
+def compute_phase_gradients_complex(X, sigma=1.0):
+    """
+    Compute spatial phase gradients from complex data and smooth them spatially.
+
+    Parameters
+    ----------
+    X : np.ndarray
+        Complex array of shape (N, 1, T, H, W)
+
+    sigma : float
+        Spatial Gaussian smoothing parameter.
+        This is an approximation to MATLAB smoothn.
+
+    Returns
+    -------
+    G : np.ndarray
+        Real array of shape (N, 2, T, H, W)
+        channel 0 = gx
+        channel 1 = gy
+    """
+    assert X.ndim == 5, f"Expected (N,1,T,H,W), got {X.shape}"
+    assert X.shape[1] == 1, f"Expected channel dim = 1, got {X.shape[1]}"
+
+    z = X[:, 0]   # (N,T,H,W)
+
+    # forward phase differences using complex ratio
+    gx_fwd = np.angle(z[..., 1:] * np.conj(z[..., :-1]))         # (N,T,H,W-1)
+    gy_fwd = np.angle(z[:, :, 1:, :] * np.conj(z[:, :, :-1, :])) # (N,T,H-1,W)
+
+    gx = np.zeros_like(z.real, dtype=np.float32)
+    gy = np.zeros_like(z.real, dtype=np.float32)
+
+    # central-style fill
+    gx[..., 1:-1] = 0.5 * (gx_fwd[..., :-1] + gx_fwd[..., 1:])
+    gx[..., 0]    = gx_fwd[..., 0]
+    gx[..., -1]   = gx_fwd[..., -1]
+
+    gy[:, :, 1:-1, :] = 0.5 * (gy_fwd[:, :, :-1, :] + gy_fwd[:, :, 1:, :])
+    gy[:, :, 0, :]    = gy_fwd[:, :, 0, :]
+    gy[:, :, -1, :]   = gy_fwd[:, :, -1, :]
+
+    # spatial smoothing per time frame
+    # sigma only over H,W, not over N or T
+    for n in range(gx.shape[0]):
+        for t in range(gx.shape[1]):
+            gx[n, t] = gaussian_filter(gx[n, t], sigma=sigma, mode="nearest")
+            gy[n, t] = gaussian_filter(gy[n, t], sigma=sigma, mode="nearest")
+
+    G = np.stack([gx, gy], axis=1)   # (N,2,T,H,W)
+    return G.astype(np.float32)
+
+# ---------------------------------------------------
+# Example usage
+# ---------------------------------------------------
+# Xtrain, Xval are complex arrays of shape (N,1,T,H,W)
+Gtrain = compute_phase_gradients_complex(Xtrain, sigma=1.0)
+Gval   = compute_phase_gradients_complex(Xval, sigma=1.0)
+
+print(Gtrain.shape)   # (N,2,T,H,W)
+print(Gval.shape)
+
+print("Xtrain shape:", Xtrain.shape)
+print("Gtrain shape:", Gtrain.shape)
+print("Xval shape:", Xval.shape)
+print("Gval shape:", Gval.shape)
+
+model, best_val_loss, best_thr, best_val_acc = train_gradient_model(
+    model,
+    Xtrain, Gtrain, labels_train,
+    Xval,   Gval,   labels_val,
+    epochs=20,
+    batch_size=128,
+    lr=1e-3,
+    device=device
+)
+
+print("Best validation gradient loss:", best_val_loss)
+print("Best validation wave accuracy:", best_val_acc)
+print("Best stability threshold:", best_thr)
+
+# Optional final eval on validation set using saved best model
+val_out = evaluate_wave_detection(
+    model, Xval, labels_val, thr=best_thr, batch_size=128, device=device
+)
+print("Final val wave accuracy:", val_out["accuracy"])
