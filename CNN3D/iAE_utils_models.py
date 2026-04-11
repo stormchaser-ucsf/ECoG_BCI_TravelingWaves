@@ -165,7 +165,40 @@ def equal_sample_count(train_data,label_train):
     
     return train_data,label_train
     
-
+# training anf test split across trials for mu tp 2d phase gradient
+def training_test_split_Mu_PhaseGradient_equal(X,Y,prop=0.7):
+    l=len(X)
+    p = round(prop*l)
+    idx_train = rnd.choice(range(0,l),size=p,replace=False)
+    
+    # get the remaining numbers
+    full = set(range(0,l))
+    rem_idx = sorted(full-set(idx_train))
+    rem_idx = np.array(rem_idx)
+    
+    # split these into validation and test indices
+    q = round(0.5*len(rem_idx))
+    idx_val = rnd.choice(range(0,len(rem_idx)),size=q,replace=False)
+    full_tmp = set(range(0,len(rem_idx)))
+    idx_test = sorted(full_tmp-set(idx_val))
+    idx_val = rem_idx[idx_val]
+    idx_test = rem_idx[idx_test]
+    
+    # get training data
+    Xtrain = np.concatenate([X[i] for i in idx_train],axis=1).squeeze()
+    Ytrain = np.concatenate([Y[i] for i in idx_train],axis=1).squeeze()
+    
+    #val data
+    Xval = np.concatenate([X[i] for i in idx_val],axis=1).squeeze()
+    Yval = np.concatenate([Y[i] for i in idx_val],axis=1).squeeze()
+    
+    #test data
+    Xtest = np.concatenate([X[i] for i in idx_test],axis=1).squeeze()
+    Ytest = np.concatenate([Y[i] for i in idx_test],axis=1).squeeze()
+    
+    return Xtrain,Xval,Xtest,Ytrain,Yval,Ytest,idx_train,idx_val,idx_test 
+    
+    
 
 # training and test split across trials for wave detector
 def training_test_val_split_CNN3D_waveMu_equal(data,prop=0.70):

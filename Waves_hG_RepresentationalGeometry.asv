@@ -2455,8 +2455,6 @@ Ytrain=Ytrain';
 
 size(Xtrain)
 
-save Mu_Phase_Grad_Data_CNN Xtrain Ytrain labels -v7.3
-
 
 %%
 %%% ANALYSIS 2

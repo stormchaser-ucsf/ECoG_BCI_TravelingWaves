@@ -51,6 +51,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 #%% LOAD THE DATA 
 
+subj='B1'
+
 # load the data 
 if os.name=='nt':
     #filename='F:/DATA/ecog data/ECoG BCI/GangulyServer/Multistate B3/alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'    
@@ -65,14 +67,24 @@ else:
     #filename = 'alpha_dynamics_200Hz_AllDays_DaysLabeled_ArtifactCorr_Complex_SinglePrec.mat'
     #filepath = '/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/'
     
-    filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/'
-    #filename ='all_data.mat'
-    #filename ='all_data_B3_arrow.mat'
-    filename ='all_data_B3_arrow_ol_cl.mat'
-    filename = filepath + filename
-    filename1 = 'all_data_B3_Hand_ol_cl.mat'
-    filename1 = filepath + filename1 
+    if subj=='B3':
+            
+        filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/'
+        #filename ='all_data.mat'
+        #filename ='all_data_B3_arrow.mat'
+        filename ='all_data_B3_arrow_ol_cl.mat'
+        filename = filepath + filename
+        filename1 = 'all_data_B3_Hand_ol_cl.mat'
+        filename1 = filepath + filename1 
+        
+    elif subj=='B1':
+        filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/'
+        #filename ='all_data.mat'
+        #filename ='all_data_B3_arrow.mat'
+        filename ='all_data_B1_ol_cl.mat'
+        filename = filepath + filename
     
+        
         
 
 
@@ -87,8 +99,9 @@ data =  data_dict.get('all_data')
 ecog_grid = data_dict.get('ecog_grid1')
 ecog_grid=ecog_grid-1
 
-data_dict1 = mat73.loadmat(filename1)
-data1 =  data_dict1.get('all_data_hand')
+if subj=='B3':        
+    data_dict1 = mat73.loadmat(filename1)
+    data1 =  data_dict1.get('all_data_hand')
 
 
 # xdata = data_dict.get('xdata')
@@ -105,8 +118,12 @@ decoding_accuracy=[]
 balanced_decoding_accuracy=[]
 
 
-
-del data_dict,data_dict1
+if subj=='B3':
+    del data_dict,data_dict1
+else:
+    del data_dict
+    
+    
 
 
 
@@ -120,6 +137,9 @@ for iterr in np.arange(iterations):
     # parse into training, validation and testing datasets
     
     Xtrain,Xtest,Xval,labels_train,labels_test,labels_val=training_test_val_split_CNN3D_waveMu_equal(data,0.70)                        
+    Xtrain = np.concatenate((Xtrain,Xtest),axis=0)
+    labels_train = np.concatenate((labels_train,labels_test),axis=0)
+    
     Xtrain1,Xtest1,Xval1,labels_train1,labels_test1,labels_val1=training_test_val_split_CNN3D_waveMu_equal(data1,0.70)                        
     
     Xtrain = np.concatenate((Xtrain,Xtest,Xtrain1,Xtest1),axis=0)
