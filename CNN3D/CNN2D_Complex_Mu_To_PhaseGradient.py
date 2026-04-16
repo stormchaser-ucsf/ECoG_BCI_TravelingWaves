@@ -5162,7 +5162,7 @@ VAL_FRACTION = 0.2
 
 ONE_BASED_LABELS = True   # idx 0 -> trial 1 -> wave
 WINDOW = 8
-STEP = 3                  # stride 2 => overlap 6
+STEP = 2                  # stride 2 => overlap 6
 
 BATCH_SIZE = 128
 LR = 1e-3
