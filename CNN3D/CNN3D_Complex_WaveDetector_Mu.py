@@ -125,8 +125,28 @@ else:
     
     
 
+#%% GET DATA
+from iAE_utils_models import *
 
+(
+Xtrain,Xtest,Xval,
+labels_train,labels_test,labels_val
+)=training_test_val_split_CNN3D_waveMu_equal(data,0.70)                        
 
+Xtrain = np.concatenate((Xtrain,Xtest),axis=0)
+labels_train = np.concatenate((labels_train,labels_test),axis=0)
+
+grid = ecog_grid.astype(int)
+Xtrain = np.transpose(Xtrain,(0,2,1))
+Xval = np.transpose(Xval,(0,2,1))
+Xtrain = Xtrain[:,:,grid]    
+Xval = Xval[:,:,grid]
+
+# expand dimensions for cnn 
+Xtrain= np.expand_dims(Xtrain,axis=1)
+Xval= np.expand_dims(Xval,axis=1)
+
+print(Xtrain.shape)
 
 #%% TRAIN MODEL
 

@@ -106,39 +106,103 @@ def training_split_wavesAE_recon(condn_data,prop=0.7):
     
     return train_data,val_data
 
-def  get_train_data(mu_d,idx_train,train_data,label_train,ch):
+# def  get_train_data(mu_d,idx_train,train_data,label_train,ch):
+#     from numpy.lib.stride_tricks import sliding_window_view
+#     for i in np.arange(len(idx_train)):
+#         a = mu_d[idx_train[i]]
+#         for j in np.arange(len(a)):
+#             tmp = a[j]
+#             if tmp.shape[0]>=8 and len(tmp.shape)>1:
+#                win = 8
+#                step = 2
+    
+#                # sliding along time (axis=0)
+#                w = sliding_window_view(tmp, window_shape=win, axis=0)   # (T-win+1, 253, 5)
+                
+#                # apply step
+#                w_step = w[::step, :, :]                                 # (k, 253, 5)
+                
+#                # check if last window is included
+#                last_window = w[-1:, :, :]                               # (1, 253, 5)
+                
+#                # compare start indices implicitly via equality
+#                if not np.array_equal(w_step[-1], last_window[0]):
+#                    w_step = np.concatenate([w_step, last_window], axis=0)
+                
+#                # final shape: (num_windows, 5, 253)
+#                w_final = np.transpose(w_step, (0, 2, 1))
+#                label = ch*np.ones((w_final.shape[0],1))
+               
+#                # add
+#                train_data.extend(w_final)
+#                label_train.extend(label)
+         
+#     return  train_data,label_train
+               
+def get_train_data(mu_d, idx_train, train_data, label_train, ch):
     from numpy.lib.stride_tricks import sliding_window_view
+    import numpy as np
+
+    win = 8
+    step = 2
+
     for i in np.arange(len(idx_train)):
         a = mu_d[idx_train[i]]
+
         for j in np.arange(len(a)):
-            tmp = a[j]
-            if tmp.shape[0]>=8 and len(tmp.shape)>1:
-               win = 8
-               step = 2
-    
-               # sliding along time (axis=0)
-               w = sliding_window_view(tmp, window_shape=win, axis=0)   # (T-win+1, 253, 5)
-                
-               # apply step
-               w_step = w[::step, :, :]                                 # (k, 253, 5)
-                
-               # check if last window is included
-               last_window = w[-1:, :, :]                               # (1, 253, 5)
-                
-               # compare start indices implicitly via equality
-               if not np.array_equal(w_step[-1], last_window[0]):
-                   w_step = np.concatenate([w_step, last_window], axis=0)
-                
-               # final shape: (num_windows, 5, 253)
-               w_final = np.transpose(w_step, (0, 2, 1))
-               label = ch*np.ones((w_final.shape[0],1))
-               
-               # add
-               train_data.extend(w_final)
-               label_train.extend(label)
-         
-    return  train_data,label_train
-               
+            tmp = np.asarray(a[j])
+
+            if len(tmp.shape) <= 1:
+                continue
+
+            T = tmp.shape[0]
+
+            # ------------------------------------------------
+            # Case 1: sample shorter than 8
+            # Pad by repeating the last time bin
+            # Final shape must match others: (features, 8)
+            # ------------------------------------------------
+            if T < win:
+                pad_len = win - T
+                last_frame = tmp[-1:, ...]                     # (1, features)
+                pad = np.repeat(last_frame, pad_len, axis=0)  # (pad_len, features)
+                tmp_pad = np.concatenate([tmp, pad], axis=0)  # (8, features)
+
+                # transpose so shape matches normal windows: (features, 8)
+                w_final = tmp_pad.T[None, ...]                # (1, features, 8)
+
+                label = ch * np.ones((1, 1))
+
+                train_data.extend(w_final)
+                label_train.extend(label)
+
+            # ------------------------------------------------
+            # Case 2: sample length 8 or more
+            # sliding_window_view output: (num_windows, features, 8)
+            # ------------------------------------------------
+            else:
+                w = sliding_window_view(tmp, window_shape=win, axis=0)
+
+                # apply step
+                w_step = w[::step, :, :]
+
+                # include last window if missing
+                last_window = w[-1:, :, :]
+
+                if len(w_step) == 0:
+                    w_step = last_window
+                elif not np.array_equal(w_step[-1], last_window[0]):
+                    w_step = np.concatenate([w_step, last_window], axis=0)
+
+                # already (num_windows, features, 8)
+                w_final = w_step
+
+                label = ch * np.ones((w_final.shape[0], 1))
+
+                train_data.extend(w_final)
+                label_train.extend(label)
+
+    return train_data, label_train
 
 
 def equal_sample_count(train_data,label_train):

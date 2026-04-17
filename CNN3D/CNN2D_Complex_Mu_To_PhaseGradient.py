@@ -5142,7 +5142,7 @@ if __name__ == "__main__":
     )
     
 #%% ANOTHER VERSION OF ABOVE
-    
+#(MAIN)    
 
 import copy
 import numpy as np
@@ -5151,7 +5151,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, confusion_matrix, classification_report
-
+from iAE_utils_models import *
 
 # ============================================================
 # SETTINGS
@@ -5756,7 +5756,27 @@ torch.onnx.export(
 )
 
 print(f"Saved ONNX model to: {onnx_path}")
-# export to onlyx
+
+# checking exported model gives same output:
+
+# x is one sample in PyTorch format: (1, 2, 8, 11, 23)
+from scipy.io import savemat
+
+# take ONE real sample (important: from your actual dataset)
+x = torch.randn(1, 2, 8, 11, 23)   # replace with real data
+
+model.eval()
+with torch.no_grad():
+    y = model(x).cpu().numpy()
+
+# save to .mat file
+savemat("test_sample.mat", {
+    "x": x.cpu().numpy(),
+    "y": y
+})
+
+print("Saved test_sample.mat")
+print("PyTorch output:", y)
 
 
 

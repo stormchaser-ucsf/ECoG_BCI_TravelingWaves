@@ -1313,6 +1313,7 @@ print("Best validation accuracy:", best_val_acc)
 
 
 #%% phase only model (from abvove)
+#(MAIN)
 
 Xtrain_phase = Xtrain / (np.abs(Xtrain) + 1e-8)
 Xval_phase   = Xval   / (np.abs(Xval)   + 1e-8)
