@@ -5652,4 +5652,111 @@ if __name__ == "__main__":
     print("\nClassification report:")
     print(classification_report(y_true, y_pred, target_names=["Non-Wave", "Wave"]))
 
+#%% SAVING ABOVE MODEL TO DISK TO LOAD INTO PYTHON
+
+
+# suppose your model class is already defined and the trained model is called `model`
+# e.g. model = MyModel(...)
+
+# 1) move to CPU for portability
+model_cpu = model.to("cpu")
+
+# 2) switch to eval mode
+model_cpu.eval()
+
+# 3) save weights only
+torch.save(model_cpu.state_dict(), "model_weights.pt")
+
+class PhaseWaveCNN3D_Stronger(nn.Module):
+    """
+    6 Conv3D layers, no pooling, MLP head.
+    """
+    def __init__(self, input_shape=(2, 8, 11, 23), dropout=0.30):
+        super().__init__()
+
+        c, t, h, w = input_shape
+
+        self.conv1 = nn.Conv3d(2, 16, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv3d(16, 24, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv3d(24, 32, kernel_size=3, stride=(1, 2, 2), padding=1)
+        self.conv4 = nn.Conv3d(32, 40, kernel_size=3, stride=1, padding=1)
+        self.conv5 = nn.Conv3d(40, 48, kernel_size=3, stride=1, padding=1)
+        self.conv6 = nn.Conv3d(48, 24, kernel_size=1, stride=1, padding=0)
+
+        self.act = nn.ReLU(inplace=True)
+        self.dropout = nn.Dropout(dropout)
+
+        with torch.no_grad():
+            dummy = torch.zeros(1, c, t, h, w)
+            z = self._forward_conv(dummy)
+            feat_dim = z.numel()
+
+        self.fc1 = nn.Linear(feat_dim, 128)
+        self.fc2 = nn.Linear(128, 32)
+        self.fc3 = nn.Linear(32, 1)
+
+    def _forward_conv(self, x):
+        x = self.act(self.conv1(x))
+        x = self.act(self.conv2(x))
+        x = self.act(self.conv3(x))
+        x = self.act(self.conv4(x))
+        x = self.act(self.conv5(x))
+        x = self.act(self.conv6(x))
+        return x
+
+    def forward(self, x):
+        x = self._forward_conv(x)
+        x = torch.flatten(x, start_dim=1)
+        x = self.dropout(x)
+        x = self.act(self.fc1(x))
+        x = self.dropout(x)
+        x = self.act(self.fc2(x))
+        logits = self.fc3(x)
+        return logits
+
+
+# ---- EDIT THESE PATHS/NAMES ----
+weights_path = "model_weights.pt"          # your saved state_dict file
+onnx_path = "phasewavecnn3d_stronger.onnx"
+
+# ---- build model exactly as trained ----
+model = PhaseWaveCNN3D_Stronger(input_shape=(2, 8, 11, 23), dropout=0.30)
+
+# ---- load trained weights ----
+state_dict = torch.load(weights_path, map_location="cpu")
+model.load_state_dict(state_dict)
+
+# ---- inference mode ----
+model.eval()
+
+# ---- example input: (batch, channels, time, height, width) ----
+dummy_input = torch.randn(1, 2, 8, 11, 23)
+
+# ---- quick sanity check ----
+with torch.no_grad():
+    y = model(dummy_input)
+print("Output shape:", y.shape)
+
+
+import onnx
+print(onnx.__version__)
+
+# ---- export to ONNX ----
+torch.onnx.export(
+    model,
+    dummy_input,
+    onnx_path,
+    input_names=["input"],
+    output_names=["logits"],
+    dynamic_axes={
+        "input": {0: "batch_size"},
+        "logits": {0: "batch_size"},
+    },
+    opset_version=17,
+)
+
+print(f"Saved ONNX model to: {onnx_path}")
+# export to onlyx
+
+
 
