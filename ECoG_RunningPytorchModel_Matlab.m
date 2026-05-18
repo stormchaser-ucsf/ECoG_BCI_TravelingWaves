@@ -7,6 +7,26 @@
 % dlarray labels: "SSSCB"
 % ============================================================
 
+
+%% INIT
+clc;clear
+
+if ispc
+    addpath('C:\Users\nikic\Documents\MATLAB')
+    addpath('C:\Users\nikic\Documents\MATLAB\CircStat2012a')
+    addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim\helpers')
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\wave-matlab-master\wave-matlab-master'))
+    addpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
+
+else
+
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
+
+end
+
+%%
+
 cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/CNN3D/')
 %% 1) Import the ONNX model
 net = importNetworkFromONNX("phasewavecnn3d_stronger.onnx");
