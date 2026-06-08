@@ -357,7 +357,7 @@ plot_beautify
 classLabels = {'Thumb','Index','Middle','Ring','Pinky','Power', ...
                'Pinch','Tripod','Wrist Add.','Wrist Abd.', ...
                'Wrist Flex','Wrist Ext.'};
-D = mean(mahab_full_imagined,2);
+D = mean(mahab_full_batch,2);
 D = squareform(D);
 D = (D + D')/2;
 D(1:size(D,1)+1:end) = 0;
@@ -387,161 +387,20 @@ grid on;
 
 % Plot first three MDS dimensions
 figure;
-scatter3(Y(:,1), Y(:,2), Y(:,3), 150, 'filled'); 
+scatter(Y(:,1), Y(:,2), 150, 'filled'); 
 hold on;
 
-text(Y(:,1), Y(:,2), Y(:,3), classLabels, ...
+text(Y(:,1), Y(:,2), classLabels, ...
     'VerticalAlignment','bottom', ...
     'HorizontalAlignment','right', ...
     'FontSize',12);
 
 xlabel(sprintf('MDS 1 %.1f%%', 100*varExplained(1)));
 ylabel(sprintf('MDS 2 %.1f%%', 100*varExplained(2)));
-zlabel(sprintf('MDS 3 %.1f%%', 100*varExplained(3)));
 title('MDS of Class Mahalanobis Distance Matrix');
 %axis equal;
 grid on;
 
-
-%% MORE INDEPTH MDS 
-% INPUT
-% distVecs is 66 x 10
-% rows = pairwise class distances from squareform(D)
-% columns = days
-
-classLabels = {'Thumb','Index','Middle','Ring','Pinky','Power', ...
-               'Pinch','Tripod','Wrist Add.','Wrist Abd.', ...
-               'Wrist Flex','Wrist Ext.'};
-
-groups = [1 1 1 1 1 2 2 2 3 3 3 3];
-groupNames = {'Digits','Grasps','Wrist'};
-distVecs = mahab_full_imagined;
-
-nClasses = 12;
-nDays = size(distVecs,2);
-
-% Clean and reconstruct distance matrices
-Dall = zeros(nClasses, nClasses, nDays);
-
-for d = 1:nDays
-    y = distVecs(:,d);
-    y = y(:)';                 % important: squareform expects row vector
-    D = squareform(y);
-
-    D = (D + D')/2;            % enforce symmetry
-    D(1:nClasses+1:end) = 0;   % zero diagonal
-
-    Dall(:,:,d) = D;
-end
-
-% Reference MDS from average distance matrix
-Dmean = mean(Dall,3);
-
-[Yref, eigvals] = cmdscale(Dmean);
-
-% Use first 2 MDS dimensions
-Yref2 = Yref(:,1:2);
-
-posEig = eigvals(eigvals > 0);
-varExplained = eigvals ./ sum(posEig);
-
-fprintf('MDS1 = %.1f%%\n', 100*varExplained(1));
-fprintf('MDS2 = %.1f%%\n', 100*varExplained(2));
-
-% MDS for each day, aligned to reference using Procrustes
-Ydays = zeros(nClasses, 2, nDays);
-
-for d = 1:nDays
-    D = Dall(:,:,d);
-
-    [Y, eigvals_day] = cmdscale(D);
-    Y2 = Y(:,1:2);
-
-    % Align each day's MDS to the reference MDS
-    % This removes arbitrary rotation/reflection/translation differences.
-    [~, Yaligned] = procrustes(Yref2, Y2, ...
-                               'Scaling', false, ...
-                               'Reflection', false);
-
-    Ydays(:,:,d) = Yaligned;
-end
-
-% Mean and covariance of each class location across days
-Ymean = mean(Ydays,3);
-
-figure;
-hold on;
-
-% Plot individual day points lightly
-for d = 1:nDays
-    scatter(Ydays(:,1,d), Ydays(:,2,d), 40, 'filled', ...
-        'MarkerFaceAlpha', 0.25);
-end
-
-% Plot mean class locations
-scatter(Ymean(:,1), Ymean(:,2), 160, 'filled');
-
-text(Ymean(:,1), Ymean(:,2), classLabels, ...
-    'VerticalAlignment','bottom', ...
-    'HorizontalAlignment','right', ...
-    'FontSize',12);
-
-xlabel(sprintf('MDS 1 %.1f%%', 100*varExplained(1)));
-ylabel(sprintf('MDS 2 %.1f%%', 100*varExplained(2)));
-title('Day-aligned MDS with class variability');
-axis equal;
-grid on;
-
-
-%% Plot 95% covariance ellipses for each class
-figure;
-hold on;
-
-% Plot all daily class points
-for d = 1:nDays
-    scatter(Ydays(:,1,d), Ydays(:,2,d), 35, 'filled', ...
-        'MarkerFaceAlpha', 0.25);
-end
-
-% Plot class means
-scatter(Ymean(:,1), Ymean(:,2), 160, 'filled');
-
-% Add labels
-text(Ymean(:,1), Ymean(:,2), classLabels, ...
-    'VerticalAlignment','bottom', ...
-    'HorizontalAlignment','right', ...
-    'FontSize',12);
-
-% 95% ellipse scale for 2D Gaussian
-chi2val = 5.991;  % chi2inv(0.95,2)
-
-for c = 1:nClasses
-    pts = squeeze(Ydays(c,:,:))';   % nDays x 2
-
-    mu = mean(pts,1);
-    C = cov(pts);
-
-    % Avoid issues if covariance is nearly singular
-    C = C + 1e-6 * eye(2);
-
-    [V,L] = eig(C);
-
-    theta = linspace(0, 2*pi, 200);
-    circle = [cos(theta); sin(theta)];
-
-    ellipse = V * sqrt(L * chi2val) * circle;
-    ellipse = ellipse + mu';
-
-    plot(ellipse(1,:), ellipse(2,:), 'LineWidth', 1.5);
-end
-
-xlabel(sprintf('MDS 1 %.1f%%', 100*varExplained(1)));
-ylabel(sprintf('MDS 2 %.1f%%', 100*varExplained(2)));
-title('MDS class locations with 95% day-to-day ellipses');
-axis equal;
-grid on;
-
-%%
 
 % plotting the accuracy
 acc=[];acc_i=[];

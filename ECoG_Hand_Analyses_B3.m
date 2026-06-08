@@ -1072,6 +1072,7 @@ for i=1:length(session_data) % 20230518 has the best hand data performance
             accuracy_online_data_Hand(files,12);
         acc_CL_bins(kk).CL = 'CL2';
         acc_CL_bins(kk).perf = mean(diag(acc_batch_bin));
+        acc_CL_bins(kk).perf_trial = mean(diag(acc_batch));
         acc_CL_bins(kk).day = day_date;
         acc_CL_bins(kk).foldername = folders{ii};
         kk=kk+1;
