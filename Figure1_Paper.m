@@ -327,10 +327,11 @@ for i=1:length(session_data) % 20230518 has the best hand data performance
 end
 
 %save B3_Hand_Res -v7.3
+% save B3_Hand_Res_ForPaper -v7.3
 
 % plotting clustering
-tmp = mean(mahab_full_batch,2);
-z=linkage(tmp','average');
+tmp = mean(mahab_full_batch(:,1:10),2);
+z=linkage(tmp','ward');
 figure;
 dendrogram(z)
 
@@ -338,6 +339,334 @@ tmp = (mahab_full_imagined(:,8));
 z=linkage(tmp','complete');
 figure;
 dendrogram(z)
+
+
+%%%%%% (MAIN) MDS CODE WITH STATS ON PRESERVING REPRESENTATIONAL STRUCTURE
+% ALONG WITH CORRELATING DECODING ACC WITH MEAN MAHAB DISTANCE PER DAY
+dec_acc=[];
+for i=1:size(acc_batch_days,3)
+    a = squeeze(acc_batch_days(:,:,i));
+    dec_acc(i)= mean(diag(a));
+end
+
+% ============================================================
+% Closed-loop representational geometry analysis
+% mahab_full_batch: 66 x nDays
+% dec_acc: nDays x 1 or 1 x nDays
+% ============================================================
+
+CLvecs = mahab_full_batch;
+dec_acc = dec_acc(:);
+
+classLabels = {'Thumb','Index','Middle','Ring','Pinky','Power', ...
+               'Pinch','Tripod','Wrist Add.','Wrist Abd.', ...
+               'Wrist Flex','Wrist Ext.'};
+
+nClasses = 12;
+nDays = size(CLvecs,2);
+
+assert(size(CLvecs,1) == nClasses*(nClasses-1)/2, ...
+    'mahab_full_batch should be 66 x nDays');
+
+assert(numel(dec_acc) == nDays, ...
+    'dec_acc should have one value per day');
+
+% ============================================================
+% 1. Convert squareform vectors back to distance matrices
+% ============================================================
+
+D_CL = zeros(nClasses,nClasses,nDays);
+
+for d = 1:nDays
+    y = CLvecs(:,d)';
+    D = squareform(y);
+
+    D = (D + D')/2;
+    D(1:nClasses+1:end) = 0;
+
+    D_CL(:,:,d) = D;
+end
+
+% ============================================================
+% 2. MDS of average closed-loop distance matrix
+% ============================================================
+
+Dmean_CL = mean(D_CL,3);
+
+[Y_CL,eig_CL] = cmdscale(Dmean_CL);
+
+posEig = eig_CL(eig_CL > 0);
+varExplained = eig_CL ./ sum(posEig);
+
+figure;
+scatter3(Y_CL(:,1), Y_CL(:,2), Y_CL(:,3),180, 'filled');
+hold on;
+
+text(Y_CL(:,1), Y_CL(:,2),Y_CL(:,3), classLabels, ...
+    'VerticalAlignment','bottom', ...
+    'HorizontalAlignment','right', ...
+    'FontSize',12);
+
+xlabel(sprintf('MDS 1 %.1f%%',100*varExplained(1)));
+ylabel(sprintf('MDS 2 %.1f%%',100*varExplained(2)));
+zlabel(sprintf('MDS 3 %.1f%%',100*varExplained(3)));
+title('Mean closed-loop representational geometry');
+%axis equal;
+grid on;
+view(-90,90)
+
+% Optional: hierarchical clustering of mean CL geometry
+
+Zmean = linkage(squareform(Dmean_CL), 'complete');
+
+figure;
+dendrogram(Zmean, 'Labels', classLabels);
+ylabel('Mahalanobis distance');
+title('Hierarchical clustering of mean CL geometry');
+
+% Choose a cutoff based on dendrogram
+cutoff = 440;   % adjust as needed
+clusterID = cluster(Zmean, 'cutoff', cutoff, 'criterion', 'distance');
+
+figure;
+scatter(Y_CL(:,1), Y_CL(:,2), 180, clusterID, 'filled');
+hold on;
+
+text(Y_CL(:,1), Y_CL(:,2), classLabels, ...
+    'VerticalAlignment','bottom', ...
+    'HorizontalAlignment','right', ...
+    'FontSize',12);
+
+xlabel(sprintf('MDS 1 %.1f%%',100*varExplained(1)));
+ylabel(sprintf('MDS 2 %.1f%%',100*varExplained(2)));
+title('Mean CL MDS colored by automatic clusters');
+axis equal;
+grid on;
+colorbar;
+
+disp(table(classLabels(:), clusterID(:), ...
+    'VariableNames', {'Class','Cluster'}));
+
+% ============================================================
+% 3. Geometry preservation across days
+% Leave-one-day-out correlation:
+% each day compared to mean geometry of the other days
+% ============================================================
+
+r_LOO_spearman = zeros(nDays,1);
+r_LOO_pearson  = zeros(nDays,1);
+
+for testDay = 1:nDays
+
+    trainDays = setdiff(1:nDays,testDay);
+
+    testVec = CLvecs(:,testDay);
+    trainMeanVec = mean(CLvecs(:,trainDays),2);
+
+    r_LOO_spearman(testDay) = corr(testVec, trainMeanVec, ...
+        'type','Spearman', 'rows','complete');
+
+    r_LOO_pearson(testDay) = corr(testVec, trainMeanVec, ...
+        'type','Pearson', 'rows','complete');
+end
+
+fprintf('\n=== Closed-loop geometry preservation across days ===\n');
+fprintf('LOO Spearman r = %.3f ± %.3f\n', ...
+    mean(r_LOO_spearman), std(r_LOO_spearman));
+
+fprintf('LOO Pearson r  = %.3f ± %.3f\n', ...
+    mean(r_LOO_pearson), std(r_LOO_pearson));
+
+% Nonparametric test vs zero
+p_LOO_spearman = signrank(r_LOO_spearman, 0);
+p_LOO_pearson  = signrank(r_LOO_pearson, 0);
+
+fprintf('LOO Spearman signrank vs 0: p = %.5f\n', p_LOO_spearman);
+fprintf('LOO Pearson signrank vs 0:  p = %.5f\n', p_LOO_pearson);
+
+% Fisher-z t-test
+z_LOO = atanh(r_LOO_spearman);
+[h_z,p_z,ci_z,stats_z] = ttest(z_LOO,0);
+
+fprintf('Fisher-z t-test: t(%d)=%.3f, p=%.5f\n', ...
+    stats_z.df, stats_z.tstat, p_z);
+
+% Plot LOO correlations
+
+figure;
+bar(r_LOO_spearman);
+yline(0,'k--');
+ylim([-1 1]);
+xlabel('Held-out day');
+ylabel('Spearman correlation');
+title(sprintf('CL geometry stability across days: mean r = %.2f, p = %.4g', ...
+    mean(r_LOO_spearman), p_LOO_spearman));
+grid on;
+
+figure;
+boxplot(r_LOO_spearman)
+ylim([-0.5 1]);
+yline(0,'k--');
+
+% ============================================================
+% 4. Pairwise day-to-day correlation matrix
+% ============================================================
+
+R_days = nan(nDays,nDays);
+
+for d1 = 1:nDays
+    for d2 = 1:nDays
+        R_days(d1,d2) = corr(CLvecs(:,d1), CLvecs(:,d2), ...
+            'type','Spearman', 'rows','complete');
+    end
+end
+
+offDiag = ~eye(nDays);
+r_pairwise = R_days(offDiag);
+
+fprintf('\nPairwise day-to-day Spearman r = %.3f ± %.3f\n', ...
+    mean(r_pairwise), std(r_pairwise));
+
+figure;
+imagesc(R_days);
+axis square;
+colorbar;
+caxis([-1 1]);
+xlabel('Day');
+ylabel('Day');
+title('Closed-loop day-to-day geometry similarity');
+set(gca,'XTick',1:nDays,'YTick',1:nDays);
+
+% ============================================================
+% 5. Permutation test for geometry preservation
+% Null: class labels are randomly permuted in held-out day
+% ============================================================
+
+nPerm = 10000;
+obsMeanR = mean(r_LOO_spearman);
+permMeanR = zeros(nPerm,1);
+
+fprintf('\nRunning permutation test for CL geometry preservation...\n');
+
+for p = 1:nPerm
+
+    r_perm = zeros(nDays,1);
+
+    for testDay = 1:nDays
+
+        trainDays = setdiff(1:nDays,testDay);
+
+        Dtrain = mean(D_CL(:,:,trainDays),3);
+        Dtest  = D_CL(:,:,testDay);
+
+        % randomly permute class labels in held-out day
+        permIdx = randperm(nClasses);
+        Dtest_perm = Dtest(permIdx,permIdx);
+
+        trainVec = squareform(Dtrain)';
+        testVec_perm = squareform(Dtest_perm)';
+
+        r_perm(testDay) = corr(testVec_perm, trainVec, ...
+            'type','Spearman', 'rows','complete');
+    end
+
+    permMeanR(p) = mean(r_perm);
+end
+
+p_perm = mean(permMeanR >= obsMeanR);
+
+fprintf('Observed mean LOO r = %.3f\n', obsMeanR);
+fprintf('Permutation p = %.5f\n', p_perm);
+
+figure;
+histogram(permMeanR,50);
+hold on;
+xline(obsMeanR,'r','LineWidth',2);
+xlabel('Permuted mean LOO Spearman correlation');
+ylabel('Count');
+title(sprintf('Permutation test for CL geometry preservation, p = %.5f', p_perm));
+grid on;
+
+% ============================================================
+% 6. Does distance magnitude increase with decoding accuracy?
+% ============================================================
+
+meanDist_day = mean(CLvecs,1)';
+
+[r_acc_spear,p_acc_spear] = corr(meanDist_day, dec_acc, ...
+    'type','Spearman', 'rows','complete');
+
+[r_acc_pear,p_acc_pear] = corr(meanDist_day, dec_acc, ...
+    'type','Pearson', 'rows','complete');
+
+fprintf('\n=== Relationship between decoding accuracy and distance magnitude ===\n');
+fprintf('Mean CL distance vs decoding accuracy:\n');
+fprintf('Spearman r = %.3f, p = %.5f\n', r_acc_spear, p_acc_spear);
+fprintf('Pearson  r = %.3f, p = %.5f\n', r_acc_pear, p_acc_pear);
+
+figure;
+scatter(dec_acc, meanDist_day, 100, 'filled');
+hold on;
+lsline;
+
+xlabel('Daily decoding accuracy');
+ylabel('Mean pairwise Mahalanobis distance');
+title(sprintf('CL class separation vs decoding accuracy: Spearman r = %.2f, p = %.4g', ...
+    r_acc_spear, p_acc_spear));
+grid on;
+
+% Optional: robust rank-based visualization
+
+figure;
+scatter(tiedrank(dec_acc), tiedrank(meanDist_day), 100, 'filled');
+xlabel('Rank decoding accuracy');
+ylabel('Rank mean Mahalanobis distance');
+title(sprintf('Rank relationship: Spearman r = %.2f', r_acc_spear));
+grid on;
+
+% ============================================================
+% 7. Does geometry similarity itself increase with accuracy?
+% Optional: compare LOO geometry preservation r with dec_acc
+% ============================================================
+
+[r_geom_acc,p_geom_acc] = corr(r_LOO_spearman, dec_acc, ...
+    'type','Spearman', 'rows','complete');
+
+fprintf('\nLOO geometry similarity vs decoding accuracy:\n');
+fprintf('Spearman r = %.3f, p = %.5f\n', r_geom_acc, p_geom_acc);
+
+figure;
+scatter(dec_acc, r_LOO_spearman, 100, 'filled');
+hold on;
+lsline;
+
+xlabel('Daily decoding accuracy');
+ylabel('LOO geometry correlation');
+title(sprintf('Geometry stability vs decoding accuracy: Spearman r = %.2f, p = %.4g', ...
+    r_geom_acc, p_geom_acc));
+grid on;
+
+% ============================================================
+% 8. Summary
+% ============================================================
+
+fprintf('\n============================================================\n');
+fprintf('SUMMARY: CLOSED-LOOP REPRESENTATIONAL GEOMETRY\n');
+fprintf('Mean LOO CL geometry Spearman r = %.3f ± %.3f\n', ...
+    mean(r_LOO_spearman), std(r_LOO_spearman));
+fprintf('LOO signrank p = %.5f\n', p_LOO_spearman);
+fprintf('LOO permutation p = %.5f\n', p_perm);
+fprintf('Pairwise day-to-day Spearman r = %.3f ± %.3f\n', ...
+    mean(r_pairwise), std(r_pairwise));
+fprintf('Mean distance vs decoding accuracy Spearman r = %.3f, p = %.5f\n', ...
+    r_acc_spear, p_acc_spear);
+fprintf('Geometry stability vs decoding accuracy Spearman r = %.3f, p = %.5f\n', ...
+    r_geom_acc, p_geom_acc);
+fprintf('============================================================\n');
+
+
+%%%%%%%%% end
+
 
 
 % plotting confusion matrix of last day 
