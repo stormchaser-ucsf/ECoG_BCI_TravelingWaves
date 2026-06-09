@@ -17,6 +17,61 @@ imaging_B6_253
 % load B3 253
 imaging_B3_waves
 
+%% performance arrow task 
+
+
+% performance B1
+folders={'20240515', '20240517', '20240614', ...
+    '20240619', '20240621', '20240626',...
+    '20240710','20240712','20240731'};
+acc_days=[];
+for days=1:length(folders)-1 %if B1-> it is -1
+
+    disp(['Processing day ' num2str(days)])
+
+    folderpath = fullfile(root_path,folders{days},'Robot3DArrow');
+    % if i<=2
+    %     folderpath = fullfile(root_path,folders_robot{i},'Robot3D');
+    % else
+    %     folderpath = fullfile(root_path,folders_robot{i},'RealRobotBatch');
+    % end
+    D= dir(folderpath);
+    D = D(3:end);
+    imag_idx=[];
+    online_idx=[];
+    for j=1:length(D)
+        subfoldername = dir(fullfile(folderpath,D(j).name));
+        if length(subfoldername)>2
+            if strcmp(subfoldername(3).name,'Imagined')
+                imag_idx=[imag_idx j];
+            elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+                online_idx=[online_idx j];
+            end
+        end
+    end
+
+    % get decoding accuracy block by block
+    acc_folders=[];
+    for ii=1:length(online_idx)
+        online_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
+        files = [findfiles('mat',online_folderpath)'];
+        if rem(length(files),9) == 0
+        [acc,acc1,bino_pdf] = accuracy_online_data_9DOF(files);
+        else
+            [acc,acc1,bino_pdf] = accuracy_online_data(files);
+        end
+        %acc = acc(1:7,1:7);
+        acc_folders(ii) = mean(diag(acc));
+        %disp(length(files))
+    end
+    l = round(length(acc_folders)/2);
+    acc_days(days) = median(acc_folders(l:end));
+end
+
+figure;
+boxplot(acc_days*100)
+ylim([0 100])
+
 %% performance B3 hand OL, CL all
 
 
