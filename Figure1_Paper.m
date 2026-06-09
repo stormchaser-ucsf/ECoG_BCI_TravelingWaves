@@ -417,7 +417,7 @@ view(-90,90)
 
 % Optional: hierarchical clustering of mean CL geometry
 
-Zmean = linkage(squareform(Dmean_CL), 'complete');
+Zmean = linkage(squareform(Dmean_CL), 'average');
 
 figure;
 dendrogram(Zmean, 'Labels', classLabels);
@@ -504,165 +504,113 @@ title(sprintf('CL geometry stability across days: mean r = %.2f, p = %.4g', ...
 grid on;
 
 figure;
-boxplot(r_LOO_spearman)
+boxplot(r_LOO_spearman,'Whisker',3)
 ylim([-0.5 1]);
 yline(0,'k--');
+xlim([.85 1.15])
+plot_beautify
+xticks ''
 
-% ============================================================
-% 4. Pairwise day-to-day correlation matrix
-% ============================================================
 
-R_days = nan(nDays,nDays);
+% ================================
+% 4: correlation for held out day spearman to average geometry from other
+% days 
+% ==================
 
-for d1 = 1:nDays
-    for d2 = 1:nDays
-        R_days(d1,d2) = corr(CLvecs(:,d1), CLvecs(:,d2), ...
-            'type','Spearman', 'rows','complete');
-    end
+% Closed-loop geometry consolidation analysis
+% mahab_full_batch: 66 x nDays
+
+
+% Compute held-out day Spearman correlations
+
+r_LOO = zeros(nDays,1);
+p_LOO = zeros(nDays,1);
+for testDay = 1:nDays
+
+    otherDays = setdiff(1:nDays, testDay);
+
+    testVec = CLvecs(:,testDay);
+    meanOtherVec = mean(CLvecs(:,otherDays), 2);
+
+    [r_LOO(testDay), p_LOO(testDay)] = corr(testVec, meanOtherVec, ...
+        'type', 'Spearman', ...
+        'rows', 'complete');
 end
 
-offDiag = ~eye(nDays);
-r_pairwise = R_days(offDiag);
+dayNum = (1:nDays)';
 
-fprintf('\nPairwise day-to-day Spearman r = %.3f ± %.3f\n', ...
-    mean(r_pairwise), std(r_pairwise));
+T = table(dayNum, r_LOO, ...
+    'VariableNames', {'Day','SpearmanR'});
 
+% Regular Huber robust regression, no Fisher z-transform
+
+mdl_huber = fitlm(T, 'SpearmanR ~ Day', ...
+    'RobustOpts', 'huber');
+
+disp(mdl_huber);
+disp(mdl_huber.Coefficients);
+
+beta_day = mdl_huber.Coefficients.Estimate("Day");
+p_day    = mdl_huber.Coefficients.pValue("Day");
+
+fprintf('\nHuber robust regression on raw Spearman r:\n');
+fprintf('Beta day = %.4f, p = %.5f\n', beta_day, p_day);
+
+% plot
 figure;
-imagesc(R_days);
-axis square;
-colorbar;
-caxis([-1 1]);
-xlabel('Day');
-ylabel('Day');
-title('Closed-loop day-to-day geometry similarity');
-set(gca,'XTick',1:nDays,'YTick',1:nDays);
-
-% ============================================================
-% 5. Permutation test for geometry preservation
-% Null: class labels are randomly permuted in held-out day
-% ============================================================
-
-nPerm = 10000;
-obsMeanR = mean(r_LOO_spearman);
-permMeanR = zeros(nPerm,1);
-
-fprintf('\nRunning permutation test for CL geometry preservation...\n');
-
-for p = 1:nPerm
-
-    r_perm = zeros(nDays,1);
-
-    for testDay = 1:nDays
-
-        trainDays = setdiff(1:nDays,testDay);
-
-        Dtrain = mean(D_CL(:,:,trainDays),3);
-        Dtest  = D_CL(:,:,testDay);
-
-        % randomly permute class labels in held-out day
-        permIdx = randperm(nClasses);
-        Dtest_perm = Dtest(permIdx,permIdx);
-
-        trainVec = squareform(Dtrain)';
-        testVec_perm = squareform(Dtest_perm)';
-
-        r_perm(testDay) = corr(testVec_perm, trainVec, ...
-            'type','Spearman', 'rows','complete');
-    end
-
-    permMeanR(p) = mean(r_perm);
-end
-
-p_perm = mean(permMeanR >= obsMeanR);
-
-fprintf('Observed mean LOO r = %.3f\n', obsMeanR);
-fprintf('Permutation p = %.5f\n', p_perm);
-
-figure;
-histogram(permMeanR,50);
+scatter(dayNum, r_LOO, 120, 'filled');
 hold on;
-xline(obsMeanR,'r','LineWidth',2);
-xlabel('Permuted mean LOO Spearman correlation');
-ylabel('Count');
-title(sprintf('Permutation test for CL geometry preservation, p = %.5f', p_perm));
+
+xx = linspace(1, nDays, 200)';
+Tpred = table(xx, 'VariableNames', {'Day'});
+
+rpred = predict(mdl_huber, Tpred);
+
+plot(xx, rpred, 'k-', 'LineWidth', 2);
+yline(0, 'k--');
+
+xlabel('Closed-loop day');
+ylabel('Spearman correlation with other-day mean geometry');
+
+title(sprintf(['Closed-loop representational geometry consolidates across days\n' ...
+               'Huber robust regression: \\beta = %.3f, p = %.4g'], ...
+               beta_day, p_day));
+
+ylim([-1 1]);
+xlim([0.5 nDays+0.5]);
 grid on;
 
-% ============================================================
-% 6. Does distance magnitude increase with decoding accuracy?
-% ============================================================
 
-meanDist_day = mean(CLvecs,1)';
+% Test held-out correlations against zero
 
-[r_acc_spear,p_acc_spear] = corr(meanDist_day, dec_acc, ...
-    'type','Spearman', 'rows','complete');
+p_signrank = signrank(r_LOO, 0);
 
-[r_acc_pear,p_acc_pear] = corr(meanDist_day, dec_acc, ...
-    'type','Pearson', 'rows','complete');
+fprintf('\nHeld-out correlations vs zero:\n');
+fprintf('Mean Spearman r = %.3f ± %.3f\n', mean(r_LOO), std(r_LOO));
+fprintf('Median Spearman r = %.3f\n', median(r_LOO));
+fprintf('Signrank p = %.5f\n', p_signrank);
 
-fprintf('\n=== Relationship between decoding accuracy and distance magnitude ===\n');
-fprintf('Mean CL distance vs decoding accuracy:\n');
-fprintf('Spearman r = %.3f, p = %.5f\n', r_acc_spear, p_acc_spear);
-fprintf('Pearson  r = %.3f, p = %.5f\n', r_acc_pear, p_acc_pear);
+% Box/point plot
 
 figure;
-scatter(dec_acc, meanDist_day, 100, 'filled');
+boxchart(ones(nDays,1), r_LOO);
 hold on;
-lsline;
 
-xlabel('Daily decoding accuracy');
-ylabel('Mean pairwise Mahalanobis distance');
-title(sprintf('CL class separation vs decoding accuracy: Spearman r = %.2f, p = %.4g', ...
-    r_acc_spear, p_acc_spear));
+scatter(ones(nDays,1), r_LOO, 90, 'filled', ...
+    'jitter', 'on', ...
+    'jitterAmount', 0.08);
+
+yline(0, 'k--');
+
+xlim([0.5 1.5]);
+xticks(1);
+xticklabels({'Held-out days'});
+ylabel('Spearman correlation with other-day mean geometry');
+
+title(sprintf('Held-out correlations > 0, signrank p = %.4g', p_signrank));
+
+ylim([-1 1]);
 grid on;
-
-% Optional: robust rank-based visualization
-
-figure;
-scatter(tiedrank(dec_acc), tiedrank(meanDist_day), 100, 'filled');
-xlabel('Rank decoding accuracy');
-ylabel('Rank mean Mahalanobis distance');
-title(sprintf('Rank relationship: Spearman r = %.2f', r_acc_spear));
-grid on;
-
-% ============================================================
-% 7. Does geometry similarity itself increase with accuracy?
-% Optional: compare LOO geometry preservation r with dec_acc
-% ============================================================
-
-[r_geom_acc,p_geom_acc] = corr(r_LOO_spearman, dec_acc, ...
-    'type','Spearman', 'rows','complete');
-
-fprintf('\nLOO geometry similarity vs decoding accuracy:\n');
-fprintf('Spearman r = %.3f, p = %.5f\n', r_geom_acc, p_geom_acc);
-
-figure;
-scatter(dec_acc, r_LOO_spearman, 100, 'filled');
-hold on;
-lsline;
-
-xlabel('Daily decoding accuracy');
-ylabel('LOO geometry correlation');
-title(sprintf('Geometry stability vs decoding accuracy: Spearman r = %.2f, p = %.4g', ...
-    r_geom_acc, p_geom_acc));
-grid on;
-
-% ============================================================
-% 8. Summary
-% ============================================================
-
-fprintf('\n============================================================\n');
-fprintf('SUMMARY: CLOSED-LOOP REPRESENTATIONAL GEOMETRY\n');
-fprintf('Mean LOO CL geometry Spearman r = %.3f ± %.3f\n', ...
-    mean(r_LOO_spearman), std(r_LOO_spearman));
-fprintf('LOO signrank p = %.5f\n', p_LOO_spearman);
-fprintf('LOO permutation p = %.5f\n', p_perm);
-fprintf('Pairwise day-to-day Spearman r = %.3f ± %.3f\n', ...
-    mean(r_pairwise), std(r_pairwise));
-fprintf('Mean distance vs decoding accuracy Spearman r = %.3f, p = %.5f\n', ...
-    r_acc_spear, p_acc_spear);
-fprintf('Geometry stability vs decoding accuracy Spearman r = %.3f, p = %.5f\n', ...
-    r_geom_acc, p_geom_acc);
-fprintf('============================================================\n');
 
 
 %%%%%%%%% end
@@ -1236,7 +1184,7 @@ hline(100/12,'--r')
 
 % sigmoid fit
 x=1:10;
-y=acc;
+y=acc*100;
 x = x(:);
 y = y(:);
 sigmoidModel = fittype( ...
