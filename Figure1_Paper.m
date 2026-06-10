@@ -278,6 +278,181 @@ cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
 save arrow_decoding_results_waves b1_acc b3_acc b6_acc b1_conf_matrix...
     b3_conf_matrix b6_conf_matrix -v7.3
 
+
+% plot results
+res=[b1_acc b3_acc b6_acc];
+figure;
+hold on
+idx = ones(size(b1_acc)) + 0.025*randn(size(b1_acc));
+plot(idx,b1_acc,'.','MarkerSize',30,'Color',[.5 .5 .5 .5])
+idx = ones(size(b3_acc)) + 0.025*randn(size(b3_acc));
+plot(idx,b3_acc,'.','MarkerSize',30,'Color',[.75 .0 .25 .5])
+idx = ones(size(b6_acc)) + 0.025*randn(size(b6_acc));
+plot(idx,b6_acc,'.','MarkerSize',30,'Color',[.25 .0 .75 .5])
+plot_beautify
+ylim([0.5 1])
+xlim([.75 1.25])
+xticks ''
+yticks(.5:.1:1)
+
+%%% better plotting
+res=[b1_acc b3_acc b6_acc];
+m11 = b1_acc;
+m22 = b3_acc;
+m33 = b6_acc;
+x=1:3;
+y=[mean(m11) mean(m22) mean(m33)];
+% scatter B1 and B3 and B6 individually
+figure; hold on
+h=hline(median(res),'k');
+h.LineWidth=3;
+h.XData = [0.75 1.25];
+
+x=(1:1) + 0.1*randn(length(m11),1);
+h=scatter(x,[m11],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'b';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(1:1) + 0.1*randn(length(m22),1);
+h=scatter(x,[m22],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'r';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+
+x=(1:1) + 0.1*randn(length(m33),1);
+h=scatter(x,[m33],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'k';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+ylim([0 1])
+yticks([0:.1:1])
+xlim([.5 1.5])
+yticks([0:.1:1])
+ylim([.5 1])
+h=hline(1/7);
+set(h,'LineWidth',1)
+xticks ''
+plot_beautify
+
+mb = bootstrp(1000,@median,res);
+mb=sort(mb);
+[mb(25) median(res) mb(975)]
+
+
+% confusion matrices
+acc_online = b1_conf_matrix;
+figure;
+imagesc(acc_online*100)
+colormap(brewermap(128,'Blues'))
+clim([0 100])
+set(gcf,'color','w')
+% add text
+for j=1:size(acc_online,1)
+    for k=1:size(acc_online,2)
+        if j==k
+            text(j-0.35,k,num2str(round(100*acc_online(k,j),1)),'Color','w')
+        else
+            text(j-0.35,k,num2str(round(100*acc_online(k,j),1)),'Color','k')
+        end
+    end
+end
+box on
+xticks(1:7)
+yticks(1:7)
+xticklabels({'X+ve/Rt Thumb','Y-ve/Leg','X-ve/Lt. Thumb','Y+ve/Head','Z+ve/Tong','Z-ve/Lips',...
+    'Origin/Both middle'})
+yticklabels({'X+ve/Rt Thumb','Y-ve/Leg','X-ve/Lt. Thumb','Y+ve/Head','Z+ve/Tong','Z-ve/Lips',...
+    'Origin/Both middle'})
+title(['B1: Mean Acc ' num2str(100*mean(diag(acc_online)))])
+
+
+
+% confusion matrices
+acc_online = b1_conf_matrix;
+figure;
+imagesc(acc_online*100)
+colormap(brewermap(128,'Blues'))
+clim([0 100])
+set(gcf,'color','w')
+% add text
+for j=1:size(acc_online,1)
+    for k=1:size(acc_online,2)
+        if j==k
+            text(j-0.35,k,num2str(round(100*acc_online(k,j),1)),'Color','w')
+        else
+            text(j-0.35,k,num2str(round(100*acc_online(k,j),1)),'Color','k')
+        end
+    end
+end
+box on
+xticks(1:7)
+yticks(1:7)
+xticklabels({'X+ve/Rt Thumb','Y-ve/Leg','X-ve/Lt. Thumb','Y+ve/Head','Z+ve/Tong.','Z-ve/Lips',...
+    'Origin/Both middle'})
+yticklabels({'X+ve/Rt Thumb','Y-ve/Leg','X-ve/Lt. Thumb','Y+ve/Head','Z+ve/Tong.','Z-ve/Lips',...
+    'Origin/Both middle'})
+title(['B1: Mean Acc ' num2str(100*mean(diag(acc_online)))])
+
+% confusion matrices
+acc_online = b3_conf_matrix;
+figure;
+imagesc(acc_online*100)
+colormap(brewermap(128,'Blues'))
+clim([0 100])
+set(gcf,'color','w')
+% add text
+for j=1:size(acc_online,1)
+    for k=1:size(acc_online,2)
+        if j==k
+            text(j-0.35,k,num2str(round(100*acc_online(k,j),1)),'Color','w')
+        else
+            text(j-0.35,k,num2str(round(100*acc_online(k,j),1)),'Color','k')
+        end
+    end
+end
+box on
+xticks(1:7)
+yticks(1:7)
+xticklabels({'X+ve/Rt Thumb','Y-ve/Leg','X-ve/Lt. Thumb','Y+ve/Head','Z+ve/Tong.','Z-ve/Lips',...
+    'Origin/Both middle'})
+yticklabels({'X+ve/Rt Thumb','Y-ve/Leg','X-ve/Lt. Thumb','Y+ve/Head','Z+ve/Tong.','Z-ve/Lips',...
+    'Origin/Both middle'})
+title(['B3: Mean Acc ' num2str(100*mean(diag(acc_online)))])
+
+
+% confusion matrices
+acc_online = b6_conf_matrix;
+figure;
+imagesc(acc_online*100)
+colormap(brewermap(128,'Blues'))
+clim([0 100])
+set(gcf,'color','w')
+% add text
+for j=1:size(acc_online,1)
+    for k=1:size(acc_online,2)
+        if j==k
+            text(j-0.35,k,num2str(round(100*acc_online(k,j),1)),'Color','w')
+        else
+            text(j-0.35,k,num2str(round(100*acc_online(k,j),1)),'Color','k')
+        end
+    end
+end
+box on
+xticks(1:7)
+yticks(1:7)
+xticklabels({'X+ve/Rt Thumb','Y-ve/Leg','X-ve/Lt. Thumb','Y+ve/Head','Z+ve/Tong','Z-ve/Lips',...
+    'Origin/Both middle'})
+yticklabels({'X+ve/Rt Thumb','Y-ve/Leg','X-ve/Lt. Thumb','Y+ve/Head','Z+ve/Tong','Z-ve/Lips',...
+    'Origin/Both middle'})
+title(['B6: Mean Acc ' num2str(100*mean(diag(acc_online)))])
+
+
 %% performance B3 hand OL, CL all
 
 
