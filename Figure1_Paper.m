@@ -53,6 +53,7 @@ folders={'20240515', '20240517', '20240614', ...
 acc_days=[];
 binomial_res=[];
 conf_matrix_days=[];
+num_trials_B1=[];
 for days=1:length(folders)-1 %if B1-> it is -1
 
     disp(['Processing day ' num2str(days)])
@@ -99,6 +100,7 @@ for days=1:length(folders)-1 %if B1-> it is -1
     acc_days(days) = median(acc_folders(l:end));
     binomial_res = [binomial_res bino_pdf_folders(l:end)];
     conf_matrix_days(days,:,:) = squeeze(nanmean(confusion_mat(l:end,:,:),1));
+    num_trials_B1(days) = length(acc_folders(l:end));
 end
 
 b1_acc= acc_days;
@@ -138,6 +140,7 @@ len_days = min(11,length(session_data));
 num_targets=7;
 acc_days=[];binomial_res=[];
 conf_matrix_days=[];
+num_trials_B3=[];
 for days=1:len_days
 
     disp(['Processing day ' num2str(days)])
@@ -176,6 +179,7 @@ for days=1:len_days
     acc_days(days) = nanmedian(acc_folders);
     binomial_res = [binomial_res bino_pdf_folders];
     conf_matrix_days(days,:,:) = squeeze(nanmean(confusion_mat(1:end,:,:),1));
+    num_trials_B3(days) = length(acc_folders(1:end));
 end
 
 
@@ -216,6 +220,7 @@ folders = {'20250530','20250610','20250624','20250703','20250708','20250717',...
 acc_days=[];
 binomial_res=[];
 conf_matrix_days=[];
+num_trials_B6=[];
 for days=1:length(folders)
 
     disp(['Processing day ' num2str(days)])
@@ -261,6 +266,7 @@ for days=1:length(folders)
     acc_days(days) = nanmedian(acc_folders(l:end));
     binomial_res = [binomial_res bino_pdf_folders(l:end)];
     conf_matrix_days(days,:,:) = squeeze(nanmean(confusion_mat(l:end,:,:),1));
+    num_trials_B6(days) = length(acc_folders(l:end));
 end
 
 b6_acc= acc_days;
@@ -273,6 +279,18 @@ mean(diag(tmp))
 mean(b6_acc)
 b6_conf_matrix  = tmp;
 
+
+num_trials_B1 = num_trials_B1*21;
+num_trials_B3 = num_trials_B3*21;
+num_trials_B6 = num_trials_B6*21;
+
+[mean(num_trials_B1) mean(num_trials_B3) mean(num_trials_B6)]
+ab = sort(bootstrp(1000,@mean,num_trials_B1));
+[ab(25) ab(975)]
+ab = sort(bootstrp(1000,@mean,num_trials_B3));
+[ab(25) ab(975)]
+ab = sort(bootstrp(1000,@mean,num_trials_B6));
+[ab(25) ab(975)]
 
 cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
 save arrow_decoding_results_waves b1_acc b3_acc b6_acc b1_conf_matrix...
