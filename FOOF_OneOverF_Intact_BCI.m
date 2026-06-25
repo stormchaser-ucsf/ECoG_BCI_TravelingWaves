@@ -449,13 +449,18 @@ for i=9:16
     k=k+1;
 end
 
+
+% mu might be 5.5 to 8.5Hz since peak is around 7Hz 
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',6,'HalfPowerFrequency2',9, ...
     'SampleRate',Fs);
 
-bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',13, ...
-    'SampleRate',Fs);
+% bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',8,'HalfPowerFrequency2',13, ...
+%     'SampleRate',Fs);
+
+bpFilt1 = designfilt('lowpassiir', 'FilterOrder', 4, ...
+               'HalfPowerFrequency', 3, 'SampleRate', Fs);
 
 
 %ch= [204:209 219:224];
@@ -470,7 +475,7 @@ mu = abs(hilbert(mu));
 %mu=zscore(mu);
 
 alp = filtfilt(bpFilt1,lfp(:,ch));
-alp = abs(hilbert(alp));
+%alp = abs(hilbert(alp));
 %alp = mean(alp,2);
 %alp=zscore(alp);
 
@@ -784,13 +789,13 @@ hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',Fs);
 
 % mu 
-% bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-%     'HalfPowerFrequency1',6,'HalfPowerFrequency2',9, ...
-%     'SampleRate',Fs);
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
+    'SampleRate',Fs);
 
 % Example: Low-pass FIR filter for LFO
-bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
-               'HalfPowerFrequency', 3, 'SampleRate', Fs);
+% bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
+%                'HalfPowerFrequency', 3, 'SampleRate', Fs);
 
 
 
@@ -921,9 +926,14 @@ bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',4.5,'HalfPowerFrequency2',7.5, ...
     'SampleRate',Fs);
 
-bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',8,'HalfPowerFrequency2',13, ...
-    'SampleRate',Fs);
+% bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',8,'HalfPowerFrequency2',13, ...
+%     'SampleRate',Fs);
+
+
+
+bpFilt1 = designfilt('lowpassiir', 'FilterOrder', 4, ...
+               'HalfPowerFrequency', 3, 'SampleRate', Fs);
 
 
 %ch= [204:209 219:224];
@@ -938,7 +948,8 @@ mu = abs(hilbert(mu));
 %mu=zscore(mu);
 
 alp = filtfilt(bpFilt1,lfp(:,ch));
-alp = abs(hilbert(alp));
+%alp = abs(hilbert(alp));
+alp = (hilbert(alp));
 %alp = mean(alp,2);
 %alp=zscore(alp);
 
@@ -972,7 +983,8 @@ figure;
 hold on
 plot(lfp_time,smooth(zscore(hg(:,140)),100))
 plot(lfp_time,smooth(zscore(mu(:,140)),100))
-legend({'hG','mu'})
+plot(lfp_time,smooth(zscore(alp(:,140)),100))
+legend({'hG','mu','lfo or brd mu'})
 
 mu_ep=[];
 hg_ep=[];
@@ -1077,7 +1089,7 @@ for i=1:length(trial_timings)
 end
 
 
-save lfp_epochs_holdState lfp_epochs Fs bad_chI -v7.3
+%save lfp_epochs_holdState lfp_epochs Fs bad_chI -v7.3
 
 % plot oscillation clusters
 f=2:40;
@@ -1154,6 +1166,7 @@ for i=1:length(hold_dur1)
     
     % states 1,2,3, mu
     tmp = squeeze(mu_ep(:,:,i)); 
+    %tmp = squeeze(abs(alp_ep(:,:,i))); 
     idx=1:508;
     pow_s1(:,i) = mean(tmp(idx,:),1);
     
@@ -1241,9 +1254,9 @@ end
 % ERPs
 figure;
 hold on
-ch=74;
+ch=92;
 hg_ep1 = squeeze((hg_ep(:,ch,:)));
-alp_ep1 = squeeze((alp_ep(:,ch,:)));
+alp_ep1 = squeeze(-real(alp_ep(:,ch,:)));
 mu_ep1 = squeeze((mu_ep(:,ch,:)));
 tt=-1:(1/Fs):4.5;
 if length(tt)>size(alp_ep1,1)
