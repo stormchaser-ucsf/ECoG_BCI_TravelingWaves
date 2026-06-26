@@ -789,13 +789,13 @@ hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',Fs);
 
 % mu 
-% bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-%     'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
-%     'SampleRate',Fs);
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
+    'SampleRate',Fs);
 
 % Example: Low-pass FIR filter for LFO
-bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
-               'HalfPowerFrequency', 3, 'SampleRate', Fs);
+% bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
+%                'HalfPowerFrequency', 3, 'SampleRate', Fs);
 
 
 
@@ -858,76 +858,14 @@ b = exp(1i*plv_move);
 b = mean(b,1);
 b = abs(b);
 
-% null hypothesis testing for each channel to see if phases are distributed
-% uniformly around zero (means no PAC)
-pval_hold=[];pval_move=[];
-for i=1:size(plv_hold,2)
-    if bad_chI(i)==0
-        pval_hold(i)=NaN;
-        pval_move(i)=NaN;
-    else
-        ang = plv_hold(:,i);
-        [p,z]=circ_rtest(ang); 
-        pval_hold(i) = p;
-
-        ang = plv_move(:,i);
-        [p,z]=circ_rtest(ang); 
-        pval_move(i) = p;
-    end
-end
-[pfdrh,pval] =fdr(pval_hold(~isnan(pval_hold)),0.05);
-sum(pval_hold<=pfdrh)
-sig_ch_hold = (pval_hold<=pfdrh);
-[pfdrm,pval] =fdr(pval_move(~isnan(pval_move)),0.05);
-sum(pval_move<=pfdrm)
-sig_ch_move = (pval_move<=pfdrm);
-
-save EC189_sig_ch_LFO_hG_PAC plv_move plv_hold ...
-    pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
-
-% plot on brain 
-% hold
-figure;
-val=a;
-good_ch = find(bad_chI==1);
-c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
-e_h = el_add(elecmatrix([good_ch],:), 'color', 'w', 'msize',2);
-for j=1:length(val)
-    ms = val(j)*8;
-    c='b'; 
-    if ms>0.0 && bad_chI(j)==1 && sig_ch_hold(j)==1
-        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
-    end
-end
-plot_beautify
-% move
-figure;
-val=b;
-good_ch = find(bad_chI==1);
-c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
-e_h = el_add(elecmatrix([good_ch],:), 'color', 'w', 'msize',2);
-for j=1:length(val)
-    ms = val(j)*8;
-    c='b'; 
-    if ms>0.0 && bad_chI(j)==1 && sig_ch_move(j)==1
-        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
-    end
-end
-plot_beautify
-
-
 figure;
 boxplot([a(bad_chI)' b(bad_chI)'],'Notch','on')
 xticks(1:2)
 xticklabels({'Hold','Move'})
 [p,h]=signrank(a(bad_chI),b(bad_chI))
-ylabel('LFO hG PAC')
+ylabel('PAC')
 plot_beautify
 title('EC189 hG LFO PAC')
-yticks([0:.1:.9])
-
-save sig_ch_LFO_hG_PAC plv_move plv_hold ...
-    pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
 
 % plot on brain
 val=b-a;
@@ -2045,75 +1983,14 @@ b = exp(1i*plv_move);
 b = mean(b,1);
 b = abs(b);
 
-
-
-% null hypothesis testing for each channel to see if phases are distributed
-% uniformly around zero (means no PAC)
-pval_hold=[];pval_move=[];
-for i=1:size(plv_hold,2)
-    if bad_chI(i)==0
-        pval_hold(i)=NaN;
-        pval_move(i)=NaN;
-    else
-        ang = plv_hold(:,i);
-        [p,z]=circ_rtest(ang); 
-        pval_hold(i) = p;
-
-        ang = plv_move(:,i);
-        [p,z]=circ_rtest(ang); 
-        pval_move(i) = p;
-    end
-end
-[pfdrh,pval] =fdr(pval_hold(~isnan(pval_hold)),0.05);
-sum(pval_hold<=pfdrh)
-sig_ch_hold = (pval_hold<=pfdrh);
-[pfdrm,pval] =fdr(pval_move(~isnan(pval_move)),0.05);
-sum(pval_move<=pfdrm)
-sig_ch_move = (pval_move<=pfdrm);
-
-save EC176_sig_ch_LFO_hG_PAC plv_move plv_hold ...
-    pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
-
-% plot on brain 
-% hold
-figure;
-val=a;
-good_ch = find(bad_chI==1);
-c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
-e_h = el_add(elecmatrix([good_ch],:), 'color', 'w', 'msize',2);
-for j=1:length(val)
-    ms = val(j)*8;
-    c='b'; 
-    if ms>0.0 && bad_chI(j)==1 && sig_ch_hold(j)==1
-        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
-    end
-end
-plot_beautify
-% move
-figure;
-val=b;
-good_ch = find(bad_chI==1);
-c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
-e_h = el_add(elecmatrix([good_ch],:), 'color', 'w', 'msize',2);
-for j=1:length(val)
-    ms = val(j)*8;
-    c='b'; 
-    if ms>0.0 && bad_chI(j)==1 && sig_ch_move(j)==1
-        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
-    end
-end
-plot_beautify
-
-
 figure;
 boxplot([a(bad_chI)' b(bad_chI)'],'Notch','on')
 xticks(1:2)
 xticklabels({'Hold','Move'})
 [p,h]=signrank(a(bad_chI),b(bad_chI))
 title('EC 176')
-ylabel('LFO hG PAC')
+ylabel('PAC')
 plot_beautify
-yticks([0:.1:.9])
 
 % plot on brain
 val=a-b;
@@ -2133,4 +2010,3 @@ sum( (b(bad_chI) - a(bad_chI) > 0 ))/sum(bad_chI)
 
 
 
-%%
