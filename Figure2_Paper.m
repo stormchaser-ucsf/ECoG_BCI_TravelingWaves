@@ -1,5 +1,7 @@
 %% init
 
+
+clear
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
