@@ -789,13 +789,13 @@ hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',Fs);
 
 % mu 
-% bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-%     'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
-%     'SampleRate',Fs);
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
+    'SampleRate',Fs);
 
 % Example: Low-pass FIR filter for LFO
-bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
-               'HalfPowerFrequency', 3, 'SampleRate', Fs);
+% bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
+%                'HalfPowerFrequency', 3, 'SampleRate', Fs);
 
 
 
@@ -1378,13 +1378,13 @@ hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',Fs);
 
 % mu 
-% bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-%     'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
-%     'SampleRate',Fs);
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
+    'SampleRate',Fs);
 
-% Example: Low-pass FIR filter for LFO
-bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
-               'HalfPowerFrequency', 3, 'SampleRate', Fs);
+% % Example: Low-pass FIR filter for LFO
+% bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
+%                'HalfPowerFrequency', 3, 'SampleRate', Fs);
 
 
 
@@ -1466,10 +1466,10 @@ for i=1:size(plv_hold,2)
 end
 [pfdrh,pval] =fdr(pval_hold(~isnan(pval_hold)),0.05);
 sum(pval_hold<=pfdrh)
-sig_ch_hold = (pval_hold<=pfdr);
+sig_ch_hold = (pval_hold<=pfdrh);
 [pfdrm,pval] =fdr(pval_move(~isnan(pval_move)),0.05);
 sum(pval_move<=pfdrm)
-sig_ch_move = (pval_move<=pfdr);
+sig_ch_move = (pval_move<=pfdrm);
 
 save sig_ch_LFO_hG_PAC plv_move plv_hold ...
     pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
