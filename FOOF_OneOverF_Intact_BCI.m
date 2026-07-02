@@ -1961,7 +1961,7 @@ xlim([1.5 3.5])
 title('EC 176 Mu power')
 
 cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
-save EC176_Mu_Pow pow_s1 pow_s2 pow_s3 -v7.3
+save EC176_Mu_Pow pow_s1 pow_s2 pow_s3 bad_chI -v7.3
 
 % plotting mu power
 val=pow_s2a-pow_s3a;
