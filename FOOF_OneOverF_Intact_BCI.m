@@ -452,7 +452,7 @@ end
 
 % mu might be 5.5 to 8.5Hz since peak is around 7Hz 
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',6,'HalfPowerFrequency2',9, ...
+    'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
     'SampleRate',Fs);
 
 % bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -679,11 +679,12 @@ for i=1:length(hold_dur1)
     pow_s3(:,i) = mean(tmp(idx,:),1);
 end
 
+cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
+save EC189_Mu_Power pow_s3 pow_s2 pow_s1 bad_chI -v7.3
 
-
-pow_s1a = mean(pow_s1,2);
-pow_s2a = mean(pow_s2,2);
-pow_s3a = mean(pow_s3,2);
+pow_s1a = mean(pow_s1(:,:),2);
+pow_s2a = mean(pow_s2(:,:),2);
+pow_s3a = mean(pow_s3(:,:),2);
 figure;
 hold on
 boxplot([pow_s1a pow_s2a pow_s3a])
@@ -698,19 +699,21 @@ xlim([1.5 3.5])
 
 % plotting mu power
 val=pow_s2a-pow_s3a;
+%val=pow_s3a;
 figure;
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
 e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
 for j=1:length(val)
-    ms = val(j)*4;    
+    ms = val(j)*2;    
     if ms>=0.0 && bad_chI(j)
-        e_h = el_add(elecmatrix(j,:), 'color', 'r','msize',abs(ms));
-    elseif ms<0 && bad_chI(j)
         e_h = el_add(elecmatrix(j,:), 'color', 'b','msize',abs(ms));
+    elseif ms<0 && bad_chI(j)
+        e_h = el_add(elecmatrix(j,:), 'color', 'r','msize',abs(ms));
     end
 end
 set(gcf,'Color','w')
 title('EC 189 Mu power (hold-move)')
+sum(val(bad_chI)>0)/sum(bad_chI)
 
 % plotting hG power
 tmp = mean(hg_pow,2);
@@ -757,7 +760,7 @@ end
 % ERPs
 figure;
 hold on
-ch=235;
+ch=235; 
 hg_ep1 = squeeze(mean(hg_ep(:,ch,:),3));
 alp_ep1 = squeeze(mean(alp_ep(:,ch,:),3));
 mu_ep1 = squeeze(mean(mu_ep(:,ch,:),3));
@@ -777,6 +780,31 @@ ylabel('Z score')
 plot_beautify
 axis tight
 title('Amplitude ERPs M1 Channel')
+
+
+% ERPs for mu
+ch=249;
+mu_ep1 = squeeze((mu_ep(:,ch,:)));
+tt=-1:(1/Fs):7;
+if length(tt)>size(mu_ep1,1)
+    tt=tt(1:end-1);
+end
+figure
+m = mean(mu_ep1,2);
+mb = sort(bootstrp(1000,@mean,mu_ep1'));
+[fillhandle,msg]=jbfill(tt,(mb(25,:)),(mb(975,:))...
+        ,[0.2 0.2 0.8],[0.2 0.2 0.8],1,.25);
+hold on
+plot(tt,m,'Color','b','LineWidth',1)
+vline([0 3.7])
+hline(0)
+xlim([-1 6])
+xlabel('Time (s)')
+ylabel('Z score')
+plot_beautify
+axis tight
+
+
 
 % phase amplitude coupling between the hG and mu at specific task phases
 %bpfilt is the one for mu
@@ -984,9 +1012,10 @@ for i=9:16
     k=k+1;
 end
 
+% coz its there at 13hz also 
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',4.5,'HalfPowerFrequency2',7.5, ...
-    'SampleRate',Fs);
+    'SampleRate',Fs);%5.5 to 8.5 
 
 % bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
 %     'HalfPowerFrequency1',8,'HalfPowerFrequency2',13, ...
@@ -1240,6 +1269,10 @@ for i=1:length(hold_dur1)
 end
 
 
+cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
+save EC210_Mu_Pow pow_s1 pow_s2 pow_s3 bad_chI -v7.3
+
+
 pow_s1a = mean(pow_s1,2);
 pow_s2a = mean(pow_s2,2);
 pow_s3a = mean(pow_s3,2);
@@ -1257,6 +1290,7 @@ title('EC 210 Mu power')
 
 % plotting mu power
 val=pow_s2a-pow_s3a;
+%val=pow_s2a;
 figure;
 c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'rh',1,1,1);
 e_h = el_add(elecmatrix([1:256],:), 'color', 'w', 'msize',2);
@@ -1369,6 +1403,46 @@ hline(0,'--r')
 vline([0 1.7],'--k')
 
 
+% plotting mu ERPs for a few channels 
+figure;
+ch=[156:158];
+%ch=92;
+% plot mu
+subplot(2,1,1)
+mu_ep1 = squeeze((mu_ep(:,ch,:)));
+mu_ep1 = mu_ep1(:,:);
+m = mean(mu_ep1,2);
+mb = sort(bootstrp(1000,@mean,mu_ep1'));
+[fillhandle,msg]=jbfill(tt,(mb(25,:)),(mb(975,:))...
+        ,[0.2 0.2 0.8],[0.2 0.2 0.8],1,.25);
+hold on
+plot(tt,m,'Color','b','LineWidth',1)
+xlim([-1 4.0])
+ylim([-3 3])
+xticks(-1:1:4)
+hline(0,'--r')
+vline([0 1.7],'--k')
+plot_beautify
+yticks(-3:1:3)
+
+ch=[252 236 220 ];
+subplot(2,1,2)
+mu_ep1 = squeeze((mu_ep(:,ch,:)));
+mu_ep1 = mu_ep1(:,:);
+m = mean(mu_ep1,2);
+mb = sort(bootstrp(1000,@mean,mu_ep1'));
+[fillhandle,msg]=jbfill(tt,(mb(25,:)),(mb(975,:))...
+        ,[0.2 0.2 0.8],[0.2 0.2 0.8],1,.25);
+hold on
+plot(tt,m,'Color','b','LineWidth',1)
+xlim([-1 4.0])
+ylim([-3.1 3])
+xticks(-1:1:4)
+hline(0,'--r')
+vline([0 1.7],'--k')
+plot_beautify
+yticks(-3:1:3)
+
 close all
 
 % phase amplitude coupling between the hG and mu at specific task phases
@@ -1379,7 +1453,7 @@ hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
 
 % mu 
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
+    'HalfPowerFrequency1',4.5,'HalfPowerFrequency2',7.5, ...
     'SampleRate',Fs);
 
 % % Example: Low-pass FIR filter for LFO
@@ -1506,13 +1580,14 @@ plot_beautify
 
 % box plot of PAC
 figure;
-boxplot([a(bad_chI)' b(bad_chI)'],'Notch','on')
+boxplot([a(bad_chI)' b(bad_chI)'],'Notch','off')
 xticks(1:2)
 xticklabels({'Hold','Move'})
 [p,h]=signrank(a(bad_chI),b(bad_chI))
 title('EC 210')
 ylabel('LFO-hG PAC')
 plot_beautify
+sum((a(bad_chI)' -b(bad_chI)')>0)/sum(bad_chI)
 
 % plot on brain
 val=b;
@@ -1574,8 +1649,10 @@ for i=9:16
     k=k+1;
 end
 
+
+% if center freq is 16, then 14.5 to 17.5? 
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',11,'HalfPowerFrequency2',17, ...
+    'HalfPowerFrequency1',14.5,'HalfPowerFrequency2',17.5, ...
     'SampleRate',Fs);
 
 bpFilt1 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -1883,6 +1960,9 @@ ylabel('Z-score relative to rest')
 xlim([1.5 3.5])
 title('EC 176 Mu power')
 
+cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
+save EC176_Mu_Pow pow_s1 pow_s2 pow_s3 -v7.3
+
 % plotting mu power
 val=pow_s2a-pow_s3a;
 figure;
@@ -1976,13 +2056,13 @@ hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',Fs);
 
 % mu 
-% bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-%     'HalfPowerFrequency1',11,'HalfPowerFrequency2',17, ...
-%     'SampleRate',Fs);
+bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',14.5,'HalfPowerFrequency2',17.5, ...
+    'SampleRate',Fs);
 
 % Example: Low-pass FIR filter for LFO
-bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
-               'HalfPowerFrequency', 3, 'SampleRate', Fs);
+% bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
+%                'HalfPowerFrequency', 3, 'SampleRate', Fs);
 
 
 

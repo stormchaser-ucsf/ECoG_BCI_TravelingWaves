@@ -315,3 +315,9 @@ for s = 1:length(subj_ids)
         subj_ids(s), p, stats.zval, length(move_vals));
 
 end
+
+
+%% ERPs of mu
+
+
+%% PAC of mu and hG 
