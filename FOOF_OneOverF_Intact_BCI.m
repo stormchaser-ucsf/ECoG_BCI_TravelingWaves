@@ -679,8 +679,8 @@ for i=1:length(hold_dur1)
     pow_s3(:,i) = mean(tmp(idx,:),1);
 end
 
-cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
-save EC189_Mu_Power pow_s3 pow_s2 pow_s1 bad_chI -v7.3
+% cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
+% save EC189_Mu_Power pow_s3 pow_s2 pow_s1 bad_chI -v7.3
 
 pow_s1a = mean(pow_s1(:,:),2);
 pow_s2a = mean(pow_s2(:,:),2);
@@ -910,7 +910,8 @@ sig_ch_hold = (pval_hold<=pfdrh);
 sum(pval_move<=pfdrm)
 sig_ch_move = (pval_move<=pfdrm);
 
-save EC189_sig_ch_LFO_hG_PAC plv_move plv_hold ...
+cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
+save EC189_sig_ch_mu_hG_PAC plv_move plv_hold ...
     pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
 
 % plot on brain 
@@ -1545,7 +1546,8 @@ sig_ch_hold = (pval_hold<=pfdrh);
 sum(pval_move<=pfdrm)
 sig_ch_move = (pval_move<=pfdrm);
 
-save sig_ch_LFO_hG_PAC plv_move plv_hold ...
+cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
+save EC210_sig_ch_Mu_hG_PAC plv_move plv_hold ...
     pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
 
 % plot on brain 
@@ -1960,8 +1962,8 @@ ylabel('Z-score relative to rest')
 xlim([1.5 3.5])
 title('EC 176 Mu power')
 
-cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
-save EC176_Mu_Pow pow_s1 pow_s2 pow_s3 bad_chI -v7.3
+% cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
+% save EC176_Mu_Pow pow_s1 pow_s2 pow_s3 bad_chI -v7.3
 
 % plotting mu power
 val=pow_s2a-pow_s3a;
@@ -2151,7 +2153,8 @@ sig_ch_hold = (pval_hold<=pfdrh);
 sum(pval_move<=pfdrm)
 sig_ch_move = (pval_move<=pfdrm);
 
-save EC176_sig_ch_LFO_hG_PAC plv_move plv_hold ...
+cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
+save EC176_sig_ch_mu_hG_PAC plv_move plv_hold ...
     pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
 
 % plot on brain 
@@ -2186,7 +2189,7 @@ plot_beautify
 
 
 figure;
-boxplot([a(bad_chI)' b(bad_chI)'],'Notch','on')
+boxplot([a(bad_chI)' b(bad_chI)'],'Notch','off')
 xticks(1:2)
 xticklabels({'Hold','Move'})
 [p,h]=signrank(a(bad_chI),b(bad_chI))
@@ -2194,6 +2197,16 @@ title('EC 176')
 ylabel('LFO hG PAC')
 plot_beautify
 yticks([0:.1:.9])
+
+figure;
+hold on
+for j=1:length(a)
+    if bad_chI(j)
+        idx  =[1 2] + 0.1*randn(1,2);
+        plot([idx(1),idx(2)],[a(j),b(j)],'Color',[.5 .5 .5 .5])
+    end
+end
+boxplot([a(bad_chI)' b(bad_chI)'])
 
 % plot on brain
 val=a-b;
