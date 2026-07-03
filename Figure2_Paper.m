@@ -317,7 +317,190 @@ for s = 1:length(subj_ids)
 end
 
 
-%% ERPs of mu
+%% Mu hold - move 
 
+cd('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
+addpath(genpath(pwd))
+ec176 = load('EC176_Mu_Pow.mat');
+ec189 = load('EC189_Mu_Power.mat');
+ec210 = load('EC210_Mu_Pow.mat');
+
+
+% plot now percent channels significant
+subj_names = {'ec176','ec189','ec210'};
+subj.ec176 = ec176;
+subj.ec189 = ec189;
+subj.ec210 = ec210;
+pow_move_all=[];
+pow_hold_all=[];
+idxx=[];
+for i=1:length(subj_names)
+
+    bad_chI = subj.(subj_names{i}).bad_chI;
+    pow_hold = subj.(subj_names{i}).pow_s2;
+    pow_move = subj.(subj_names{i}).pow_s3;
+    good_ch = find(bad_chI==1);
+
+    a = mean(pow_hold,2);
+    pow_hold_all =[pow_hold_all; a(good_ch)];
+    
+
+    b = mean(pow_move,2);
+    pow_move_all =[pow_move_all; b(good_ch)];
+    idxx = [idxx;i*ones(length(good_ch),1)];
+end
+
+
+% now scatter plv values each subject
+for i=1:3
+    figure;
+    idx=find(idxx==i);
+    d=[pow_hold_all(idx) pow_move_all(idx)];
+    boxplot(d)   
+    xticks(1:2)
+    xticklabels({'Move','Hold'})
+    plot_beautify
+    title(subj_names{i})
+    %ylim([0 0.9])
+    %yticks([0:.1:.8])
+end
+
+%all at once
+pow_hold_all = pow_hold_all(:);
+pow_move_all = pow_move_all(:);
+idxx = idxx(:);
+
+subj_ids = unique(idxx);
+
+box_data = [];
+group = [];
+labels = {};
+
+cnt = 0;
+
+for s = 1:length(subj_ids)
+
+    rows = idxx == subj_ids(s);
+
+    % Hold
+    cnt = cnt + 1;
+    box_data = [box_data; pow_hold_all(rows)];
+    group = [group; cnt * ones(sum(rows),1)];
+    labels{cnt} = sprintf('S%d Hold', subj_ids(s));
+
+    % Move
+    cnt = cnt + 1;
+    box_data = [box_data; pow_move_all(rows)];
+    group = [group; cnt * ones(sum(rows),1)];
+    labels{cnt} = sprintf('S%d Move', subj_ids(s));
+
+end
+
+figure; hold on;
+
+boxplot(box_data, group, ...
+    'Labels', labels, ...
+    'Symbol', '', ...
+    'Colors', 'k');   % outlines initially black
+
+ylabel('Mu Power')
+set(gca, 'FontSize', 14)
+xtickangle(45)
+box off
+
+% Colors
+hold_color = [0 0.4470 0.7410];        % blue
+move_color = [0.8500 0.3250 0.0980];   % orange
+
+% Get box handles
+h_box = findobj(gca, 'Tag', 'Box');
+h_box = flipud(h_box);   % correct order: S1 Hold, S1 Move, S2 Hold, ...
+
+% Add colored patches behind boxes
+patch_handles = gobjects(2,1);
+
+for k = 1:length(h_box)
+
+    if mod(k,2) == 1
+        this_color = hold_color;
+    else
+        this_color = move_color;
+    end
+
+    p = patch(get(h_box(k),'XData'), get(h_box(k),'YData'), this_color, ...
+        'FaceAlpha', 0.35, ...
+        'EdgeColor', this_color, ...
+        'LineWidth', 1.5);
+
+    % save handles for legend
+    if k == 1
+        patch_handles(1) = p;
+    elseif k == 2
+        patch_handles(2) = p;
+    end
+end
+
+% Make median lines black and thicker
+h_med = findobj(gca, 'Tag', 'Median');
+set(h_med, 'Color', 'k', 'LineWidth', 2);
+
+% Make whiskers/caps black too
+set(findobj(gca, 'Tag', 'Whisker'), 'Color', 'k', 'LineWidth', 1.2);
+set(findobj(gca, 'Tag', 'Upper Adjacent Value'), 'Color', 'k', 'LineWidth', 1.2);
+set(findobj(gca, 'Tag', 'Lower Adjacent Value'), 'Color', 'k', 'LineWidth', 1.2);
+
+% Put colored patches behind black median lines
+uistack(h_med, 'top');
+
+% Legend on top distinguishing Hold vs Move
+legend(patch_handles, {'Hold', 'Move'}, ...
+    'Location', 'northoutside', ...
+    'Orientation', 'horizontal', ...
+    'Box', 'off');
+plot_beautify
+ylim([-2 3])
+yticks([-2:1:3])
+ylabel('Mu Power (z)')
+hline(0,'--k')
+xticks ''
+xticklabels ''
+
+% stats
+pow_hold_all = pow_hold_all(:);
+pow_move_all = pow_move_all(:);
+idxx = idxx(:);
+
+subj_ids = unique(idxx);
+
+pvals = nan(length(subj_ids),1);
+stats_out = cell(length(subj_ids),1);
+
+for s = 1:length(subj_ids)
+
+    rows = idxx == subj_ids(s);
+
+    hold_vals = pow_hold_all(rows);
+    move_vals = pow_move_all(rows);
+
+    % remove NaNs if needed
+    good = ~isnan(hold_vals) & ~isnan(move_vals);
+    hold_vals = hold_vals(good);
+    move_vals = move_vals(good);
+
+    [p, h, stats] = signrank(move_vals, hold_vals);
+
+    pvals(s) = p;
+    stats_out{s} = stats;
+
+    fprintf('Subject %d: p = %.4g, zval = %.3f, n = %d\n', ...
+        subj_ids(s), p, stats.zval, length(move_vals));
+
+end
+
+
+pow_diff = (pow_hold_all - pow_move_all);
+m = mean(pow_diff);
+mb = sort(bootstrp(1000,@mean,pow_diff));
+[mb(25) m mb(975)]
 
 %% PAC of mu and hG 
