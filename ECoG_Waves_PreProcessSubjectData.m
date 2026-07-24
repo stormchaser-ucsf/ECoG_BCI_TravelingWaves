@@ -2,7 +2,7 @@
 clear
 clc
 close all
-subj='B1';
+subj='B6';
 %% LOAD SUBJECT SPECIFIC DATA
 
 if strcmp(subj,'B3')
