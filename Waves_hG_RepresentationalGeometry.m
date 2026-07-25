@@ -2415,6 +2415,7 @@ Ytrain={};
 labels=[];
 k=1;
 idx = randperm(length(all_data_hand),1e3);
+idx =1:length(all_data_hand);
 for i=1:length(idx)
     disp(i/length(idx)*100)
     tmp=all_data_hand(idx(i)).mu_wave;
@@ -2455,7 +2456,8 @@ Ytrain=Ytrain';
 
 size(Xtrain)
 
-save Mu_Phase_Grad_Data_CNN_B6 Xtrain Ytrain labels -v7.3
+%save Mu_Phase_Grad_Data_CNN_B6 Xtrain Ytrain labels -v7.3
+save Mu_Phase_Grad_Data_CNN_B3_arrow_ALL Xtrain Ytrain labels -v7.3
 
 
 %%
