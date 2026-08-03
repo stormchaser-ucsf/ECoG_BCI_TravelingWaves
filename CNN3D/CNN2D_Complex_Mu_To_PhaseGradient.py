@@ -843,7 +843,7 @@ if __name__ == "__main__":
         device=device,
         lr=5e-4,
         weight_decay=1e-4,
-        max_epochs=20,
+        max_epochs=8,
         patience=6,
         grad_clip=1.0,
         save_path="best_complex_phase_gradient_cnn.pt",
