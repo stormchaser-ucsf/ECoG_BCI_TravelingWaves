@@ -1,8 +1,10 @@
-function [state_pow] = get_state_pow(files,bpFilt)
+function [state_pow,erps,acc] = get_state_pow(files,bpFilt)
 %function [state_pow] = get_state_pow(files,bpFilt)
 
 alp_power={};
 sizes=[];
+erps={};
+acc=[];
 for ii=1:length(files)
     disp(ii/length(files)*100)
     loaded=1;
@@ -33,8 +35,12 @@ for ii=1:length(files)
         %data = [data1;data2]; % only state 1 and 2
 
         % extract alpha envelope
+        tmp=randn(1000,size(data,2)) .* std(data,1);
+        data=[tmp;data];
         alp = filter(bpFilt,data);
+        %alp = filtfilt(bpFilt,data);
         alp_pow = abs(hilbert(alp));
+        alp_pow = alp_pow(1001:end,:);
 
         % % plotting example
         % figure;hold on
@@ -56,8 +62,17 @@ for ii=1:length(files)
         s = std(alp_pow(1:1000,:),1);
         alp_pow = (alp_pow-m)./s;
 
+        % get accuracy
+        selected_target = mode(TrialData.ClickerState);
+        if selected_target == TrialData.TargetID
+            acc = [ acc; 1];
+        else
+            acc = [acc;0];
+        end
+
         % store
         alp_power = cat(1,alp_power,alp_pow);
+        erps = cat(1,erps,alp_pow);
     end
 end
 
