@@ -37,8 +37,8 @@ for ii=1:length(files)
         % extract alpha envelope
         tmp=randn(1000,size(data,2)) .* std(data,1);
         data=[tmp;data];
-        alp = filter(bpFilt,data);
-        %alp = filtfilt(bpFilt,data);
+        %alp = filter(bpFilt,data);
+        alp = filtfilt(bpFilt,data);
         alp_pow = abs(hilbert(alp));
         alp_pow = alp_pow(1001:end,:);
 
