@@ -59,11 +59,17 @@ filename ='lfp_epochs_holdState.mat'
 #filename='lfp_epochs_moveState.mat'
 filename = filepath + filename
 
+# BCI 
+filepath ='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/'
+filename = 'lfp_epochs_BCI.mat'
+filename = filepath + filename
+
 data_dict = mat73.loadmat(filename)
 lfp = data_dict.get('lfp_epochs')
 Fs = data_dict.get('Fs')
 bad_chI  = data_dict.get('bad_chI')
 
+#lfp = [x[0] for x in lfp]
 
 
 #%% RUN FOOOF

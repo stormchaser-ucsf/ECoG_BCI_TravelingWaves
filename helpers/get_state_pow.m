@@ -1,10 +1,11 @@
-function [state_pow,erps,acc] = get_state_pow(files,bpFilt)
+function [state_pow,erps,acc,raw_data] = get_state_pow(files,bpFilt)
 %function [state_pow] = get_state_pow(files,bpFilt)
 
 alp_power={};
 sizes=[];
 erps={};
 acc=[];
+raw_data={};
 for ii=1:length(files)
     disp(ii/length(files)*100)
     loaded=1;
@@ -32,13 +33,16 @@ for ii=1:length(files)
         sizes =[sizes; [l1 l2 l3 l4]];
 
         data = [data1;data2;data3;data4];
+        tmp = [data3;data4];
+        tmp = tmp(1:3000,:);
+        raw_data = cat(2,raw_data,tmp);
         %data = [data1;data2]; % only state 1 and 2
 
         % extract alpha envelope
         tmp=randn(1000,size(data,2)) .* std(data,1);
         data=[tmp;data];
-        %alp = filter(bpFilt,data);
-        alp = filtfilt(bpFilt,data);
+        alp = filter(bpFilt,data);
+        %alp = filtfilt(bpFilt,data);
         alp_pow = abs(hilbert(alp));
         alp_pow = alp_pow(1001:end,:);
 

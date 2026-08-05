@@ -82,27 +82,85 @@ for days=1:len_days
     end
 
 
-    [state_pow,erps,acc] = get_state_pow(files,bpFilt);
+    [state_pow,erps,acc,lfp_epochs] = get_state_pow(files,bpFilt);
     %title(['Day ' num2str(days) ' CL'])
     state_pow_days_cl{days}=state_pow;
   
 end
 
 
-save mu_state_power_B3 state_pow_days_cl state_pow_days_ol -v7.3
+% lfp_epochs is a cell with each cell TXCh data matrix
+Fs=1e3;
+bad_chI = ones(256,1);
+bad_chI([108 113 118])=0;
+save lfp_epochs_BCI lfp_epochs Fs bad_chI -v7.3 
 
-% plot ERPs from a day with high mu 
+
+%save mu_state_power_B3 state_pow_days_cl state_pow_days_ol -v7.3
+
+% plot ERPs from a day with high mu
+% think you will have to renormalize here to the first 500ms or so and then
+% ensure that the y mag does not cross boxplot values
 erp=[];
-for i=1:length(erps)
+parfor i=1:length(erps)
     tmp = erps{i};
+    tmp = tmp(501:end,:); % removing the first 500ms. 
+    tmp = detrend(tmp);
+    for j=1:size(tmp,2)
+        tmp(:,j) = smooth(tmp(:,j),10);
+    end
+    m = mean(tmp(1:500,:),1);
+    s = std(tmp(1:500,:),1);
+    tmp = (tmp-m)./1;
     %tmp = tmp(:,ecog_grid);
+    
+    % earlier with full data
     % first 1800ms are basically rest plus cue
-    tmp = tmp(1:3800,:);
+    %tmp = tmp(1:3800,:);
+
+    % after removing first 500ms and re zscoring 
+    % first 500ms is state 1, then 800ms if state 2 i.e, 1300ms
+    % take the next 3s of data ie 1300+3000 = 4300ms
+    
+    tmp = tmp(1:4300,:);
     erp(i,:,:) = tmp;
 end
 
 x = squeeze(mean(erp,1));
-x = mean(x(1801:end,:),1);
+figure;plot(mean(x,2));
+xlim([500 4800])
+xx = mean(x(1301:end,:),1);
+
+figure;imagesc(xx(ecog_grid))
+
+% get ERPs in a few channels
+figure
+ch=[116 201];
+for i=1:length(ch)
+    subplot(2,1,i)
+    mu_ep1 = squeeze((erp(:,:,ch(i))))';
+    tt = linspace(-1.3,3,size(mu_ep1,1));
+    m = mean(mu_ep1,2);
+    mb = sort(bootstrp(1000,@mean,mu_ep1'));
+    [fillhandle,msg]=jbfill(tt,(mb(25,:)),(mb(975,:))...
+        ,[0.2 0.2 0.8],[0.2 0.2 0.8],1,.25);
+    hold on
+    plot(tt,m,'Color','b','LineWidth',1)
+    xlim([-1.3 2.5])
+    %xticks([-1.3 -0.8:0.8:2.5])
+    xticks([-1:0.5:2.5])
+    ylim([-0.75 2.5])
+    vline([-0.8 0],'--k')
+    hline(0)    
+    xlabel('Time (s)')
+    ylabel('Z score')
+    plot_beautify    
+end
+
+
+
+
+
 
 % 
 % tmp=state_pow(:,2)';
@@ -142,4 +200,7 @@ hline(0)
 ylim([-.201 1.701])
 yticks([-.2:.4:1.8])
 
-% get ERPs in a few channels
+
+
+
+

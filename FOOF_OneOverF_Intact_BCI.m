@@ -613,7 +613,8 @@ for i=1:length(trial_timings)
 
 end
 
-%save lfp_epochs_moveState lfp_epochs Fs bad_chI -v7.3
+% lfp_epochs is a cell with each cell TXCh data matrix
+%save lfp_epochs_moveState lfp_epochs Fs bad_chI -v7.3 
 
 % plot oscillation clusters
 f=2:40;
