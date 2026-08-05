@@ -182,14 +182,14 @@ session_data(10).AM_PM = {'am','am','am','am','am','am',...
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230511\HandImagined';
 %filepath = 'F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3\20230518\HandOnline';
 %filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230223/Robot3DArrow';
-%filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230518/HandOnline';
+filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20230518/HandOnline';
 %filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/20231011/HandOnline';
 
 %filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/REAL_MOVEMENT_DATA/ObjectGraspImagined/';
 %filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20250917/Robot3DArrow/';
 %filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/20250703/Robot3DArrow/';
 
-filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/20240712/Robot3DArrow/';
+%filepath='/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/20240712/Robot3DArrow/';
 
 
 load('ECOG_Grid_8596_000067_B3.mat')
@@ -339,12 +339,15 @@ end
 f=2:40;
 figure;
 hold on
-plot(f,osc_clus/243,'Color',[.5 .5 .5 .5],'LineWidth',.5)
-plot(f,mean(osc_clus,1)/243,'b','LineWidth',2)
-xlabel('Freq')
+plot(f,osc_clus/253,'Color',[.5 .5 .5 .5],'LineWidth',.5)
+plot(f,mean(osc_clus,1)/253,'b','LineWidth',2)
+xlabel('Frequency')
 ylabel('Prop. of channels')
 plot_beautify
-title('B6 arrow BCI')
+title('B3 Hand BCI')
+xlim([2 24])
+xticks([0:4:24])
+yticks([0:.2:1])
 
 % plot power spectrum
 figure;

@@ -310,6 +310,8 @@ fooof_settings = dict(
 )
 
 for trial_idx in np.arange(len(lfp)):
+    
+    print(trial_idx)
 
     data = lfp[trial_idx]   # time x channels
 
