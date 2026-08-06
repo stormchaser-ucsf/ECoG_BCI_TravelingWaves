@@ -309,7 +309,7 @@ fooof_settings = dict(
     verbose=False
 )
 
-for trial_idx in np.arange(len(lfp)):
+for trial_idx in np.arange(10): #np.arange(len(lfp)):
     
     print(trial_idx)
 
