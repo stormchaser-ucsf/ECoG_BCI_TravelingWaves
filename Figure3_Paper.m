@@ -200,7 +200,10 @@ hline(0)
 ylim([-.201 1.701])
 yticks([-.2:.4:1.8])
 
+%% stuff to save the data
 
+set(gcf,'PaperPositionMode','auto');
+print(gcf,'Mu_Power_Days_B3_Hand_AllChannels.svg','-dsvg','-painters','-r300');
 
 
 
