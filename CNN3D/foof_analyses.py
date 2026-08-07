@@ -428,7 +428,7 @@ for ex in examples:
     plt.waitforbuttonpress()
     
 #plot specific ones
-ex=[2,12,17]
+ex=[72,0,1,2,32,5,18]
 
 for i in np.arange(len(ex)):
     
@@ -469,7 +469,7 @@ for i in np.arange(len(ex)):
 
 
 image_format = 'svg' 
-image_name = 'foof3.svg'
+image_name = 'foof_BCI.svg'
 plt.savefig(image_name, format=image_format, dpi=300,bbox_inches='tight', pad_inches=0)
 
 
