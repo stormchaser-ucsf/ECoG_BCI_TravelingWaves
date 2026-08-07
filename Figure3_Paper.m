@@ -203,7 +203,7 @@ yticks([-.2:.4:1.8])
 %% stuff to save the data
 
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'Mu_Power_Days_B3_Hand_AllChannels.svg','-dsvg','-painters','-r300');
+print(gcf,'Mu_Power_1st5Days_2nd5Days_B3_Hand_AllChannels.svg','-dsvg','-painters','-r300');
 
 
 
