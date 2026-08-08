@@ -202,8 +202,15 @@ yticks([-.2:.4:1.8])
 
 %% stuff to save the data
 
+% svg
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'Mu_Power_1st5Days_2nd5Days_B3_Hand_AllChannels.svg','-dsvg','-painters','-r300');
+print(gcf,'Slopes_PAC_mu_hG_DecodingInfo_AllDays.svg','-dsvg','-painters','-r300');
+    
+
+% png
+set(gcf,'PaperPositionMode','auto');
+print(gcf,'Days1to3_SigCh_PLV_mu_hG.png','-dpng','-r500');
+
 
 
 
