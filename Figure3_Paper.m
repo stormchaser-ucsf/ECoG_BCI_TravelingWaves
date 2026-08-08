@@ -171,9 +171,13 @@ end
 
 days=1:10;
 pow=[];
+pval=[];zval=[];
 for i=1:10
     tmp = state_pow_days_cl{i};
     pow(:,i) = tmp(:,3);
+    [p,h,stats]=signrank(tmp(:,3));
+    pval(i) = p;
+    zval(i) = stats.zval;
 end
 figure;
 boxplot(pow,'Whisker',2)
@@ -187,7 +191,42 @@ hline(0)
 ylim([-.201 1.701])
 yticks([-.2:.4:1.8])
 
-% splitting early vs late
+% stats 
+[pfdr,pmask] = fdr(pval,0.05);
+
+% sigmoid early vs. late
+x=1:10;
+y=median(pow);
+ft = fittype('L/(1+exp(k*(x-x0)))', 'independent','x', 'coefficients',{'L','k','x0'});
+opts = fitoptions(ft);
+opts.StartPoint = [max(y) 1 median(x)];
+opts.Lower = [0 0 0];
+opts.Upper = [1 10 10];
+[mdl,gof] = fit(x',y',ft,opts);
+R2 = gof.rsquare;
+
+parfor i=1:1000
+    xx = randperm(10);    
+    [mdlb,gofb] = fit(xx',y',ft,opts);    
+    r2boot(i) = gofb.rsquare;
+end
+figure;hist(abs(r2boot),50)
+vline(R2,'r')
+sum(r2boot>R2)/length(r2boot)
+
+xx=linspace(1,10,100);
+yhat = feval(mdl,xx');
+figure;
+hold on
+boxplot(pow)
+plot(x,y,'.b','MarkerSize',20)
+plot(xx,yhat,'k','LineWidth',1)
+xlabel('Days')
+ylabel('Mu power (z)')
+plot_beautify
+
+
+% splitting early vs late as two groups
 early_pow = pow(:,1:5);
 late_pow = pow(:,6:end);
 figure;
@@ -199,6 +238,24 @@ plot_beautify
 hline(0)
 ylim([-.201 1.701])
 yticks([-.2:.4:1.8])
+
+% linear mixed effect model between early and late
+%( my version)
+
+day_name = repelem(1:10,253)';
+mu_pow = [early_pow(:);late_pow(:)];
+grp  = [zeros(size(early_pow(:)));ones(size(late_pow(:)))];
+data = table(mu_pow,grp,day_name);
+% fit
+lme = fitlme(data,'mu_pow ~  grp + (1|day_name) ');
+disp(lme)
+disp(lme.Coefficients)
+
+
+
+
+%% ANOVA-style test of fixed effect
+disp(anova(lme))
 
 %% stuff to save the data
 

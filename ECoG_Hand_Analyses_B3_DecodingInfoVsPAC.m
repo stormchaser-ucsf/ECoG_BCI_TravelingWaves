@@ -195,9 +195,13 @@ for i=1:length(session_data)
 
 
 
-    % regression
-    x = abs(mean(pac))';
-    y = mahab_dist';
+    %%%% regression
+    % this predicts pac from mahab dist
+    %x = abs(mean(pac))';
+    %y = mahab_dist';
+    % this just looks at their relationship
+    x= mahab_dist';
+    y = abs(mean(pac))';
     x = [ones(size(x,1),1) x];
     %[B,BINT,R,RINT,STATS1] = regress(y,x);
     mdl = fitlm(x(:,2),y,'RobustOpts','on');
@@ -333,7 +337,8 @@ for i=1:10
     x = pac_days(:,i);
     y = mahab_dist_days(:,i);
     x = [ones(size(x,1),1) x];  
-    mdl = fitlm(x(:,2),y,'RobustOpts','on');
+    %mdl = fitlm(x(:,2),y,'RobustOpts','on');
+    mdl = fitlm(y,x(:,2),'RobustOpts','on');
     B = mdl.Coefficients.Estimate;
     slopes(i)=B(2);
 end
