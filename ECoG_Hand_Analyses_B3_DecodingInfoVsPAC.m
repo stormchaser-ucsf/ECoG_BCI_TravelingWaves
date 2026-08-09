@@ -6,7 +6,7 @@
 
 
 clc;clear
-close all
+%close all
 
 
 
@@ -282,6 +282,8 @@ for i=1:length(session_data)
 
 end
 
+figure;plot(1:10,reg_days(2,:),'.','MarkerSize',20)
+
 
 pac_days = pac_days';
 mahab_dist_days=mahab_dist_days';
@@ -381,7 +383,7 @@ plot_beautify
 xlim([0.5 10.5])
 hline(0,'--r')
 
-save mahab_pac_mu_hg_B3_Hand_New -v7.3
+save mahab_pac_mu_hg_B3_Hand_New_New -v7.3
 %save mahab_pac_alpha_hg_B3_Hand_New -v7.3
 %save mahab_pac_delta_hg_B3_Hand_New -v7.3
 
