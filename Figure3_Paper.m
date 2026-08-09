@@ -261,7 +261,7 @@ disp(anova(lme))
 
 % svg
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'Slopes_PAC_mu_hG_DecodingInfo_AllDays.svg','-dsvg','-painters','-r300');
+print(gcf,'Slopes_PAC_mu_hG_DecodingInfo_AllDays_New.svg','-dsvg','-painters','-r300');
     
 
 % png
