@@ -179,12 +179,15 @@ for i=1:length(session_data)
         % plot and see?
         %figure;
         subplot(1,3,3)
-        %plot(mahab_dist,abs(mean(pac)),'.','MarkerSize',20)
-        %xlabel('Mahab Dist')
-        %ylabel('PAC')
-        plot(abs(mean(pac)),mahab_dist,'.','MarkerSize',20)
-        ylabel('Mahab Dist')
-        xlabel('PAC')        
+        % using mahab dist as predictor
+        plot(mahab_dist,abs(mean(pac)),'.','MarkerSize',10)
+        xlabel('Mahab Dist')
+        ylabel('PAC')
+        
+        % using pac as predictor
+        % plot(abs(mean(pac)),mahab_dist,'.','MarkerSize',20)
+        % ylabel('Mahab Dist')
+        % xlabel('PAC')        
         title(['CL Day ' num2str(i)])
         ylim([0 0.7])
         plot_beautify
@@ -213,7 +216,8 @@ for i=1:length(session_data)
 
         yhat = x*B;
         plot(x(:,2),yhat,'k','LineWidth',1)
-        xlim([0 1])
+        xlim([0 0.8])
+        %xlim([0 1])
         %ylim([0 1])
 
         % %%plot mahab dist on brain
