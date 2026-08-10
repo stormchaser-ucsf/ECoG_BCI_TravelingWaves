@@ -261,12 +261,12 @@ disp(anova(lme))
 
 % svg
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'Slopes_PAC_mu_hG_DecodingInfo_AllDays_New.svg','-dsvg','-painters','-r300');
+print(gcf,'Prop_sig_ch_PAC_LFO_hG_B3_Days.svg','-dsvg','-painters','-r300');
     
 
 % png
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'Days1to3_SigCh_PLV_mu_hG.png','-dpng','-r500');
+print(gcf,'Days1to2_SigCh_PLV_delta_hG.png','-dpng','-r500');
 
 
 
