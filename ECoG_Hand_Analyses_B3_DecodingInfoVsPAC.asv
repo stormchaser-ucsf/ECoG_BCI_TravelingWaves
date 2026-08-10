@@ -36,12 +36,12 @@ end
 %     'HalfPowerFrequency1',8,'HalfPowerFrequency2',10, ...
 %     'SampleRate',1e3);
 
-d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
-    'SampleRate',1e3);
+% d1 = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+%     'SampleRate',1e3);
 
-% d1 = designfilt('lowpassiir', 'FilterOrder', 4, ...
-%                'HalfPowerFrequency', 3, 'SampleRate', 1e3);
+d1 = designfilt('lowpassiir', 'FilterOrder', 4, ...
+               'HalfPowerFrequency', 3, 'SampleRate', Fs);
 
 
 
@@ -56,8 +56,8 @@ d3 = designfilt('bandpassiir','FilterOrder',4, ...
 
 
 
-% imaging_B3_waves;
-% close all
+imaging_B3_waves;
+close all
 
 plot_true = false;
 
