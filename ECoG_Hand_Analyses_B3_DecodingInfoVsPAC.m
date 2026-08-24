@@ -517,6 +517,7 @@ ROI(spchm1(:))    = "spchM1";
 ROI = categorical(ROI);
 
 %%%%  LME
+mahab_days = mahab_dist_days;
 DEC = mahab_days;
 DEC = DEC ./ max(DEC); % normalize it to per day relative ROI
 
