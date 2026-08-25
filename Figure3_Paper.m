@@ -261,12 +261,12 @@ disp(anova(lme))
 
 % svg
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'PMd_ChangeDecodingInfoDays_RegressionPlot.svg','-dsvg','-painters','-r300');
+print(gcf,'MahabDist_SingleCh.svg','-dsvg','-painters','-r300');
     
 
 % png
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'STGb.png','-dpng','-r500');
+print(gcf,'M1_speech.png','-dpng','-r500');
 
 
 
