@@ -2,7 +2,7 @@
 clear
 clc
 close all
-subj='B6';
+subj='B1';
 %% LOAD SUBJECT SPECIFIC DATA
 
 if strcmp(subj,'B3')
@@ -882,11 +882,14 @@ figure;imagesc(tmp1(ecog_grid))
 % B1,B6
 
 % 
-% d1 = designfilt('bandpassiir','FilterOrder',4, ...
-%     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
-%     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 d1 = designfilt('lowpassiir', 'FilterOrder', 4, ...
                'HalfPowerFrequency', 3, 'SampleRate', 1e3);
@@ -972,7 +975,7 @@ for i=1:length(folders)-1%go up to 8
         files = [files;findfiles('mat',imag_folderpath)'];
     end
 
-    len = min(120,length(files));
+    len = min(80,length(files));
     idx=randperm(length(files),len);
     files=files(idx);
 
@@ -982,6 +985,10 @@ for i=1:length(folders)-1%go up to 8
         [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
         % run permutation test and get pvalue for each channel
         [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
+        [pfdr,pp]=fdr(pval,0.05);
+        sum(pval<=pfdr)/253
+        r=abs(mean(pac,1));
+        median(r)
     else
         pac=[];
         rboot=[];
@@ -1064,13 +1071,14 @@ xticks(1:size(pac_all,1))
 xlabel('Days')
 ylabel('PAC mu hG')
 xlim([0.5 size(pac_all,1)+0.5])
+ylim([0 0.7])
 
 figure;plot(1:size(pac_all,1),cl)
 xticks(1:size(pac_all,1))
 xlabel('Days')
 ylabel('No. sig chan')
 xlim([0.5 size(pac_all,1)+0.5])
-
+ylim([0 0.7])
 
 
 %% (MAIN) GETTING PAC BETWEEN MU AND HG IN ARROW TASK

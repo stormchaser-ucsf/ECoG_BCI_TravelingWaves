@@ -28,9 +28,16 @@ end
 %% Percent sig Mu-hG PAC channels 
 % contrast with LFO-hG PAC
 
+% load B1 data
+root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/';
+cd(root_path)
+load('ECOG_Grid_8596_000067_B3.mat')
 
-save PAC_B1_LFO_hG_rawValues_New -v7.3
-%save PAC_B1_Mu_hG_rawValues_New -v7.3
+
+a = load('PAC_B1_LFO_hG_rawValues_New.mat'); % LFO-hG PAC
+a = load('PAC_B1_Mu_hG_rawValues_New.mat'); % Mu-hG PAC
+
+
 
 %% Decoding relationship w/ Mahab Dist
 
