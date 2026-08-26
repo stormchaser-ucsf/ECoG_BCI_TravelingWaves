@@ -1038,8 +1038,10 @@ toc
 
 
 %cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
+%save PAC_B6_Mu_hG_rawValues_New -v7.3
 %save PAC_B6_LFO_hG_rawValues_New -v7.3
 save PAC_B1_LFO_hG_rawValues_New -v7.3
+%save PAC_B1_Mu_hG_rawValues_New -v7.3
 
 
 % plotting results
