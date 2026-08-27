@@ -882,17 +882,17 @@ figure;imagesc(tmp1(ecog_grid))
 % B1,B6
 
 % 
-d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
-    'SampleRate',1e3); % 8 to 10 or 0.5 to 5
+% d1 = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+%     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',2.5, ...
     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
-d1 = designfilt('lowpassiir', 'FilterOrder', 4, ...
-               'HalfPowerFrequency', 3, 'SampleRate', 1e3);
+% d1 = designfilt('lowpassiir', 'FilterOrder', 4, ...
+%                'HalfPowerFrequency', 3, 'SampleRate', 1e3);
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
@@ -904,7 +904,7 @@ pac_batch=[];pval_batch=[];
 rboot_ol=[];rboot_cl=[];rboot_batch=[];
 pac_raw_values={};k=1;
 tic
-for i=1:length(folders)-1%go up to 8
+for i=1:length(folders)-1%go up to 8 if B1
 
 
     days=i;
@@ -1047,7 +1047,7 @@ toc
 %cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
 %save PAC_B6_Mu_hG_rawValues_New -v7.3
 %save PAC_B6_LFO_hG_rawValues_New -v7.3
-save PAC_B1_LFO_hG_rawValues_New -v7.3
+save PAC_B1_LFO_hG_rawValues_New_v2 -v7.3
 %save PAC_B1_Mu_hG_rawValues_New -v7.3
 
 
@@ -1069,7 +1069,7 @@ end
 figure;boxplot(pac_all')
 xticks(1:size(pac_all,1))
 xlabel('Days')
-ylabel('PAC mu hG')
+ylabel('PAC LFO hG')
 xlim([0.5 size(pac_all,1)+0.5])
 ylim([0 0.7])
 
@@ -1085,9 +1085,9 @@ ylim([0 0.7])
 % B3
 
 % 
-% d1 = designfilt('bandpassiir','FilterOrder',4, ...
-%     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
-%     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',2.5, ...
+    'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 
 
@@ -1240,8 +1240,8 @@ end
 
 
 
-%cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
-%save PAC_B3_LFO_hG_rawValues_Arrow_New -v7.3
+%cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/')
+save PAC_B3_LFO_hG_rawValues_Arrow_New_v2 -v7.3
 
 
 % plotting results
