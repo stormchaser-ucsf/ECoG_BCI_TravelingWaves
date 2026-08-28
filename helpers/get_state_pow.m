@@ -34,9 +34,13 @@ for ii=1:length(files)
 
         data = [data1;data2;data3;data4];
         tmp = [data3;data4];
-        tmp = tmp(1:3000,:);
+        if size(tmp,1)>3000
+            tmp = tmp(1:3000,:);
+        end
         raw_data = cat(2,raw_data,tmp);
         %data = [data1;data2]; % only state 1 and 2
+
+        
 
         % extract alpha envelope
         tmp=randn(1000,size(data,2)) .* std(data,1);

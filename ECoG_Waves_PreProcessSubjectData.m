@@ -729,8 +729,8 @@ for days=1:len_days
     day_date = session_data(days).Day;
     files=[];
     for ii=1:length(folders)
-        folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
-        %folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'Imagined');
+        %folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
+        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'Imagined');
         %cd(folderpath)
         files = [files;findfiles('mat',folderpath)'];
     end
@@ -746,8 +746,8 @@ for days=1:len_days
     day_date = session_data(days).Day;
     files=[];
     for ii=1:length(folders)
-        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
-        %folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
+        %folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
         %cd(folderpath)
         files = [files;findfiles('mat',folderpath)'];
     end
@@ -813,7 +813,7 @@ bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
 
 state_pow_days_ol={};
 state_pow_days_cl={};
-for days=1:len_days
+for days=1:length(folders)-1%go up to 8 if B1
 
     disp(['Processing day ' num2str(days)])
 
@@ -837,6 +837,8 @@ for days=1:len_days
             end
         end
     end
+
+
 
 
 
@@ -869,17 +871,50 @@ for days=1:len_days
 end
 
 
-% 
-tmp=state_pow(:,2)';
+
+days=1:days;
+pow=[];
+for i=1:length(days)
+    tmp = state_pow_days_cl{i};
+    pow(:,i) = tmp(:,3);
+end
+figure;
+boxplot(pow)
+ylabel('Z-score')
+title('Mu power during BCI control')
+xlabel('Days')
+xticks(1:length(days))
+plot_beautify
+hline(0)
+
+% splitting early vs late
+early_pow = pow(:,1:5);
+late_pow = pow(:,6:end);
+figure;
+boxplot([early_pow(:) late_pow(:)],'Notch','on')
+ylabel('Z-score')
+title('Mu power during BCI control (All chan)')
+xticks(1:2)
+xticklabels({'1st 5 Days','2nd 5 Days'})
+plot_beautify
+hline(0)
+
+
+% plot on brain
+tmp = (mean(late_pow,2) - mean(early_pow,2))';
 tmp1 = [tmp(1:107) 0 tmp(108:111) 0  tmp(112:115) 0 ...
     tmp(116:end)];
-
-figure;imagesc(tmp1(ecog_grid))
+figure;
+imagesc(tmp1(ecog_grid))
 
 
 
 %% (MAIN) GETTING PAC BETWEEN MU AND HG IN ARROW TASK
 % B1,B6
+
+%B1 - 0.5 to 2.5
+%B6 - Lowpass 3.0
+%B3 - 0.5 to 2.5
 
 % 
 % d1 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -904,7 +939,7 @@ pac_batch=[];pval_batch=[];
 rboot_ol=[];rboot_cl=[];rboot_batch=[];
 pac_raw_values={};k=1;
 tic
-for i=1:length(folders)-1%go up to 8 if B1
+for i=1:length(folders)%-1%go up to 8 if B1
 
 
     days=i;
@@ -1043,11 +1078,11 @@ end
 
 toc
 
-
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/')
 %cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
 %save PAC_B6_Mu_hG_rawValues_New -v7.3
-%save PAC_B6_LFO_hG_rawValues_New -v7.3
-save PAC_B1_LFO_hG_rawValues_New_v2 -v7.3
+save PAC_B6_LFO_hG_rawValues_New_v2 -v7.3
+%save PAC_B1_LFO_hG_rawValues_New_v2 -v7.3
 %save PAC_B1_Mu_hG_rawValues_New -v7.3
 
 
@@ -1270,5 +1305,5 @@ xticks(1:size(pac_all,1))
 xlabel('Days')
 ylabel('No. sig chan')
 xlim([0.5 11.5])
-
+ylim([0 1])
 

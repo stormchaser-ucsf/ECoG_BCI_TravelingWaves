@@ -41,7 +41,8 @@ a = load('PAC_B1_Mu_hG_rawValues_New.mat'); % Mu-hG PAC
 
 %% Decoding relationship w/ Mahab Dist
 % B1, B6 
-
+clc;clear;
+close all
 subj='B6';
 
 if strcmp(subj,'B1')
@@ -87,22 +88,23 @@ elseif strcmp(subj,'B6')
     num_targets=7;
 end
 
-% 
+
+%
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
-% 
+%
 % d1 = designfilt('bandpassiir','FilterOrder',4, ...
 %     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
 %     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
-% % 
-% d1a = designfilt('lowpassiir', 'FilterOrder', 4, ...
-%                'HalfPowerFrequency', 3, 'SampleRate', 1e3);
+% %
+d1a = designfilt('lowpassiir', 'FilterOrder', 4, ...
+    'HalfPowerFrequency', 3, 'SampleRate', 1e3);
 
-d1a = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',2.5, ...
-    'SampleRate',1e3); % B6 it is 0.5 to 2.5
+% d1a = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',2.5, ...
+%     'SampleRate',1e3); % B6 it is 0.5 to 2.5
 
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -246,7 +248,7 @@ for i=1:length(folders)
         rboot=[];
     end
 
-    
+
 
     %sum(pac_r>0.3)/253
     % pval_cl(i,:) = pval;
@@ -266,16 +268,16 @@ for i=1:length(folders)
     %     %cd(folderpath)
     %     files = [files;findfiles('mat',folderpath)'];
     % end
-    % 
+    %
     % if ~isempty(files)
-    % 
+    %
     %     % get the phase locking value
     %     disp(['Processing Day ' num2str(i) ' Batch'])
     %     [pac,alpha_phase,hg_alpha_phase] = compute_pac(files,d1,d2);
-    % 
+    %
     %     % run permutation test and get pvalue for each channel
     %     [pval,rboot] = compute_pval_pac(pac,alpha_phase,hg_alpha_phase);
-    % 
+    %
     %     pval_batch(i,:) = pval;
     %     pac_batch(i,:) = abs(mean(pac));
     %     %rboot_batch(i,:,:) = rboot;
@@ -284,8 +286,8 @@ for i=1:length(folders)
     %     pac_raw_values(k).type = 'Batch';
     %     pac_raw_values(k).Day = i;
     %     k=k+1;
-    % 
-    % 
+    %
+    %
     % else
     %     pac_batch(i,:)=NaN(1,253);
     %     pval_batch(i,:)=NaN(1,253);
@@ -312,7 +314,10 @@ x = [ones(size(x,1),1) x];
 %[B,BINT,R,RINT,STATS1] = regress(y,x);
 mdl1 = fitlm(x(:,2),y,'RobustOpts','on');
 
- sum(stats_lfo(2,:)<=0.05)
+sum(stats_lfo(2,:)<=0.05)
+
+
+save PAC_DecodingRelationship_B6_ArrowTask -v7.3
 
 %% Decoding relationship w/ Mahab Dist
 % B3 Arrow task 
@@ -334,13 +339,13 @@ d1 = designfilt('bandpassiir','FilterOrder',4, ...
 % d1 = designfilt('bandpassiir','FilterOrder',4, ...
 %     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
 %     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
-% % 
+% 
 % d1a = designfilt('lowpassiir', 'FilterOrder', 4, ...
 %                'HalfPowerFrequency', 3, 'SampleRate', 1e3);
 
 d1a = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',2.5, ...
-    'SampleRate',1e3); % B6 it is 0.5 to 2.5
+    'SampleRate',1e3); % B1,B3,B6 it is 0.5 to 2.5
 
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -550,4 +555,9 @@ x = [ones(size(x,1),1) x];
 mdl1 = fitlm(x(:,2),y,'RobustOpts','on');
 
 sum(stats_lfo(2,:)<=0.05)
+
+save PAC_DecodingRelationship_B3_ArrowTask -v7.3
+
+
+%% PLOTTING RESULTS
 
