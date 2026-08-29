@@ -2,7 +2,7 @@
 clear
 clc
 close all
-subj='B1';
+subj='B3';
 %% LOAD SUBJECT SPECIFIC DATA
 
 if strcmp(subj,'B3')
@@ -153,6 +153,7 @@ if strcmp(subj,'B6')
     imaging_B3_waves;
 end
 
+close all
 
 %% MAIN CODE TO PROCESS B3 HAND/ARROW
 
@@ -783,25 +784,27 @@ xticks(1:10)
 plot_beautify
 hline(0)
 
-% splitting early vs late
-early_pow = pow(:,1:5);
-late_pow = pow(:,6:end);
-figure;
-boxplot([early_pow(:) late_pow(:)],'Notch','on')
-ylabel('Z-score')
-title('Mu power during BCI control (All chan)')
-xticks(1:2)
-xticklabels({'1st 5 Days','2nd 5 Days'})
-plot_beautify
-hline(0)
+% % splitting early vs late
+% early_pow = pow(:,1:5);
+% late_pow = pow(:,6:end);
+% figure;
+% boxplot([early_pow(:) late_pow(:)],'Notch','on')
+% ylabel('Z-score')
+% title('Mu power during BCI control (All chan)')
+% xticks(1:2)
+% xticklabels({'1st 5 Days','2nd 5 Days'})
+% plot_beautify
+% hline(0)
 
 
 % plot on brain
-tmp = (mean(late_pow,2) - mean(early_pow,2))';
-tmp1 = [tmp(1:107) 0 tmp(108:111) 0  tmp(112:115) 0 ...
-    tmp(116:end)];
-figure;
-imagesc(tmp1(ecog_grid))
+% tmp = (mean(late_pow,2) - mean(early_pow,2))';
+% tmp1 = [tmp(1:107) 0 tmp(108:111) 0  tmp(112:115) 0 ...
+%     tmp(116:end)];
+% figure;
+% imagesc(tmp1(ecog_grid))
+
+save MuStatePower_B3_Arrow -v7.3
 
 
 %% LOOKING AT MU POWER IN EACH STATE ACROSS DAYS
@@ -813,7 +816,7 @@ bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
 
 state_pow_days_ol={};
 state_pow_days_cl={};
-for days=1:length(folders)-1%go up to 8 if B1
+for days=1:length(folders)%go up to 8 if B1
 
     disp(['Processing day ' num2str(days)])
 
@@ -888,8 +891,8 @@ plot_beautify
 hline(0)
 
 % splitting early vs late
-early_pow = pow(:,1:5);
-late_pow = pow(:,6:end);
+early_pow = pow(:,1:6);
+late_pow = pow(:,7:end);
 figure;
 boxplot([early_pow(:) late_pow(:)],'Notch','on')
 ylabel('Z-score')
@@ -907,6 +910,7 @@ tmp1 = [tmp(1:107) 0 tmp(108:111) 0  tmp(112:115) 0 ...
 figure;
 imagesc(tmp1(ecog_grid))
 
+save MuStatePower_B6_Arrow -v7.3
 
 
 %% (MAIN) GETTING PAC BETWEEN MU AND HG IN ARROW TASK
