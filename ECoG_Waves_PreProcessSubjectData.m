@@ -3,7 +3,8 @@ clear
 clc
 close all
 subj='B3';
-%% LOAD SUBJECT SPECIFIC DATA
+
+% LOAD SUBJECT SPECIFIC DATA
 
 if strcmp(subj,'B3')
 
@@ -707,6 +708,7 @@ bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
 
 state_pow_days_ol={};
 state_pow_days_cl={};
+acc_days_cl=[];
 for days=1:len_days
 
     disp(['Processing day ' num2str(days)])
@@ -720,6 +722,7 @@ for days=1:len_days
     batch_idx = find(folders_batch==1);
     batch_idx1 = find(folders_batch1==1);
     online_idx=[online_idx batch_idx batch_idx1];
+    %online_idx = [batch_idx];
     %online_idx=[online_idx batch_idx batch_idx1];
     %online_idx = [batch_idx batch_idx1];
 
@@ -736,7 +739,8 @@ for days=1:len_days
         files = [files;findfiles('mat',folderpath)'];
     end
 
-    state_pow = get_state_pow(files,bpFilt);
+    state_pow=[];
+    %state_pow = get_state_pow(files,bpFilt);
     %title(['Day ' num2str(days) ' OL'])
     state_pow_days_ol{days}=state_pow;
     
@@ -754,12 +758,15 @@ for days=1:len_days
     end
 
 
-    state_pow = get_state_pow(files,bpFilt);
+    [state_pow,erps,acc] = get_state_pow(files,bpFilt);
     %title(['Day ' num2str(days) ' CL'])
     state_pow_days_cl{days}=state_pow;
-
-   
+    acc_days_cl(days) = mean(acc);   
 end
+
+
+figure;plot(acc_days_cl,'.','MarkerSize',20)
+ylim([0 1])
 
 
 % 
@@ -804,7 +811,7 @@ hline(0)
 % figure;
 % imagesc(tmp1(ecog_grid))
 
-save MuStatePower_B3_Arrow -v7.3
+%save MuStatePower_B3_Arrow -v7.3
 
 
 %% LOOKING AT MU POWER IN EACH STATE ACROSS DAYS
@@ -816,7 +823,8 @@ bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
 
 state_pow_days_ol={};
 state_pow_days_cl={};
-for days=1:length(folders)%go up to 8 if B1
+acc_days_cl=[];
+for days=1:length(folders)-1%go up to 8 if B1
 
     disp(['Processing day ' num2str(days)])
 
@@ -841,8 +849,9 @@ for days=1:length(folders)%go up to 8 if B1
         end
     end
 
-
-
+    % only get the 2nd half of CL files ie., CL2
+    %l = round(length(online_idx)/2);
+    %online_idx = online_idx(l:end);
 
 
     %%%%%% get imagined data files
@@ -852,8 +861,9 @@ for days=1:length(folders)%go up to 8 if B1
         files = [files;findfiles('mat',imag_folderpath)'];
     end
 
-    state_pow = get_state_pow(files,bpFilt);
-    title(['Day ' num2str(days) ' OL'])
+    %state_pow = get_state_pow(files,bpFilt);
+    state_pow=[];
+    %title(['Day ' num2str(days) ' OL'])
     state_pow_days_ol{days}=state_pow;
     
 
@@ -866,14 +876,15 @@ for days=1:length(folders)%go up to 8 if B1
     end
 
 
-    state_pow = get_state_pow(files,bpFilt);
+    [state_pow,erps,acc]=  get_state_pow(files,bpFilt);
     title(['Day ' num2str(days) ' CL'])
     state_pow_days_cl{days}=state_pow;
-
+    acc_cl_days(days) = mean(acc);
    
 end
 
-
+figure;plot(acc_cl_days,'.','MarkerSize',20)
+ylim([0 1])
 
 days=1:days;
 pow=[];
@@ -921,14 +932,14 @@ save MuStatePower_B6_Arrow -v7.3
 %B3 - 0.5 to 2.5
 
 % 
-% d1 = designfilt('bandpassiir','FilterOrder',4, ...
-%     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
-%     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
-
-
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',2.5, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
+
+
+% d1 = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',2.5, ...
+%     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 % d1 = designfilt('lowpassiir', 'FilterOrder', 4, ...
 %                'HalfPowerFrequency', 3, 'SampleRate', 1e3);
@@ -943,7 +954,7 @@ pac_batch=[];pval_batch=[];
 rboot_ol=[];rboot_cl=[];rboot_batch=[];
 pac_raw_values={};k=1;
 tic
-for i=1:length(folders)%-1%go up to 8 if B1
+for i=1:length(folders)-1%go up to 8 if B1
 
 
     days=i;
@@ -969,6 +980,9 @@ for i=1:length(folders)%-1%go up to 8 if B1
             end
         end
     end
+
+    l = round(length(online_idx)/2);
+    online_idx = online_idx(l:end);
 
 
 
@@ -1124,10 +1138,13 @@ ylim([0 0.7])
 % B3
 
 % 
-d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',2.5, ...
-    'SampleRate',1e3); % 8 to 10 or 0.5 to 5
+% d1 = designfilt('bandpassiir','FilterOrder',4, ...
+%     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',2.5, ...
+%     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 
 
 % d1 = designfilt('lowpassiir', 'FilterOrder', 4, ...
@@ -1158,7 +1175,8 @@ for i=1:len_days
     online_idx = find(folders_online==1);
     batch_idx = find(folders_batch==1);
     batch_idx1 = find(folders_batch1==1);
-    online_idx=[online_idx batch_idx batch_idx1];
+    %online_idx=[online_idx batch_idx batch_idx1];
+    online_idx=[ batch_idx ];
     %online_idx=[online_idx batch_idx batch_idx1];
     %online_idx = [batch_idx batch_idx1];
 
@@ -1280,7 +1298,8 @@ end
 
 
 %cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/')
-save PAC_B3_LFO_hG_rawValues_Arrow_New_v2 -v7.3
+%save PAC_B3_LFO_hG_rawValues_Arrow_New_v2 -v7.3
+save PAC_B3_Mu_hG_rawValues_Arrow_New_v2_CL2 -v7.3
 
 
 % plotting results
@@ -1310,4 +1329,26 @@ xlabel('Days')
 ylabel('No. sig chan')
 xlim([0.5 11.5])
 ylim([0 1])
+
+% 
+% ol=[];cl=[];batch=[];
+% for i=1:size(pval_ol,1)
+%     ptmp = pval_ol(i,:);
+%     [pfdr,pmask]=fdr(ptmp,0.05);    
+%     ol(i) = sum(ptmp<=pfdr)/length(ptmp);
+% 
+%     ptmp = pval_cl(i,:);
+%     [pfdr,pmask]=fdr(ptmp,0.05);    
+%     cl(i) = sum(ptmp<=pfdr)/length(ptmp);
+% 
+%     ptmp = pval_batch(i,:);
+%     [pfdr,pmask]=fdr(ptmp,0.05);    
+%     batch(i) = sum(ptmp<=pfdr)/length(ptmp);
+% end
+% figure;plot(ol)
+% hold on
+% plot(cl)
+% plot(batch)
+% ylim([0 0.5])
+% xlim([0 11])
 

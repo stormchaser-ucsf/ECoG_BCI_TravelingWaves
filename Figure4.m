@@ -99,12 +99,12 @@ d1 = designfilt('bandpassiir','FilterOrder',4, ...
 %     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
 %     'SampleRate',1e3); % 8 to 10 or 0.5 to 5
 % %
-d1a = designfilt('lowpassiir', 'FilterOrder', 4, ...
-    'HalfPowerFrequency', 3, 'SampleRate', 1e3);
+% d1a = designfilt('lowpassiir', 'FilterOrder', 4, ...
+%     'HalfPowerFrequency', 3, 'SampleRate', 1e3);
 
-% d1a = designfilt('bandpassiir','FilterOrder',4, ...
-%     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',2.5, ...
-%     'SampleRate',1e3); % B6 it is 0.5 to 2.5
+d1a = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',2.5, ...
+    'SampleRate',1e3); % B6 it is 0.5 to 2.5
 
 
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -154,6 +154,10 @@ for i=1:length(folders)
             end
         end
     end
+
+        % only get the 2nd half of CL files ie., CL2
+    l = round(length(online_idx)/2);
+    online_idx = online_idx(l:end);
 
 
 
@@ -317,7 +321,7 @@ mdl1 = fitlm(x(:,2),y,'RobustOpts','on');
 sum(stats_lfo(2,:)<=0.05)
 
 
-save PAC_DecodingRelationship_B6_ArrowTask -v7.3
+%save PAC_DecodingRelationship_B6_ArrowTask -v7.3
 
 %% Decoding relationship w/ Mahab Dist
 % B3 Arrow task 
@@ -384,7 +388,8 @@ for i=1:len_days
     online_idx = find(folders_online==1);
     batch_idx = find(folders_batch==1);
     batch_idx1 = find(folders_batch1==1);
-    online_idx=[online_idx batch_idx batch_idx1];
+    %online_idx=[online_idx batch_idx batch_idx1];
+    online_idx=[ batch_idx ];
 
 
 
@@ -556,8 +561,178 @@ mdl1 = fitlm(x(:,2),y,'RobustOpts','on');
 
 sum(stats_lfo(2,:)<=0.05)
 
-save PAC_DecodingRelationship_B3_ArrowTask -v7.3
+%save PAC_DecodingRelationship_B3_ArrowTask -v7.3
 
 
 %% PLOTTING RESULTS
+% relationship with decoding information
 
+clc;clear
+
+%b1
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
+b1= load('PAC_DecodingRelationship_B1_ArrowTask.mat');
+
+%b6
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
+b6= load('PAC_DecodingRelationship_B6_ArrowTask.mat');
+
+%b3
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
+b3 = load('PAC_DecodingRelationship_B3_ArrowTask.mat');
+
+
+bhat_lfo = [];
+bhat_mu =[];
+
+bhat_lfo = [bhat_lfo; b1.bhat_lfo(2,:)' ;b3.bhat_lfo(2,:)';  b6.bhat_lfo(2,:)' ];
+bhat_mu = [bhat_mu; b1.bhat_mu(2,:)' ;b3.bhat_mu(2,:)';  b6.bhat_mu(2,:)' ];
+
+
+figure;
+boxplot([bhat_mu bhat_lfo])
+hline(0)
+
+% statistics
+s1=b1.stats_mu(2,:);
+s3=b3.stats_mu(2,:);
+s6=b6.stats_mu(2,:);
+
+s= [s1 s3 s6];
+[pfdr,pval]=fdr(s,0.05);
+sum(s<=pfdr)/length(s)
+
+s1=b1.stats_lfo(2,:);
+s3=b3.stats_lfo(2,:);
+s6=b6.stats_lfo(2,:);
+
+s= [s1 s3 s6];
+[pfdr,pval]=fdr(s,0.05);
+sum(s<=pfdr)/length(s)
+
+%% PLOTTING 
+% number of significant channels 
+
+clc;clear
+
+lfo_cl_all=[];
+mu_cl_all=[];
+
+%b1
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
+b1_lfo = load('PAC_B1_LFO_hG_rawValues_New_v2.mat');
+b1_mu = load('PAC_B1_Mu_hG_rawValues_New.mat');
+% lfo sig ch
+cl_days=[2:2:length(b1_lfo.pac_raw_values)];
+pac_all=[];
+cl=[];
+for i=1:length(cl_days)
+    tmp = b1_lfo.pac_raw_values(cl_days(i)).pac;
+    tmp = abs(mean(tmp));
+    pac_all(i,:) = tmp;
+
+    ptmp=b1_lfo.pval_cl(i,:);
+    [pfdr,pmask]=fdr(ptmp,0.05);    
+    %pfdr = 0.013;
+    cl(i) = sum(ptmp<=pfdr)/length(ptmp);
+end
+lfo_cl=cl;
+% mu sig ch
+cl_days=[2:2:length(b1_mu.pac_raw_values)];
+pac_all=[];
+cl=[];
+for i=1:length(cl_days)
+    tmp = b1_mu.pac_raw_values(cl_days(i)).pac;
+    tmp = abs(mean(tmp));
+    pac_all(i,:) = tmp;
+
+    ptmp=b1_mu.pval_cl(i,:);
+    [pfdr,pmask]=fdr(ptmp,0.05);    
+    %pfdr = 0.013;
+    cl(i) = sum(ptmp<=pfdr)/length(ptmp);
+end
+mu_cl=cl;
+figure;
+boxplot([mu_cl' lfo_cl(1:end)'])
+lfo_cl_all = [lfo_cl_all;lfo_cl(1:end)'];
+mu_cl_all = [mu_cl_all;mu_cl(1:end)'];
+
+%b6
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
+b6_lfo = load('PAC_B6_LFO_hG_rawValues_New_v2.mat');
+b6_mu = load('PAC_B6_Mu_hG_rawValues_New.mat');
+% lfo sig ch
+cl_days=[2:2:length(b6_lfo.pac_raw_values)];
+pac_all=[];
+cl=[];
+for i=1:length(cl_days)
+    tmp = b6_lfo.pac_raw_values(cl_days(i)).pac;
+    tmp = abs(mean(tmp));
+    pac_all(i,:) = tmp;
+
+    ptmp=b6_lfo.pval_cl(i,:);
+    [pfdr,pmask]=fdr(ptmp,0.05);    
+    %pfdr = 0.013;
+    cl(i) = sum(ptmp<=pfdr)/length(ptmp);
+end
+lfo_cl=cl;
+% mu sig ch
+cl_days=[2:2:length(b6_mu.pac_raw_values)];
+pac_all=[];
+cl=[];
+for i=1:length(cl_days)
+    tmp = b6_mu.pac_raw_values(cl_days(i)).pac;
+    tmp = abs(mean(tmp));
+    pac_all(i,:) = tmp;
+
+    ptmp=b6_mu.pval_cl(i,:);
+    [pfdr,pmask]=fdr(ptmp,0.05);    
+    %pfdr = 0.013;
+    cl(i) = sum(ptmp<=pfdr)/length(ptmp);
+end
+mu_cl=cl;
+figure;
+boxplot([mu_cl' lfo_cl(1:end-1)'])
+lfo_cl_all = [lfo_cl_all;lfo_cl(1:end-1)'];
+mu_cl_all = [mu_cl_all;mu_cl(1:end)'];
+
+%b3
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
+b3_lfo = load('PAC_B3_LFO_hG_rawValues_Arrow_New_v2.mat');
+b3_mu = load('PAC_B3_mu_hG_rawValues_Arrow_New.mat');
+% lfo sig ch
+cl_days=[2:2:length(b3_lfo.pac_raw_values)];
+pac_all=[];
+cl=[];
+for i=1:length(cl_days)
+    tmp = b3_lfo.pac_raw_values(cl_days(i)).pac;
+    tmp = abs(mean(tmp));
+    pac_all(i,:) = tmp;
+
+    ptmp=b3_lfo.pval_cl(i,:);
+    [pfdr,pmask]=fdr(ptmp,0.05);    
+    %pfdr = 0.013;
+    cl(i) = sum(ptmp<=pfdr)/length(ptmp);
+end
+lfo_cl=cl;
+% mu sig ch
+cl_days=[2:2:length(b3_mu.pac_raw_values)];
+pac_all=[];
+cl=[];
+for i=1:length(cl_days)
+    tmp = b3_mu.pac_raw_values(cl_days(i)).pac;
+    tmp = abs(mean(tmp));
+    pac_all(i,:) = tmp;
+
+    ptmp=b3_mu.pval_cl(i,:);
+    [pfdr,pmask]=fdr(ptmp,0.05);    
+    %pfdr = 0.013;
+    cl(i) = sum(ptmp<=pfdr)/length(ptmp);
+end
+mu_cl=cl;
+mu_cl_all = [mu_cl_all;mu_cl(1:end)'];
+lfo_cl_all = [lfo_cl_all;lfo_cl(1:end)'];
+
+
+figure;boxplot([mu_cl_all lfo_cl_all])
+signrank(mu_cl_all,lfo_cl_all)
