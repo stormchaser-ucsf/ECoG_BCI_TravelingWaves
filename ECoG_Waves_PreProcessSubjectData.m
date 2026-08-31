@@ -2,7 +2,7 @@
 clear
 clc
 close all
-subj='B3';
+subj='B6';
 
 % LOAD SUBJECT SPECIFIC DATA
 
@@ -954,7 +954,7 @@ pac_batch=[];pval_batch=[];
 rboot_ol=[];rboot_cl=[];rboot_batch=[];
 pac_raw_values={};k=1;
 tic
-for i=1:length(folders)-1%go up to 8 if B1
+for i=1:length(folders)%go up to 8 if B1
 
 
     days=i;
@@ -1028,7 +1028,7 @@ for i=1:length(folders)-1%go up to 8 if B1
         files = [files;findfiles('mat',imag_folderpath)'];
     end
 
-    len = min(80,length(files));
+    len = min(120,length(files));
     idx=randperm(length(files),len);
     files=files(idx);
 
@@ -1096,12 +1096,13 @@ end
 
 toc
 
-cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/')
+%cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/')
 %cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
-%save PAC_B6_Mu_hG_rawValues_New -v7.3
-save PAC_B6_LFO_hG_rawValues_New_v2 -v7.3
+save PAC_B6_Mu_hG_rawValues_New_v2_CL2 -v7.3
+%save PAC_B6_LFO_hG_rawValues_New_v2 -v7.3
 %save PAC_B1_LFO_hG_rawValues_New_v2 -v7.3
 %save PAC_B1_Mu_hG_rawValues_New -v7.3
+%save PAC_B1_Mu_hG_rawValues_New_V3_CL2_120files -v7.3
 
 
 % plotting results
