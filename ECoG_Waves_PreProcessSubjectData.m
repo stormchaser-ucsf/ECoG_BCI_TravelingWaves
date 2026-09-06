@@ -2,7 +2,7 @@
 clear
 clc
 close all
-subj='B6';
+subj='B1';
 
 % LOAD SUBJECT SPECIFIC DATA
 
@@ -428,7 +428,7 @@ wave_plv_ol_days={};
 nonwave_plv_ol_days={};
 wave_plv_cl_days={};
 nonwave_plv_cl_days={};
-for days=1:length(folders) %if B1-> it is -1
+for days=1:length(folders)-1 %if B1-> it is -1
 
     disp(['Processing day ' num2str(days)])
 
@@ -452,6 +452,8 @@ for days=1:length(folders) %if B1-> it is -1
             end
         end
     end
+    l = round(length(online_idx)/2);
+    online_idx = online_idx(l:end);
     % imag_idx_main=imag_idx(1:3);
     % online_idx_main=online_idx(1:3);
     %
@@ -696,7 +698,8 @@ end
 %save B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2 -v7.3 %
 %save B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData -v7.3 %
 
-save B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData_PLVDetla -v7.3
+%save B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData_PLVDetla -v7.3
+save B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData_PLVDetla_CL2Only -v7.3
 
 
 %% LOOKING AT MU POWER IN EACH STATE ACROSS DAYS

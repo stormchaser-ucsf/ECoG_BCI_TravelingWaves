@@ -296,6 +296,48 @@ cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
 save arrow_decoding_results_waves b1_acc b3_acc b6_acc b1_conf_matrix...
     b3_conf_matrix b6_conf_matrix -v7.3
 
+%%% plot acc across days with lme regression
+figure;
+hold on
+x=1:length(b1_acc);
+scatter(x, b1_acc, 150, [1 0 0], 'filled', ...
+    'MarkerFaceAlpha', 0.4);
+x=1:length(b3_acc);
+scatter(x, b3_acc, 150, [0 0 0], 'filled', ...
+    'MarkerFaceAlpha', 0.4);
+x=1:length(b6_acc)-1;
+scatter(x, b6_acc(1:end-1), 150, [0 0 1], 'filled', ...
+    'MarkerFaceAlpha', 0.4);
+ylim([0 1])
+
+% lme
+accuracy = [b1_acc';b3_acc';b6_acc(1:end-1)'];
+day =[1:length(b1_acc) 1:length(b3_acc) 1:length(b6_acc)-1]';
+Subject = [ones(length(b1_acc),1);2*ones(length(b3_acc),1);...
+    3*ones(length(b6_acc)-1,1)];
+T = table(accuracy, day, categorical(Subject), ...
+    'VariableNames', {'Accuracy','Day','Subject'});
+mdl_fixed = fitlme(T, 'Accuracy ~ Day + Subject');
+disp(mdl_fixed)
+lme = fitlme(T, 'Accuracy ~ Day + (1|Subject)');
+disp(lme)
+b = fixedEffects(lme);
+xfit = linspace(min(T.Day),max(T.Day),100)';
+yfit = b(1) + b(2)*xfit;
+plot(xfit,yfit,'m','LineWidth',2)
+xlim([.5 11.5])
+xlabel('Days')
+ylabel('Decoding Accuracy')
+plot_beautify
+xticks(0:1:12)
+yticks([0:.1:1.1])
+% 
+% % logit
+% epsval = 0.0001;
+% p = min(max(T.Accuracy,epsval),1-epsval);
+% T.logitAcc = log(p ./ (1-p));
+% mdl = fitlme(T,'logitAcc ~ Day + Subject');
+% disp(mdl)
 
 % plot results
 res=[b1_acc b3_acc b6_acc];
@@ -995,6 +1037,10 @@ dayNum = (1:nDays)';
 
 T = table(dayNum, r_LOO, ...
     'VariableNames', {'Day','SpearmanR'});
+
+mdl = fitlm(T, 'SpearmanR ~ Day');
+disp(mdl)
+
 
 % Regular Huber robust regression, no Fisher z-transform
 
