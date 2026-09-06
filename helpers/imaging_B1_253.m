@@ -53,17 +53,17 @@ end
 
 % plotting with a color bar denoting the phase values and the radius
 % denoting the amplitude values.
-ph=[linspace(pi,-pi,128)];
-phMap = linspace(-pi,pi,128)';
-ChColorMap=parula(128);
-val = rand(128,1);
-ch=1:128;
-figure;
-c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh');
-for j=1:length(val)
-    ms = val(j)*(10-1)+1;
-    [aa bb]=min(abs(ph(j) - phMap));
-    c=ChColorMap(bb,:);
-    e_h = el_add(elecmatrix(j,:), 'color', c,'msize',ms);
-end
-
+% ph=[linspace(pi,-pi,128)];
+% phMap = linspace(-pi,pi,128)';
+% ChColorMap=parula(128);
+% val = rand(128,1);
+% ch=1:128;
+% figure;
+% c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh');
+% for j=1:length(val)
+%     ms = val(j)*(10-1)+1;
+%     [aa bb]=min(abs(ph(j) - phMap));
+%     c=ChColorMap(bb,:);
+%     e_h = el_add(elecmatrix(j,:), 'color', c,'msize',ms);
+% end
+% 

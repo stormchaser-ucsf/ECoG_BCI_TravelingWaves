@@ -1251,7 +1251,7 @@ for i=1:length(condn_data)
 end
 condn_data=condn_data1;
 
-iterations=10;
+iterations=3;
 [acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance] = ...
     accuracy_imagined_data(condn_data, iterations);
 %accuracy_imagined_data_Hand_B3
