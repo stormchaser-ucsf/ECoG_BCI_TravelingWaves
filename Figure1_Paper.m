@@ -1041,12 +1041,7 @@ dayNum = (1:nDays)';
 T = table(dayNum, r_LOO, ...
     'VariableNames', {'Day','SpearmanR'});
 
-mdl = fitlm(T, 'SpearmanR ~ Day');
-disp(mdl)
-
-
 % Regular Huber robust regression, no Fisher z-transform
-
 mdl_huber = fitlm(T, 'SpearmanR ~ Day', ...
     'RobustOpts', 'huber');
 
@@ -1059,6 +1054,26 @@ p_day    = mdl_huber.Coefficients.pValue("Day");
 fprintf('\nHuber robust regression on raw Spearman r:\n');
 fprintf('Beta day = %.4f, p = %.5f\n', beta_day, p_day);
 
+% permutation test; break relationship and then plot cross-validated held
+% out day
+nperm=1000;
+r_LOO_boot = zeros(nDays,nperm);
+for testDay = 1:nDays
+
+    otherDays = setdiff(1:nDays, testDay);
+
+    testVec = CLvecs(:,testDay);
+    train_vec = CLvecs(:,otherDays);
+    for iter=1:nperm
+        tmp = train_vec(randperm(numel(train_vec)));
+        tmp = reshape(tmp,size(train_vec));
+        meanOtherVec = mean(tmp, 2);
+        [r_LOO_boot(testDay,iter)] = corr(testVec, meanOtherVec, ...
+        'type', 'Spearman', ...
+        'rows', 'complete');
+    end
+end
+r_LOO_boot = sort(r_LOO_boot');
 % plot
 figure;
 scatter(dayNum, r_LOO, 120, 'filled');
