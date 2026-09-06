@@ -973,7 +973,7 @@ xticks ''
 
 % Closed-loop geometry consolidation analysis
 % mahab_full_batch: 66 x nDays
-% IMPORTANT: LOAD PROCESSED DATA 
+%%%% IMPORTANT
 cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3')
 load mahab_full_batch
 CLvecs = mahab_full_batch;
