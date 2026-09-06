@@ -32,7 +32,7 @@ end
 % B1, B6 
 clc;clear;
 close all
-subj='B6';
+subj='B1';
 
 if strcmp(subj,'B1')
 
@@ -144,9 +144,9 @@ for i=1:length(folders)
         end
     end
 
-        % only get the 2nd half of CL files ie., CL2
-    l = round(length(online_idx)/2);
-    online_idx = online_idx(l:end);
+    % only get the 2nd half of CL files ie., CL2
+    % l = round(length(online_idx)/2);
+    % online_idx = online_idx(l:end);
 
 
 
@@ -707,32 +707,37 @@ b1_lfo = load('PAC_B1_LFO_hG_rawValues_New_v2.mat');
 b1_mu = load('PAC_B1_Mu_hG_rawValues_New.mat');
 % lfo sig ch
 cl_days=[2:2:length(b1_lfo.pac_raw_values)];
-pac_all=[];
+pac_all_lfo=[];
 cl=[];
+sig_ch_lfo_days=[];
 for i=1:length(cl_days)
     tmp = b1_lfo.pac_raw_values(cl_days(i)).pac;
     tmp = abs(mean(tmp));
-    pac_all(i,:) = tmp;
+    pac_all_lfo(i,:) = tmp;
 
     ptmp=b1_lfo.pval_cl(i,:);
     [pfdr,pmask]=fdr(ptmp,0.05);    
     %pfdr = 0.013;
     cl(i) = sum(ptmp<=pfdr)/length(ptmp);
+    sig_ch_lfo_days(i,:) =  ptmp<=pfdr;
 end
 lfo_cl=cl;
+
 % mu sig ch
 cl_days=[2:2:length(b1_mu.pac_raw_values)];
-pac_all=[];
+pac_all_mu=[];
 cl=[];
+sig_ch_mu_days=[];
 for i=1:length(cl_days)
     tmp = b1_mu.pac_raw_values(cl_days(i)).pac;
     tmp = abs(mean(tmp));
-    pac_all(i,:) = tmp;
+    pac_all_mu(i,:) = tmp;
 
     ptmp=b1_mu.pval_cl(i,:);
     [pfdr,pmask]=fdr(ptmp,0.05);    
     %pfdr = 0.013;
     cl(i) = sum(ptmp<=pfdr)/length(ptmp);
+    sig_ch_mu_days(i,:) = ptmp<=pfdr;
 end
 mu_cl=cl;
 figure;
@@ -748,6 +753,55 @@ xticklabels({'Mu-hG','LFO-hG'})
 ylabel('% Sig. Channels')
 yticks([0:.1:1])
 ylim([0 0.4])
+
+
+% plotting on brain significant channels
+imaging_B1_253 % already in blackrock sorted grid numbering
+% lfo
+days=3:4;
+sig_ch_lfo = sig_ch_lfo_days(days,:);
+sig_ch_lfo = sum(sig_ch_lfo,1);
+sig_ch_lfo(sig_ch_lfo>0)=1;
+r_lfo = pac_all_lfo(days,:);
+r_lfo = mean(r_lfo,1);
+r_lfo(sig_ch_lfo==0)=0;
+r_lfo =  r_lfo./max(r_lfo);
+figure
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+e_h = el_add(elecmatrix, 'color', 'w','msize',1);
+for j=1:253
+    if sig_ch_lfo(j)==1 && r_lfo(j)~=0
+        ms = (r_lfo(j))*10;
+        c='b';                
+        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
+    end
+end
+plot_beautify
+
+% plotting on brain significant channels
+% mu
+sig_ch_mu = sig_ch_mu_days(days,:);
+sig_ch_mu = sum(sig_ch_mu,1);
+sig_ch_mu(sig_ch_mu>0)=1;
+r_mu = pac_all_mu(days,:);
+r_mu = mean(r_mu,1);
+r_mu(sig_ch_mu==0)=0;
+r_mu =  r_mu./max(r_mu);
+figure
+c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+e_h = el_add(elecmatrix, 'color', 'w','msize',1);
+for j=1:253
+    if sig_ch_mu(j)==1 && r_mu(j)~=0
+        ms = (r_mu(j))*10;
+        c='b';                
+        e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
+    end
+end
+plot_beautify
+
+
+
+
 
 %b6
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
