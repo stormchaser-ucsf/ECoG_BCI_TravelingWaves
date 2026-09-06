@@ -25,17 +25,6 @@ end
 %% ERPs of Mu and hG and LFO
 
 
-%% Percent sig Mu-hG PAC channels 
-% contrast with LFO-hG PAC
-
-% load B1 data
-root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/';
-cd(root_path)
-load('ECOG_Grid_8596_000067_B3.mat')
-
-
-a = load('PAC_B1_LFO_hG_rawValues_New.mat'); % LFO-hG PAC
-a = load('PAC_B1_Mu_hG_rawValues_New.mat'); % Mu-hG PAC
 
 
 
@@ -572,15 +561,17 @@ clc;clear
 %b1
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
 b1= load('PAC_DecodingRelationship_B1_ArrowTask.mat');
+b1.d1a
 
 %b6
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
 b6= load('PAC_DecodingRelationship_B6_ArrowTask.mat');
+b6.d1a
 
 %b3
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
 b3 = load('PAC_DecodingRelationship_B3_ArrowTask.mat');
-
+b3.d1a
 
 bhat_lfo = [];
 bhat_mu =[];
@@ -610,13 +601,105 @@ s= [s1 s3 s6];
 [pfdr,pval]=fdr(s,0.05);
 sum(s<=pfdr)/length(s)
 
-%% PLOTTING 
+%%% as scatter plot
+% mu
+b1_acc = b1.bhat_mu(2,:);
+b3_acc = b3.bhat_mu(2,:);
+b6_acc = b6.bhat_mu(2,:);
+res=[b1_acc b3_acc b6_acc];
+m11 = b1_acc;
+m22 = b3_acc;
+m33 = b6_acc;
+x=1:3;
+y=[mean(m11) mean(m22) mean(m33)];
+% scatter B1 and B3 and B6 individually
+figure; hold on
+h=hline(median(res),'k');
+h.LineWidth=3;
+h.XData = [0.75 1.25];
+
+x=(1:1) + 0.1*randn(length(m11),1);
+h=scatter(x,[m11],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'b';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(1:1) + 0.1*randn(length(m22),1);
+h=scatter(x,[m22],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'r';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+
+x=(1:1) + 0.1*randn(length(m33),1);
+h=scatter(x,[m33],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'k';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+%%%% lfo
+b1_acc = b1.bhat_lfo(2,:);
+b3_acc = b3.bhat_lfo(2,:);
+b6_acc = b6.bhat_lfo(2,:);
+res=[b1_acc b3_acc b6_acc];
+m11 = b1_acc;
+m22 = b3_acc;
+m33 = b6_acc;
+x=1:3;
+y=[mean(m11) mean(m22) mean(m33)];
+% scatter B1 and B3 and B6 individually
+hold on
+h=hline(median(res),'k');
+h.LineWidth=3;
+h.XData = [1.75 2.25];
+
+x=(2) + 0.1*randn(length(m11),1);
+h=scatter(x,[m11],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'b';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(2) + 0.1*randn(length(m22),1);
+h=scatter(x,[m22],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'r';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+
+x=(2) + 0.1*randn(length(m33),1);
+h=scatter(x,[m33],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'k';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+ylim([-0.3 0.5])
+yticks([-1:.1:1])
+xlim([.5 2.5])
+h=hline(0);
+set(h,'LineWidth',1)
+xticks ''
+plot_beautify
+%boxplot([bhat_mu bhat_lfo])
+ylim([-.2 .5])
+xticks(1:2)
+xticklabels({'Mu-hG','LFO-hG'})
+ylabel('Slope')
+
+
+%% PLOTTING RESULTS
 % number of significant channels 
 
 clc;clear
 
 lfo_cl_all=[];
 mu_cl_all=[];
+subj_idx=[];
 
 %b1
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
@@ -653,14 +736,23 @@ for i=1:length(cl_days)
 end
 mu_cl=cl;
 figure;
-boxplot([mu_cl' lfo_cl(1:end)'])
+boxplot([mu_cl' lfo_cl(1:end)'],'Symbol','')
 lfo_cl_all = [lfo_cl_all;lfo_cl(1:end)'];
 mu_cl_all = [mu_cl_all;mu_cl(1:end)'];
+subj_idx = [subj_idx;ones(size(mu_cl,2),1)];
+[p,h]=signrank(mu_cl,lfo_cl);
+title(['B1 pval ' num2str(p)])
+plot_beautify
+xticks(1:2)
+xticklabels({'Mu-hG','LFO-hG'})
+ylabel('% Sig. Channels')
+yticks([0:.1:1])
+ylim([0 0.4])
 
 %b6
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
 b6_lfo = load('PAC_B6_LFO_hG_rawValues_New_v2.mat');
-b6_mu = load('PAC_B6_Mu_hG_rawValues_New.mat');
+b6_mu = load('PAC_B6_Mu_hG_rawValues_New_v2_CL2.mat');
 % lfo sig ch
 cl_days=[2:2:length(b6_lfo.pac_raw_values)];
 pac_all=[];
@@ -692,14 +784,23 @@ for i=1:length(cl_days)
 end
 mu_cl=cl;
 figure;
-boxplot([mu_cl' lfo_cl(1:end-1)'])
+boxplot([mu_cl(1:end-1)' lfo_cl(1:end-1)'])
 lfo_cl_all = [lfo_cl_all;lfo_cl(1:end-1)'];
-mu_cl_all = [mu_cl_all;mu_cl(1:end)'];
+mu_cl_all = [mu_cl_all;mu_cl(1:end-1)'];
+subj_idx = [subj_idx;2*ones(size(mu_cl,2)-1,1)];
+[p,h]=signrank(mu_cl,lfo_cl);
+title(['B6 pval ' num2str(p)])
+plot_beautify
+xticks(1:2)
+xticklabels({'Mu-hG','LFO-hG'})
+ylabel('% Sig. Channels')
+yticks([0:.1:1])
+ylim([0 0.31])
 
 %b3
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
 b3_lfo = load('PAC_B3_LFO_hG_rawValues_Arrow_New_v2.mat');
-b3_mu = load('PAC_B3_mu_hG_rawValues_Arrow_New.mat');
+b3_mu = load('PAC_B3_Mu_hG_rawValues_Arrow_New_v2_CL2.mat');
 % lfo sig ch
 cl_days=[2:2:length(b3_lfo.pac_raw_values)];
 pac_all=[];
@@ -732,7 +833,138 @@ end
 mu_cl=cl;
 mu_cl_all = [mu_cl_all;mu_cl(1:end)'];
 lfo_cl_all = [lfo_cl_all;lfo_cl(1:end)'];
+subj_idx = [subj_idx;3*ones(size(mu_cl,2),1)];
+figure;
+boxplot([mu_cl(1:end)' lfo_cl(1:end)'],'Symbol','')
+[p,h]=signrank(mu_cl,lfo_cl);
+title(['B3 pval ' num2str(p)])
+plot_beautify
+xticks(1:2)
+xticklabels({'Mu-hG','LFO-hG'})
+ylabel('% Sig. Channels')
+yticks([0:.1:1])
+ylim([0 0.61])
 
 
-figure;boxplot([mu_cl_all lfo_cl_all])
+figure;
+%boxplot([mu_cl_all lfo_cl_all])
 signrank(mu_cl_all,lfo_cl_all)
+ylim([0 0.7])
+xticks(1:2)
+xticklabels({'Mu-hG', 'LFO-hG'})
+ylabel('% Sig. Channels')
+hold on
+col = {'r','b','k'};
+col1= [0.7 0 0 0.5;...
+    0 0 0.7 0.5;...
+    0.5 0.5 0.5 0.5];
+% scatter
+for i=1:3
+    idx = find(subj_idx==i);
+    
+    tmp = mu_cl_all(idx);
+    %tmp = tmp(tmp<0.25);
+    aa = ones(length(tmp),1) + randn(length(tmp),1)*0.1;    
+    plot(aa,tmp,'.','MarkerSize',30,'Color',col1(i,:))
+
+    tmp1 = lfo_cl_all(idx);
+    aa1 = 2*ones(length(idx),1) + randn(length(idx),1)*0.1;    
+    plot(aa1,tmp1,'.','MarkerSize',30,'Color',col1(i,:))
+
+    % plot([aa(:) aa1(:)]', [tmp(:) tmp1(:)]', '-',...
+    %     'Color',col1(i,:),'LineWidth',.5)
+
+end
+xlim([.5 2.5])
+
+% as better scatter plot
+% mu
+b1_acc = mu_cl_all(subj_idx==1)';
+b3_acc = mu_cl_all(subj_idx==2)';
+b6_acc = mu_cl_all(subj_idx==3)';
+res=[b1_acc b3_acc b6_acc];
+m11 = b1_acc;m11(m11>.25) = NaN;
+m22 = b3_acc;m22(m22>.25) = NaN;
+m33 = b6_acc;m33(m33>.25) = NaN;
+x=1:3;
+y=[mean(m11) mean(m22) mean(m33)];
+% scatter B1 and B3 and B6 individually
+figure; hold on
+h=hline(median(res),'k');
+h.LineWidth=3;
+h.XData = [0.75 1.25];
+
+x=(1:1) + 0.1*randn(length(m11),1);
+h=scatter(x,[m11],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'b';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(1:1) + 0.1*randn(length(m22),1);
+h=scatter(x,[m22],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'r';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+
+x=(1:1) + 0.1*randn(length(m33),1);
+h=scatter(x,[m33],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'k';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+%%%% lfo
+b1_acc = lfo_cl_all(subj_idx==1)';
+b3_acc = lfo_cl_all(subj_idx==2)';
+b6_acc = lfo_cl_all(subj_idx==3)';
+res=[b1_acc b3_acc b6_acc];
+m11 = b1_acc;
+m22 = b3_acc;
+m33 = b6_acc;
+x=1:3;
+y=[mean(m11) mean(m22) mean(m33)];
+% scatter B1 and B3 and B6 individually
+hold on
+h=hline(median(res),'k');
+h.LineWidth=3;
+h.XData = [1.75 2.25];
+
+x=(2) + 0.1*randn(length(m11),1);
+h=scatter(x,[m11],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'b';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(2) + 0.1*randn(length(m22),1);
+h=scatter(x,[m22],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'r';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+
+x=(2) + 0.1*randn(length(m33),1);
+h=scatter(x,[m33],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'k';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+ylim([-0.3 0.5])
+yticks([-1:.1:1])
+xlim([.5 2.5])
+h=hline(0);
+set(h,'LineWidth',1)
+xticks ''
+plot_beautify
+
+%boxplot([mu_cl_all lfo_cl_all])
+ylim([0 0.6])
+xticks(1:2)
+xticklabels({'Mu-hG','LFO-hG'})
+ylabel('% Sig. Channels')
+
