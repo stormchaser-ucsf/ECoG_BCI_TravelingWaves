@@ -516,6 +516,209 @@ ROI(spchm1(:))    = "spchM1";
 
 ROI = categorical(ROI);
 
+%%%% LME NEW WITH DF CORRECTION %%%%
+% ================================================================
+%  ROI-specific across-day slopes using LME
+%  Model:
+%      Y ~ DayC*ROI + (1|ChanID)
+%
+%  Interpretation:
+%      - each ROI has its own fixed across-day slope
+%      - electrodes within an ROI share that slope
+%      - each electrode gets its own random intercept
+%      - ROI slopes are tested vs 0 using Satterthwaite DF
+% ================================================================
+
+% Make M1 the explicit reference category
+ROI = reordercats(ROI, ...
+    {'M1','PMv','lPMv1','spchPMv','TG1','TG2','lM1','spchM1'});
+
+
+% -------- Prepare decoding data --------
+
+DEC = mahab_dist_days;
+
+DEC = DEC ./ max(DEC);
+
+[nChan,nDay] = size(DEC);
+
+[chanGrid,dayGrid] = ndgrid(1:nChan,1:nDay);
+
+T = table;
+
+T.Y      = DEC(:);
+T.DayNum = dayGrid(:);
+
+% Center day
+T.DayC = T.DayNum - mean(1:nDay);
+
+T.ChanID = categorical(chanGrid(:));
+
+% Assign each observation its channel's ROI
+T.ROI = ROI(chanGrid(:));
+
+
+% -------- Fit LME --------
+
+lme_roi = fitlme(T, ...
+    'Y ~ DayC*ROI + (1|ChanID)', ...
+    'FitMethod','REML');
+
+% lme_roi = fitlme(T, ...
+%     'Y ~ DayC*ROI + (1 + DayC|ChanID)', ...
+%     'FitMethod','REML');
+
+disp(lme_roi)
+
+% MAIN INTERACTION
+anova_stats = anova(lme_roi, ...
+    'DFMethod','satterthwaite');
+
+disp(anova_stats)
+
+% -------- Show Satterthwaite fixed-effect statistics --------
+
+[beta,betaNames,fixedStats] = fixedEffects( ...
+    lme_roi, ...
+    'DFMethod','satterthwaite');
+
+disp(fixedStats)
+
+
+% -------- Extract coefficient names --------
+
+coefNames = string(betaNames.Name);
+
+% covariance matrix of fixed-effect coefficients
+V = lme_roi.CoefficientCovariance;
+
+% ROI names
+rois = categories(T.ROI);
+nROI = numel(rois);
+
+
+% -------- Allocate output --------
+
+Slope  = nan(nROI,1);
+SE     = nan(nROI,1);
+tStat  = nan(nROI,1);
+DF     = nan(nROI,1);
+pValue = nan(nROI,1);
+Lower  = nan(nROI,1);
+Upper  = nan(nROI,1);
+
+
+% -------- Find common Day coefficient --------
+
+idxDay = find(coefNames == "DayC");
+
+if isempty(idxDay)
+    error('Could not find DayC coefficient.');
+end
+
+
+% -------- Test slope of each ROI --------
+
+for r = 1:nROI
+
+    % Contrast vector H:
+    % tests H*beta = 0
+    H = zeros(1,length(beta));
+
+    % Every ROI slope contains the main DayC effect
+    H(idxDay) = 1;
+
+    % For non-reference ROIs:
+    % slope_ROI = beta_DayC + beta_DayC:ROI
+    if r > 1
+
+        thisROI = string(rois{r});
+
+        % MATLAB may name the interaction either:
+        % ROI_x:DayC
+        % or DayC:ROI_x
+        idxInt = find( ...
+            contains(coefNames,"DayC") & ...
+            contains(coefNames,"ROI_" + thisROI) & ...
+            contains(coefNames,":") );
+
+        if numel(idxInt) ~= 1
+            error("Could not uniquely identify interaction for ROI %s", ...
+                  thisROI);
+        end
+
+        H(idxInt) = 1;
+    end
+
+
+    % Estimated ROI slope
+    Slope(r) = H * beta;
+
+
+    % Standard error of slope
+    SE(r) = sqrt(H * V * H');
+
+
+    % Satterthwaite hypothesis test
+    %
+    % H0: ROI slope = 0
+    %
+    [pValue(r),Fstat,DF1,DF(r)] = coefTest( ...
+        lme_roi, ...
+        H, ...
+        0, ...
+        'DFMethod','satterthwaite');
+
+    % Since this is a 1-df contrast:
+    % F = t^2
+    tStat(r) = Slope(r) / SE(r);
+
+
+    % 95% CI using the Satterthwaite DF
+    tcrit = tinv(0.975,DF(r));
+
+    Lower(r) = Slope(r) - tcrit*SE(r);
+    Upper(r) = Slope(r) + tcrit*SE(r);
+
+end
+
+
+% -------- Put results into table --------
+
+ROI_slope_stats = table( ...
+    string(rois), ...
+    Slope, ...
+    SE, ...
+    tStat, ...
+    DF, ...
+    pValue, ...
+    Lower, ...
+    Upper, ...
+    'VariableNames', ...
+    {'ROI','Slope','SE','tStat','DF','pValue','Lower','Upper'});
+
+
+% -------- FDR correction across ROI slope tests --------
+
+pFDR = mafdr(pValue,'BHFDR',true);
+
+ROI_slope_stats.pFDR = pFDR;
+
+
+% -------- Significance flags --------
+
+ROI_slope_stats.Significant_raw = pValue < 0.05;
+ROI_slope_stats.Significant_FDR = pFDR < 0.05;
+
+
+% -------- Display --------
+
+disp(ROI_slope_stats)
+
+
+
+%%%%%%%%%%%%%%%% END 
+
 %%%%  LME
 mahab_days = mahab_dist_days;
 DEC = mahab_days;
@@ -545,8 +748,8 @@ outTbl = plot_roi_slopes(T,lme_roi);
 m1_dec=[];
 for i=1:10
     tmp=DEC(:,i);
-    tmp = tmp(m1(:));
-    m1_dec(i) = median(tmp);
+    tmp = tmp(pmv(:));
+    m1_dec(i) = mean(tmp);
 end
 X=[1:10];
 Y = m1_dec;
