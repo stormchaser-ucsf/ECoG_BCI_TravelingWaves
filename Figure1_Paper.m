@@ -1339,6 +1339,8 @@ grid on;
 
 %%
 
+load B3_Hand_Res_ForPaper
+
 % plotting the accuracy
 acc=[];acc_i=[];
 for i=1:length(session_data)
@@ -1391,6 +1393,35 @@ plot(xx, f(xx), 'k','LineWidth', 2);
 %xlabel('x');
 %ylabel('y');
 %title('Sigmoid fit');
+
+% permutation test
+boot_r2=[];
+parfor iter=1:1000
+    x=1:10;
+    y=acc;
+    x = x(:);
+    y = y(:);
+    y=y(randperm(numel(y)));
+    sigmoidModel = fittype( ...
+        'd + (a-d)/(1 + exp(-b*(x-c)))', ...
+        'independent', 'x', ...
+        'coefficients', {'a','b','c','d'});
+    % Initial guesses
+    a0 = min(y);
+    d0 = max(y);
+    c0 = median(x);
+    b0 = 1;
+    opts = fitoptions(sigmoidModel);
+    opts.StartPoint = [a0 b0 c0 d0];
+    try
+        [f, gof1] = fit(x, y, sigmoidModel, opts);
+        boot_r2(iter)  = gof1.rsquare;
+    catch ME
+        disp('didnt converge')
+        disp(ME.message)
+    end
+end
+(sum(boot_r2 >= gof.rsquare))/length(boot_r2)
 
 % plot accuaracy vs. mahab distances
 x= median(mahab_full_online,1) - median(mahab_full_imagined,1);
@@ -1666,10 +1697,10 @@ pval = max(1/length(boot),sum(boot>stat)/length(boot));
 
 % bar plot mean with confidence intervals
 aa = sort(bootstrp(1000,@mean,early_days));
-[aa(25) aa(975)]
+[aa(25) mean(early_days) aa(975)]
 
 bb = sort(bootstrp(1000,@mean,late_days));
-[bb(25) bb(975)]
+[bb(25) mean(late_days) bb(975)]
 
 
 means = [mean(early_days) mean(late_days)];
