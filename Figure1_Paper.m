@@ -1018,6 +1018,7 @@ xticks ''
 % IMPORTANT: LOAD PROCESSED DATA 
 cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3')
 load mahab_full_batch
+load('acc_batch_days.mat')
 CLvecs = mahab_full_batch;
 
 % Compute held-out day Spearman correlations
@@ -1797,9 +1798,16 @@ plot(xx, f(xx), 'LineWidth', 2);
 
 
 
-%% performance b1 b3 b6 arrow
-% arrow
+%% comparing B3 hand early days vs late days decoding accuracy
 
+clc;clear
+cd('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\mat_plots')
+uiopen('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\mat_plots\B3Hand_DecodingAcc_EarlyVsLateDays.fig',1)
+ylim([40 100])
+ylabel('Decoding Accuracy')
 
+set(gcf,'PaperPositionMode','auto');
+print(gcf,'EarlyVsLate_B3Hand_DecodingAcc.svg','-dsvg','-painters','-r300');
+    
 
 
