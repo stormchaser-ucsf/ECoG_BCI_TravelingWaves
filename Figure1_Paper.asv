@@ -1664,39 +1664,11 @@ vline(stat)
 pval = max(1/length(boot),sum(boot>stat)/length(boot));
 
 % bar plot mean with confidence intervals
-aa = sort(bootstrp(1000,@mean,early_days));
-[aa(25) aa(975)]
+ab = sort(bootstrp(1000,@mean,early_days));
+[ab(25) ab(975)]
 
-bb = sort(bootstrp(1000,@mean,late_days));
-[bb(25) bb(975)]
-
-
-means = [mean(early_days) mean(late_days)];
-cilow = [aa(25) bb(25)];
-cihigh = [aa(975) bb(975)];
-
-lowerErr = means - cilow;
-upperErr = cihigh - means;
-
-x = 1:2;
-figure;
-errorbar(x, means*100, lowerErr*100, upperErr*100, ...
-    'o', ...
-    'LineStyle','none', ...
-    'MarkerSize',10, ...
-    'MarkerFaceColor','auto', ...
-    'LineWidth',2.0,...
-    'MarkerFaceColor','none',...
-    'Color','k');
-xlim([0.5 2.5])
-xticks([1 2])
-xticklabels({'1-3','9-10'})
-ylabel('Accuracy')
-ylim([30 100])
-yticks([0:10:101])
-xlabel('Days')
-plot_beautify
-
+ab = sort(bootstrp(1000,@mean,late_days));
+[ab(25) ab(975)]
 
 % get CL2 performance across days
 day_labels = unique({acc_CL_bins(1:end).day});
