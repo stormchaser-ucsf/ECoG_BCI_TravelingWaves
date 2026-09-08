@@ -24,6 +24,8 @@ imaging_EC210
 
 imaging_EC176
 
+%% GET KINEMATICS
+
 %% Get hG and LFO ERPs example
 
 
@@ -31,6 +33,7 @@ imaging_EC176
 
 
 %% PAC between hG and LFO
+
 
 cd('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC176_ProcessingForNikhilesh/ecog_data_NN')
 ec176 = load('EC176_sig_ch_LFO_hG_PAC.mat');
@@ -40,6 +43,7 @@ ec210 = load('sig_ch_LFO_hG_PAC.mat');
 
 cd('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC189_ProcessingForNikhilesh/EC189')
 ec189 = load('EC189_sig_ch_LFO_hG_PAC.mat');
+
 
 
 % ec210 image of pac lfo hg on brain
