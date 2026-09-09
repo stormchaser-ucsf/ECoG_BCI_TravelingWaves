@@ -430,6 +430,7 @@ figure; plot(days, slope_hat, 'o-');
 yline(0,'--'); xlabel('Day'); ylabel('Estimated PAC→Decoding slope');
 
 
+%%% MAIN %%%
 %%%% MIXED EFFECT MODEL LOOKING AT EMERGENCE OF DECODING INFORMATION ROI
 % first thing, make sure that ecog_grid is converted to 253
 ecog_grid_253=[];
@@ -571,17 +572,21 @@ lme_roi = fitlme(T, ...
 disp(lme_roi)
 
 % MAIN INTERACTION
-anova_stats = anova(lme_roi, ...
-    'DFMethod','satterthwaite');
+% anova_stats = anova(lme_roi, ...
+%     'DFMethod','satterthwaite');
+
+anova_stats = anova(lme_roi);
 
 disp(anova_stats)
 
 % -------- Show Satterthwaite fixed-effect statistics --------
 
-[beta,betaNames,fixedStats] = fixedEffects( ...
-    lme_roi, ...
-    'DFMethod','satterthwaite');
+% [beta,betaNames,fixedStats] = fixedEffects( ...
+%     lme_roi, ...
+%     'DFMethod','satterthwaite');
 
+[beta,betaNames,fixedStats] = fixedEffects( ...
+    lme_roi);
 disp(fixedStats)
 
 
@@ -666,8 +671,8 @@ for r = 1:nROI
     [pValue(r),Fstat,DF1,DF(r)] = coefTest( ...
         lme_roi, ...
         H, ...
-        0, ...
-        'DFMethod','satterthwaite');
+        0);%, ...
+        %'DFMethod','satterthwaite');
 
     % Since this is a 1-df contrast:
     % F = t^2
@@ -748,7 +753,7 @@ outTbl = plot_roi_slopes(T,lme_roi);
 m1_dec=[];
 for i=1:10
     tmp=DEC(:,i);
-    tmp = tmp(pmv(:));
+    tmp = tmp(m1(:));
     m1_dec(i) = mean(tmp);
 end
 X=[1:10];
@@ -801,6 +806,102 @@ plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
 ch_wts = zeros(253,1);
 ch_wts(lpmv1(:))=1;
 plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
+
+
+%%%%% PLOTTING REGRESSION LINES FROM THE LME MODEL
+rois = categories(T.ROI);
+days = unique(T.DayNum);
+
+for r = 1:numel(rois)
+
+    roiName = string(rois{r});
+    Tr = T(T.ROI == roiName,:);
+
+    % Daily observed mean +/- SE across channels
+    ymean = nan(numel(days),1);
+    ysem  = nan(numel(days),1);
+
+    for d = 1:numel(days)
+
+        vals = Tr.Y(Tr.DayNum == days(d));
+
+        ymean(d) = mean(vals,'omitnan');
+        ysem(d)  = std(vals,'omitnan') / sqrt(sum(~isnan(vals)));
+
+    end
+
+
+    % Prediction table for MAIN LME
+    Tpred = table;
+
+    Tpred.DayC = days - mean(1:nDay);
+
+    Tpred.ROI = categorical( ...
+        repmat(roiName,numel(days),1), ...
+        categories(T.ROI));
+
+    % Required because ChanID is part of the model.
+    % Ignored because Conditional = false.
+    Tpred.ChanID = categorical( ...
+        repmat(string(T.ChanID(1)),numel(days),1), ...
+        categories(T.ChanID));
+
+
+    % Fixed-effect regression + 95% CI
+    % Uses residual/full DF, not Satterthwaite
+    [yfit,yCI] = predict(lme_roi,Tpred, ...
+        'Conditional',false, ...
+        'Prediction','curve', ...
+        'DFMethod','residual');
+
+
+    % New figure for each ROI
+    figure;
+    hold on;
+
+
+    % 95% CI around LME regression
+    fill( ...
+        [days; flipud(days)], ...
+        [yCI(:,1); flipud(yCI(:,2))], ...
+        [0.8 0.8 0.8], ...
+        'EdgeColor','none', ...
+        'FaceAlpha',0.4);
+
+
+    % LME regression line
+    plot(days,yfit, ...
+        'k', ...
+        'LineWidth',2);
+
+
+    % Daily mean +/- SE across channels
+    errorbar(days,ymean,ysem, ...
+        'o', ...
+        'Color','k', ...
+        'MarkerEdgeColor','k', ...
+        'MarkerFaceColor','none', ...
+        'LineStyle','none', ...
+        'MarkerSize',7, ...
+        'LineWidth',1.2);
+
+
+    xlabel('Day');
+    ylabel('Normalized decoding information');
+    title(roiName);
+
+    box off;
+
+end
+title('STG')
+ylabel('Mahab. Distance')
+xlabel('Day')
+xticks(1:10)
+xlim([.5 10.5])
+plot_beautify
+
+%%%%%%
+
 
 %%%% MISC STUFF 
 tmp=angle(mean(pac));

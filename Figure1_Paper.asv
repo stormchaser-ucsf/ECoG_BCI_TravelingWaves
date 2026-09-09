@@ -839,16 +839,6 @@ dendrogram(z)
 
 %%%%%% (MAIN) MDS CODE WITH STATS ON PRESERVING REPRESENTATIONAL STRUCTURE
 % ALONG WITH CORRELATING DECODING ACC WITH MEAN MAHAB DISTANCE PER DAY
-
-if ispc
-    cd('F:\DATA\ecog data\ECoG BCI\GangulyServer\Multistate B3')
-else
-    cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
-end
-
-load mahab_full_batch
-load('acc_batch_days.mat')
-
 dec_acc=[];
 for i=1:size(acc_batch_days,3)
     a = squeeze(acc_batch_days(:,:,i));
@@ -897,17 +887,12 @@ end
 % 2. MDS of average closed-loop distance matrix
 % ============================================================
 
-Dmean_CL = median(D_CL,3);
+Dmean_CL = mean(D_CL,3);
 
-[Y_CL,eig_CL] = cmdscale(Dmean_CL,3);
+[Y_CL,eig_CL] = cmdscale(squareform(Dmean_CL,3);
 
 posEig = eig_CL(eig_CL > 0);
 varExplained = eig_CL ./ sum(posEig);
-
-% K-means
-Yd = Y_CL(:,1:3);
-K = 5;
-idx = kmeans(Yd, K, 'Replicates', 100);
 
 figure;
 scatter3(Y_CL(:,1), Y_CL(:,2), Y_CL(:,3),180, 'filled');
@@ -928,8 +913,8 @@ view(-90,90)
 
 % Optional: hierarchical clustering of mean CL geometry
 
-Zmean = linkage(squareform(Dmean_CL), 'complete');
-%Zmean = linkage(Y_CL, 'complete');
+%Zmean = linkage(squareform(Dmean_CL), 'complete');
+Zmean  = linkage(Y_CL,'ward')
 
 figure;
 dendrogram(Zmean, 'Labels', classLabels);
@@ -1455,7 +1440,7 @@ figure;plot(x,y,'.k','MarkerSize',20)
 ImaginedMvmt = {'Thumb','Index','Middle','Ring','Pinky','Power',...
     'Pinch','Tripod','Wrist In','Wrist Out','Wrist Flex','Wrist Extend'};
 figure;
-[Y,~,disparities] = mdscale(Donline,2);
+[Y,~,disparities] = mdscale(Dimagined,2);
 Ymds=Y;
 hold on
 cmap = turbo(length(ImaginedMvmt));
@@ -1478,7 +1463,7 @@ xlabel('MDS Axis  1')
 ylabel('MDS Axis  2')
 
 % plottig dendrogram
-Z=linkage(squareform(Donline),'complete');
+Z=linkage(squareform(Dimagined),'complete');
 figure;
 dendrogram(Z,0)
 x = string(get(gca,'xticklabels'));
