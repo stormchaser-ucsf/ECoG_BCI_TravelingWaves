@@ -1860,7 +1860,7 @@ ylim([40 100])
 ylabel('Decoding Accuracy')
 
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'EarlyVsLate_B3Hand_DecodingAcc.svg','-dsvg','-painters','-r300');
+print(gcf,'LME_Regression_B3Hand_STG.svg','-dsvg','-painters','-r300');
     
 
 
