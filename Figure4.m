@@ -44,7 +44,8 @@ for i=1:length(days)
     pow_b1(:,i) = tmp(:,3);
     %pow(:,i) = tmp(:,3) - tmp(:,2);
 end
-pow_b1(:,end+1:12) = NaN;
+%pow_b1(:,end+1:12) = NaN;
+pow_b1 = mean(pow_b1,2);
 
 % b3
 state_pow_days_cl = b3.state_pow_days_cl;
@@ -55,7 +56,8 @@ for i=1:length(days)
     pow_b3(:,i) = tmp(:,3);
     %pow(:,i) = tmp(:,3) - tmp(:,2);
 end
-pow_b3(:,end+1:12) = NaN;
+%pow_b3(:,end+1:12) = NaN;
+pow_b3 = mean(pow_b3,2);
 
 % b6
 state_pow_days_cl = b6.state_pow_days_cl;
@@ -66,11 +68,12 @@ for i=1:length(days)
     pow_b6(:,i) = tmp(:,3);
     %pow(:,i) = tmp(:,3) - tmp(:,2);
 end
-
+pow_b6 = mean(pow_b6,2);
 
 res = [pow_b1(:) pow_b3(:) pow_b6(:)];
 figure;
-boxplot(res,'Symbol','')
+%boxplot(res,'Symbol','')
+boxplot(res)
 hline(0)
 ylim([-0.8 1.2])
 xticks(1:3)
@@ -79,6 +82,9 @@ ylabel('Mu Power during BCI (z)')
 yticks([-0.8:.4:1.21])
 plot_beautify
 
+[p,h]=signrank(res(:,1))
+[p,h]=signrank(res(:,2))
+[p,h]=signrank(res(:,3))
 
 %% Decoding relationship w/ Mahab Dist
 % B1, B6 
