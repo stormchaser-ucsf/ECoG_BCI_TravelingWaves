@@ -1081,3 +1081,15 @@ xticks(1:2)
 xticklabels({'Mu-hG','LFO-hG'})
 ylabel('% Sig. Channels')
 
+%% LOAD MAT FILES AND PLOT RESULTS
+clc;clear
+cd('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\mat_plots')
+uiopen('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\mat_plots\B3Hand_DecodingAcc_EarlyVsLateDays.fig',1)
+ylim([40 100])
+ylabel('Decoding Accuracy')
+
+set(gcf,'PaperPositionMode','auto');
+print(gcf,'DecodingAcc_ArrowTask_AllSubj_OverDays.svg','-dsvg','-painters','-r300');
+    
+
+
