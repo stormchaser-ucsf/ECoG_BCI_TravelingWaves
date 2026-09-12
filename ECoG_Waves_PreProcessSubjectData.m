@@ -2,7 +2,7 @@
 clear
 clc
 close all
-subj='B1';
+subj='B6';
 
 % LOAD SUBJECT SPECIFIC DATA
 
@@ -724,8 +724,8 @@ for days=1:len_days
     online_idx = find(folders_online==1);
     batch_idx = find(folders_batch==1);
     batch_idx1 = find(folders_batch1==1);
-    online_idx=[online_idx batch_idx batch_idx1];
-    %online_idx = [batch_idx];
+    %online_idx=[online_idx batch_idx batch_idx1];
+    online_idx = [batch_idx];
     %online_idx=[online_idx batch_idx batch_idx1];
     %online_idx = [batch_idx batch_idx1];
 
@@ -779,18 +779,19 @@ ylim([0 1])
 % 
 % figure;imagesc(tmp1(ecog_grid))
 
-days=1:10;
+days=1:length(state_pow_days_cl);
 pow=[];
-for i=1:10
+for i=1:length(days)
     tmp = state_pow_days_cl{i};
     pow(:,i) = tmp(:,3);
+    %pow(:,i) = tmp(:,3) - tmp(:,4);
 end
 figure;
 boxplot(pow)
 ylabel('Z-score')
 title('Mu power during BCI control')
 xlabel('Days')
-xticks(1:10)
+xticks(1:length(days))
 plot_beautify
 hline(0)
 
@@ -853,8 +854,8 @@ for days=1:length(folders)-1%go up to 8 if B1
     end
 
     % only get the 2nd half of CL files ie., CL2
-    %l = round(length(online_idx)/2);
-    %online_idx = online_idx(l:end);
+    % l = round(length(online_idx)/2);
+    % online_idx = online_idx(l:end);
 
 
     %%%%%% get imagined data files
@@ -889,11 +890,12 @@ end
 figure;plot(acc_cl_days,'.','MarkerSize',20)
 ylim([0 1])
 
-days=1:days;
+days=1:length(state_pow_days_cl);
 pow=[];
 for i=1:length(days)
     tmp = state_pow_days_cl{i};
     pow(:,i) = tmp(:,3);
+    %pow(:,i) = tmp(:,3) - tmp(:,2);
 end
 figure;
 boxplot(pow)
@@ -924,7 +926,8 @@ tmp1 = [tmp(1:107) 0 tmp(108:111) 0  tmp(112:115) 0 ...
 figure;
 imagesc(tmp1(ecog_grid))
 
-save MuStatePower_B6_Arrow -v7.3
+save MuStatePower_B6_Arrow_New -v7.3
+%save MuStatePower_B1_Arrow -v7.3
 
 
 %% (MAIN) GETTING PAC BETWEEN MU AND HG IN ARROW TASK

@@ -44,7 +44,6 @@ for i=1:length(days)
     pow_b1(:,i) = tmp(:,3);
     %pow(:,i) = tmp(:,3) - tmp(:,2);
 end
-pow_b1(:,end+1:12) = NaN;
 
 % b3
 state_pow_days_cl = b3.state_pow_days_cl;
@@ -55,28 +54,60 @@ for i=1:length(days)
     pow_b3(:,i) = tmp(:,3);
     %pow(:,i) = tmp(:,3) - tmp(:,2);
 end
-pow_b3(:,end+1:12) = NaN;
 
 % b6
-state_pow_days_cl = b6.state_pow_days_cl;
+state_pow_days_cl = b1.state_pow_days_cl;
 days=1:length(state_pow_days_cl);
-pow_b6=[];
+pow_b1=[];
 for i=1:length(days)
     tmp = state_pow_days_cl{i};
-    pow_b6(:,i) = tmp(:,3);
+    pow(:,i) = tmp(:,3);
     %pow(:,i) = tmp(:,3) - tmp(:,2);
 end
 
 
-res = [pow_b1(:) pow_b3(:) pow_b6(:)];
-figure;
-boxplot(res,'Symbol','')
-hline(0)
-ylim([-0.8 1.2])
-xticks(1:3)
-xticklabels({'B1','B3','B6'})
-ylabel('Mu Power during BCI (z)')
-yticks([-0.8:.4:1.21])
+res=[b1_acc b3_acc b6_acc];
+m11 = b1_acc;
+m22 = b3_acc;
+m33 = b6_acc;
+x=1:3;
+y=[mean(m11) mean(m22) mean(m33)];
+% scatter B1 and B3 and B6 individually
+figure; hold on
+h=hline(median(res),'k');
+h.LineWidth=3;
+h.XData = [0.75 1.25];
+
+x=(1:1) + 0.1*randn(length(m11),1);
+h=scatter(x,[m11],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'b';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(1:1) + 0.1*randn(length(m22),1);
+h=scatter(x,[m22],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'r';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+
+x=(1:1) + 0.1*randn(length(m33),1);
+h=scatter(x,[m33],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'k';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+ylim([0 1])
+yticks([0:.1:1])
+xlim([.5 1.5])
+yticks([0:.1:1])
+ylim([.5 1])
+h=hline(1/7);
+set(h,'LineWidth',1)
+xticks ''
 plot_beautify
 
 
@@ -293,7 +324,6 @@ for i=1:length(folders)
         rboot=[];
     end
 
-    B1
 
 
     %sum(pac_r>0.3)/253
