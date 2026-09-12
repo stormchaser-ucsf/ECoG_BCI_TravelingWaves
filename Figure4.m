@@ -1088,8 +1088,11 @@ uiopen('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\mat_plots\B3Hand
 ylim([40 100])
 ylabel('Decoding Accuracy')
 
+% svg
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'DecodingAcc_ArrowTask_AllSubj_OverDays.svg','-dsvg','-painters','-r300');
+print(gcf,'PercentSigChannels_PAC_ArrowTask_LFOandMu_ALL.svg','-dsvg','-painters','-r300');
     
 
-
+% png
+set(gcf,'PaperPositionMode','auto');
+print(gcf,'B1_Arrow_LFO_hG_PAC.png','-dpng','-r500');
