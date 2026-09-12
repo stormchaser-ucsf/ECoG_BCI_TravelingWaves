@@ -82,9 +82,9 @@ ylabel('Mu Power during BCI (z)')
 yticks([-0.8:.4:1.21])
 plot_beautify
 
-[p,h]=signrank(res(:,1))
-[p,h]=signrank(res(:,2))
-[p,h]=signrank(res(:,3))
+[p,h,stats]=signrank(res(:,1));
+[p,h]=signrank(res(:,2));
+[p,h]=signrank(res(:,3));
 
 %% Decoding relationship w/ Mahab Dist
 % B1, B6 
