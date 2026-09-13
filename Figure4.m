@@ -1081,6 +1081,59 @@ xticks(1:2)
 xticklabels({'Mu-hG','LFO-hG'})
 ylabel('% Sig. Channels')
 
+% stats
+% LME nonparametric
+% PAC ~ 1 + Oscillation_Type + (1|subject)
+pac = [mu_cl_all;lfo_cl_all];
+oscillation_type = categorical([zeros(size(mu_cl_all));ones(size(lfo_cl_all))]);
+subject = categorical([subj_idx;subj_idx]);
+data = table(pac,oscillation_type,subject);
+glm = fitlme(data,'pac ~ 1+(oscillation_type) + (1|subject)')
+
+% pval
+stat = glm.Coefficients.tStat(2);
+boot=[];
+parfor i=1:1000
+
+    oscillation_type_rand=[];
+    subject_rnd = [];
+    pac_rnd=[];
+    for ii=1:3
+        idx = find(subj_idx==ii);
+        mu_tmp = mu_cl_all(idx);
+        lfo_tmp = lfo_cl_all(idx);
+        subj_tmp = subj_idx(idx);
+        osc_tmp = categorical([zeros(size(mu_tmp));ones(size(lfo_tmp))]);
+        osc_tmp = osc_tmp(randperm(numel(osc_tmp)));
+        
+        subject_rnd = [subject_rnd;[subj_tmp;subj_tmp]];
+        pac_rnd = [pac_rnd;[mu_tmp;lfo_tmp]];
+        oscillation_type_rand = [oscillation_type_rand;osc_tmp];
+    end   
+    
+    data_rnd = table(pac_rnd,oscillation_type_rand,subject_rnd);
+    glm_rnd = fitlme(data_rnd,...
+        'pac_rnd ~ 1+(oscillation_type_rand) + (1|subject_rnd)');
+    boot(i) = glm_rnd.Coefficients.tStat(2);
+end
+
+figure;hist(boot)
+vline(stat)
+max(1/length(boot),sum(boot>stat)/length(boot))
+
+% WSRT
+stats=[];
+pval=[];
+for ii=1:3
+    idx = find(subj_idx==ii);
+    a = mu_cl_all(idx);
+    b = lfo_cl_all(idx);
+    [p,h,s] = signrank(a,b,'method','approximate');
+    stats(ii) = s.zval;
+    pval(ii) = p;
+end
+
+
 %% LOAD MAT FILES AND PLOT RESULTS
 clc;clear
 cd('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\mat_plots')
