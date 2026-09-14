@@ -664,7 +664,7 @@ sum(s<=pfdr)/length(s)
 % mu
 b1_acc = b1.bhat_mu(2,:);
 b3_acc = b3.bhat_mu(2,:);
-b6_acc = b6.bhat_mu(2,:);
+b6_acc = b6.bhat_mu(2,1:end-1);
 res=[b1_acc b3_acc b6_acc];
 m11 = b1_acc;
 m22 = b3_acc;
@@ -702,7 +702,7 @@ end
 %%%% lfo
 b1_acc = b1.bhat_lfo(2,:);
 b3_acc = b3.bhat_lfo(2,:);
-b6_acc = b6.bhat_lfo(2,:);
+b6_acc = b6.bhat_lfo(2,1:end-1);
 res=[b1_acc b3_acc b6_acc];
 m11 = b1_acc;
 m22 = b3_acc;
