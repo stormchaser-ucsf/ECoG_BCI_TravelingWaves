@@ -380,7 +380,7 @@ end
 x=(1:1) + 0.1*randn(length(m22),1);
 h=scatter(x,[m22],70,'filled');
 for i=1:1
-    h(i).MarkerFaceColor = 'r';
+    h(i).MarkerFaceColor = 'k';
     h(i).MarkerFaceAlpha = 0.3;
 end
 
@@ -388,7 +388,7 @@ end
 x=(1:1) + 0.1*randn(length(m33),1);
 h=scatter(x,[m33],70,'filled');
 for i=1:1
-    h(i).MarkerFaceColor = 'k';
+    h(i).MarkerFaceColor = 'r';
     h(i).MarkerFaceAlpha = 0.3;
 end
 

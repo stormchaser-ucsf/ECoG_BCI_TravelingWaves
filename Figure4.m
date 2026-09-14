@@ -993,8 +993,8 @@ xlim([.5 2.5])
 % as better scatter plot
 % mu
 b1_acc = mu_cl_all(subj_idx==1)';
-b3_acc = mu_cl_all(subj_idx==2)';
-b6_acc = mu_cl_all(subj_idx==3)';
+b3_acc = mu_cl_all(subj_idx==3)';
+b6_acc = mu_cl_all(subj_idx==2)';
 res=[b1_acc b3_acc b6_acc];
 m11 = b1_acc;m11(m11>.25) = NaN;
 m22 = b3_acc;m22(m22>.25) = NaN;
@@ -1031,8 +1031,8 @@ end
 
 %%%% lfo
 b1_acc = lfo_cl_all(subj_idx==1)';
-b3_acc = lfo_cl_all(subj_idx==2)';
-b6_acc = lfo_cl_all(subj_idx==3)';
+b3_acc = lfo_cl_all(subj_idx==3)';
+b6_acc = lfo_cl_all(subj_idx==2)';
 res=[b1_acc b3_acc b6_acc];
 m11 = b1_acc;
 m22 = b3_acc;
