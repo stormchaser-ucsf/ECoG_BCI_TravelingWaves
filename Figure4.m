@@ -635,8 +635,8 @@ b3.d1a
 bhat_lfo = [];
 bhat_mu =[];
 
-bhat_lfo = [bhat_lfo; b1.bhat_lfo(2,:)' ;b3.bhat_lfo(2,:)';  b6.bhat_lfo(2,:)' ];
-bhat_mu = [bhat_mu; b1.bhat_mu(2,:)' ;b3.bhat_mu(2,:)';  b6.bhat_mu(2,:)' ];
+bhat_lfo = [bhat_lfo; b1.bhat_lfo(2,:)' ;b3.bhat_lfo(2,:)';  b6.bhat_lfo(2,1:end-1)' ];
+bhat_mu = [bhat_mu; b1.bhat_mu(2,:)' ;b3.bhat_mu(2,:)';  b6.bhat_mu(2,1:end-1)' ];
 
 
 figure;

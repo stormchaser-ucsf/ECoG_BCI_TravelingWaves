@@ -221,7 +221,7 @@ acc_days=[];
 binomial_res=[];
 conf_matrix_days=[];
 num_trials_B6=[];
-for days=1:length(folders)
+for days=1:length(folders)-1
 
     disp(['Processing day ' num2str(days)])
 
@@ -293,9 +293,11 @@ ab = sort(bootstrp(1000,@mean,num_trials_B6));
 [ab(25) ab(975)]
 
 cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
-save arrow_decoding_results_waves b1_acc b3_acc b6_acc b1_conf_matrix...
+%arrow_decoding_results_waves
+save arrow_decoding_results_waves_new b1_acc b3_acc b6_acc b1_conf_matrix...
     b3_conf_matrix b6_conf_matrix -v7.3
 
+b6_acc = b6_acc(1:end-1);
 %%% plot acc across days with lme regression
 figure;
 hold on
@@ -305,16 +307,16 @@ scatter(x, b1_acc, 150, [1 0 0], 'filled', ...
 x=1:length(b3_acc);
 scatter(x, b3_acc, 150, [0 0 0], 'filled', ...
     'MarkerFaceAlpha', 0.4);
-x=1:length(b6_acc)-1;
-scatter(x, b6_acc(1:end-1), 150, [0 0 1], 'filled', ...
+x=1:length(b6_acc);
+scatter(x, b6_acc(1:end), 150, [0 0 1], 'filled', ...
     'MarkerFaceAlpha', 0.4);
 ylim([0 1])
 
 % lme
-accuracy = [b1_acc';b3_acc';b6_acc(1:end-1)'];
-day =[1:length(b1_acc) 1:length(b3_acc) 1:length(b6_acc)-1]';
+accuracy = [b1_acc';b3_acc';b6_acc(1:end)'];
+day =[1:length(b1_acc) 1:length(b3_acc) 1:length(b6_acc)]';
 Subject = [ones(length(b1_acc),1);2*ones(length(b3_acc),1);...
-    3*ones(length(b6_acc)-1,1)];
+    3*ones(length(b6_acc),1)];
 T = table(accuracy, day, categorical(Subject), ...
     'VariableNames', {'Accuracy','Day','Subject'});
 mdl_fixed = fitlme(T, 'Accuracy ~ Day + Subject');
