@@ -800,14 +800,12 @@ stats=[];
 pval=[];
 for ii=1:3
     idx = find(subj_idx==ii);
-    a = bhat_mu(idx);
-    b = bhat_lfo(idx);
-    [p,h,s] = signrank(b,a,'method','approximate');
+    a = mu_cl_all(idx);
+    b = lfo_cl_all(idx);
+    [p,h,s] = signrank(a,b,'method','approximate');
     stats(ii) = s.zval;
     pval(ii) = p;
 end
-stats
-pval
 
 
 
