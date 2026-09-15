@@ -1203,7 +1203,7 @@ ylabel('Decoding Accuracy')
 
 % svg
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'PercentSigChannels_PAC_ArrowTask_LFOandMu_ALL_New.svg','-dsvg','-painters','-r300');
+print(gcf,'Slopes_ArrowTask_PAC_LFOhG__MuhG_DecodingInfo_AllDays_New.svg','-dsvg','-painters','-r300');
     
 
 % png
