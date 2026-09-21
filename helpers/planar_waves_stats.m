@@ -199,6 +199,10 @@ for ii=1:length(files)
         st = st+14;
         stp = stp+14;
 
+        figure;
+        plot(zscore(stab))
+        
+
 
         %stab = zscore(stab(1:end)); % 100:end for B3 HAND
         %[out,st,stp] = wave_stability_detect(stab);

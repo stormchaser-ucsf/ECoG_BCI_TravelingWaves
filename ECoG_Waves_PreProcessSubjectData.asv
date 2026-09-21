@@ -194,8 +194,8 @@ for days=1:len_days
     day_date = session_data(days).Day;
     files=[];
     for ii=1:length(folders)
-        %folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
-        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'Imagined');
+        folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
+        %folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'Imagined');
         %cd(folderpath)
         files = [files;findfiles('mat',folderpath)'];
     end
@@ -260,8 +260,7 @@ for days=1:len_days
 
     len = min(150,length(files));
     idx=randperm(length(files),len);
-     [stats_cl,stats_cl_hg] = ...
-         planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+     [stats_cl,stats_cl_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
         grid_layout,elecmatrix,bpFilt,d1,1);
     stats_cl_days{days}=stats_cl;
     stats_cl_hg_days{days}=stats_cl_hg;
