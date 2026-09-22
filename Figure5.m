@@ -280,3 +280,336 @@ plot_beautify
 xlim([500 2500])
 ylim([-3.1 3.1])
 
+figure;plot(zscore(stab));hline(0)
+
+% plotting of phase gradients
+%idx=106:108;
+%idx = 9:11;
+%idx = 42:44;
+idx = 69:71;
+for i=1:length(idx)
+    planar_val = squeeze(planar_val_time(idx(i),:,:));
+    M = real(planar_val);
+    N = imag(planar_val);
+    [XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
+    figure;
+    quiver(XX,YY,M,N);axis tight
+    set(gca,'Ydir','reverse')
+    axis off 
+    plot_beautify
+end
+
+% plot mu waves activity over time at specific electrodes
+
+% upsample the data in specific periods
+xx = df(64:77,:);
+xx = resample(xx,4,1);
+tt = [0:(size(xx,1)-1)]*(1000/(50*4));
+%cols=[11:18];
+%rows=[1:11];
+cols=[8:12];
+rows=[1:4];
+
+%clim = [min(xx(:)) max(xx(:))];
+figure;
+colormap hot
+
+clf
+v = VideoWriter('wave_example2.avi','Motion JPEG AVI');
+v.FrameRate = 20;
+v.Quality=100;
+open(v);
+data_wav=[];
+for t = 1:size(xx,1)
+
+    tmp = (xx(t,:));
+    xph = tmp(ecog_grid);
+    M = real(xph);
+    N = imag(xph);
+    [tmp,s1] = smoothn({M,N},'robust');
+    M = tmp{1}; N = tmp{2};
+    xph = M +1j*N;
+    xph = cos(angle(xph));
+    %xph = M;
+    xph = xph(rows,cols);
+    imagesc(xph)
+    axis off
+    %axis image;
+    %colorbar;
+    %caxis(clim);
+    caxis([-1 1])
+    shading interp    
+    data_wav = cat(3,data_wav,xph);
+
+    title(sprintf('Time in ms %d',tt(t)));
+    drawnow;
+    frame = getframe(gcf);
+    writeVideo(v,frame);
+end
+
+close(v);
+
+cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/mat_plots/WaveExamples')
+% now make a bunch of plots
+for t = 1:64
+
+    tmp = (xx(t,:));
+    xph = tmp(ecog_grid);
+    M = real(xph);
+    N = imag(xph);
+    [tmp,s1] = smoothn({M,N},'robust');
+    M = tmp{1}; N = tmp{2};
+    xph = M +1j*N;
+    xph = cos(angle(xph));
+    %xph = M;
+    xph = xph(rows,cols);
+    h=figure;
+    colormap hot
+    imagesc(xph)
+    axis off
+    %axis image;
+    %colorbar;
+    %caxis(clim);
+    caxis([-1 1])
+    shading interp    
+    %data_wav = cat(3,data_wav,xph);
+
+    title(sprintf('Time in ms %d',tt(t)));
+
+    % save MATLAB figure
+    tmp_title = ['Time ' num2str(tt(t)) 's_v2.fig'];
+    tmp_title1 = ['Time ' num2str(tt(t)) 's_v2.png'];
+    savefig(h,tmp_title);
+
+    % save PNG
+    exportgraphics(h,tmp_title1,'Resolution',300);    
+end
+
+%%%%% with quivers
+% upsample the data in specific periods
+xx = df(64:74,:);
+xx = resample(xx,4,1);
+
+tt = (0:(size(xx,1)-1))*(1000/(50*4));
+
+cols=[1:4];
+rows=[1:11];
+
+% ===================== VIDEO =====================
+
+hfig = figure;
+%set(gca,'Ydir','reverse')
+colormap hot
+
+v = VideoWriter('wave_example2_cropped.avi','Motion JPEG AVI');
+v.FrameRate = 10;
+v.Quality = 100;
+open(v);
+
+data_wav = [];
+
+for t = 1:size(xx,1)
+
+    tmp = xx(t,:);
+
+    % Arrange channels spatially
+    xph = tmp(ecog_grid);
+
+    % Real/imaginary components
+    M = real(xph);
+    N = imag(xph);
+
+    % Spatial smoothing
+    [tmp_sm,s1] = smoothn({M,N},'robust');
+    M = tmp_sm{1};
+    N = tmp_sm{2};
+
+    % Reconstruct smoothed complex field
+    xph_complex = M + 1j*N;
+
+    % Phase
+    ph = angle(xph_complex);
+
+    % Imagesc quantity
+    xph_img = cos(ph);
+
+
+    [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN(xph_complex, ...
+        1,-1);
+    ph=pd;
+    M =  pm.*cos(ph);
+    N =  pm.*sin(ph);
+    [tmp,s2] = smoothn({M,N},'robust');
+    M = tmp{1}; N = tmp{2};
+    planar_val = M + 1j*N;
+    planar_val = planar_val*-1;
+
+    % phase gradient    
+    M = real(planar_val);
+    N = imag(planar_val);
+    U = M;
+    V = N;
+
+    %[XX,YY] = meshgrid( 1:size(planar_val,2), 1:size(planar_val,1) );
+    % figure;
+    % quiver(XX,YY,M,N);axis tight
+
+    % Quiver components -- unit vectors representing phase
+    % U = cos(ph);
+    % V = sin(ph);
+
+    % Crop spatial region
+    xph_img = xph_img(rows,cols);
+    U = U(rows,cols);
+    V = V(rows,cols);
+
+    % Coordinates
+    [XX,YY] = meshgrid(1:size(xph_img,2), ...
+                       1:size(xph_img,1));
+
+    clf(hfig)
+
+    % Background phase image
+    imagesc(xph_img);
+    caxis([-1 1]);
+    axis off
+    axis image
+    colormap hot
+
+    hold on
+    
+
+    % Quiver overlay
+    quiver(XX,YY,U,V, ...
+        'm', ...
+        'LineWidth',1.5, ...
+        'AutoScale','on', ...
+        'AutoScaleFactor',0.7);
+
+    hold off
+
+    data_wav = cat(3,data_wav,xph_img);
+
+    title(sprintf('Time in ms %.0f',tt(t)));
+
+    drawnow;
+
+    frame = getframe(hfig);
+    writeVideo(v,frame);
+end
+
+close(v);
+
+
+% ===================== INDIVIDUAL FIGURES =====================
+
+cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/mat_plots/WaveExamples')
+
+for t = 1:64
+
+    tmp = xx(t,:);
+
+    % Arrange channels spatially
+    xph = tmp(ecog_grid);
+
+    M = real(xph);
+    N = imag(xph);
+
+    % Smooth real and imaginary components
+    [tmp_sm,s1] = smoothn({M,N},'robust');
+
+    M = tmp_sm{1};
+    N = tmp_sm{2};
+
+    % Complex field
+    xph_complex = M + 1j*N;
+
+    % Phase
+    ph = angle(xph_complex);
+
+    % Image
+    xph_img = cos(ph);
+
+    % phase gradient computations
+    [pm,pd,dx,dy] = phase_gradient_complex_multiplication_NN(xph_complex, ...
+        1,-1);
+    ph=pd;
+    M =  pm.*cos(ph);
+    N =  pm.*sin(ph);
+    [tmp,s2] = smoothn({M,N},'robust');
+    M = tmp{1}; N = tmp{2};
+    planar_val = M + 1j*N;
+    planar_val = planar_val*-1;
+
+    % phase gradient
+    M = real(planar_val);
+    N = imag(planar_val);
+    U = M;
+    V = N;   
+
+    % Crop
+    xph_img = xph_img(rows,cols);
+    U = U(rows,cols);
+    V = V(rows,cols);
+
+    % Grid coordinates
+    [XX,YY] = meshgrid(1:size(xph_img,2), ...
+                       1:size(xph_img,1));
+
+    % Figure
+    h = figure;
+    colormap hot
+
+    imagesc(xph_img);
+    caxis([-1 1]);
+
+    axis image
+    axis off
+
+    hold on
+
+    quiver(XX,YY,U,V, ...
+        'm', ...
+        'LineWidth',1.5, ...
+        'AutoScale','on', ...
+        'AutoScaleFactor',0.7);
+
+    hold off
+
+    title(sprintf('Time in ms %.0f',tt(t)));
+
+    % Save MATLAB figure
+    tmp_title  = ['Time_' num2str(tt(t),'%.0f') 'ms_v2.fig'];
+    tmp_title1 = ['Time_' num2str(tt(t),'%.0f') 'ms_v2.png'];
+
+    savefig(h,tmp_title);
+
+    % Save PNG
+    exportgraphics(h,tmp_title1,'Resolution',300);
+
+    close(h);
+end
+%%%%%
+
+
+figure;
+colormap hot
+for t=103:118
+    tmp = real(df(t,:));
+    xph = tmp(ecog_grid);
+    imagesc(xph)
+    pause(0.1)
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
