@@ -36,7 +36,7 @@ for days=1:length(stats_cl_days)
         % end
 
         % duty cycle
-        tmp=stab;
+        tmp=stab1;
         t = length(tmp) * 20/1e3;
         f =length(out)/t; % frequency/s
         d = mean(out) * 20/1e3; %duration in s

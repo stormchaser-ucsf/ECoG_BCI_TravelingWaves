@@ -859,16 +859,29 @@ end
 % wave duration
 % number of waves per second
 % duty cycle
+
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
+load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_days')
+%[res_days_B1, res_days_f_B1, res_days_d_B1] = get_duty_cycle(stats_cl_days);
+
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
+load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_days')
+[res_days_B3, res_days_f_B3, res_days_d_B3] = get_duty_cycle(stats_cl_days);
+
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
+load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat','stats_cl_days')
+[res_days_B6, res_days_f_B6, res_days_d_B6] = get_duty_cycle(stats_cl_days(1:end-1));
+
+
 wave_duration_days=[];
 num_waves_days=[];
 duty_cycle_days=[];
-for days=1:length(stats_cl_hg_days)
-    stats_cl_hg = stats_cl_hg_days{days};
+for days=1:length(stats_cl_days)    
     stats_cl = stats_cl_days{days};
     wave_dur=[];
     num_waves=[];
     duty_cycle=[];
-    for i=1:length(stats_cl_hg)
+    for i=1:length(stats_cl)
 
         stab = stats_cl(i).stab;
         stab1 = zscore(stab(15:end));
