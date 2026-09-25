@@ -2275,7 +2275,7 @@ load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_d
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
 load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat','stats_cl_days')
-[res_days_B6, res_days_f_B6, res_days_d_B6] = get_duty_cycle(stats_cl_days);
+[res_days_B6, res_days_f_B6, res_days_d_B6] = get_duty_cycle(stats_cl_days(1:end-1));
 
 % res_days_B1 = log(res_days_B1);
 % res_days_B3 = log(res_days_B3);
@@ -2314,7 +2314,7 @@ for i=1:size(idx,1)
     plot([idx(i,1),idx(i,2)],[res_days_B6(i,1),res_days_B6(i,2)],...
         'Color',[0.25 0.25 0.25 .25])
 end
-ylim([0.32 0.46])
+ylim([0.28 0.46])
 xlim([.5 2.5])
 xticks(1:2)
 xticklabels({'Inaccurate Trials','Accurate Trials'})

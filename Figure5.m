@@ -247,7 +247,7 @@ aa=find(idx==1)
 % 29th trial, day = 6;
 ii=29;
 [stab,stab1]=compute_one_file_waves(files,ii,...
-     d2,hilbert_flag,ecog_grid,grid_layout,elecmatrix,bpFilt,d1);
+    d2,hilbert_flag,ecog_grid,grid_layout,elecmatrix,bpFilt,d1);
 figure;plot(zscore(stab));hline(0)
 title(num2str(ii))
 
@@ -267,11 +267,11 @@ col(3,:) = [1 0 1];
 col(2,:) =[0 1 0];
 for i=1:length(out)
     h=vline(tt(st(i)),'--');
-    h.Color = col(i,:);   
+    h.Color = col(i,:);
     h.LineWidth = 1;
 
     h=vline(tt(stp(i)),'--');
-    h.Color = col(i,:);    
+    h.Color = col(i,:);
     h.LineWidth = 1;
 end
 xlabel('Time (ms)')
@@ -295,7 +295,7 @@ for i=1:length(idx)
     figure;
     quiver(XX,YY,M,N);axis tight
     set(gca,'Ydir','reverse')
-    axis off 
+    axis off
     plot_beautify
 end
 
@@ -386,7 +386,7 @@ for i=1:size(wave_data,1)
 end
 median(abs(boot_val))
 
-%%%% END    
+%%%% END
 
 % plot mu waves activity over time at specific electrodes
 
@@ -427,7 +427,7 @@ for t = 1:size(xx,1)
     %colorbar;
     %caxis(clim);
     caxis([-1 1])
-    shading interp    
+    shading interp
     data_wav = cat(3,data_wav,xph);
 
     title(sprintf('Time in ms %d',tt(t)));
@@ -460,7 +460,7 @@ for t = 1:64
     %colorbar;
     %caxis(clim);
     caxis([-1 1])
-    shading interp    
+    shading interp
     %data_wav = cat(3,data_wav,xph);
 
     title(sprintf('Time in ms %d',tt(t)));
@@ -471,7 +471,7 @@ for t = 1:64
     savefig(h,tmp_title);
 
     % save PNG
-    exportgraphics(h,tmp_title1,'Resolution',300);    
+    exportgraphics(h,tmp_title1,'Resolution',300);
 end
 
 %%%%% with quivers (MAIN)
@@ -535,7 +535,7 @@ for t = 1:size(xx,1)
     planar_val = M + 1j*N;
     planar_val = planar_val*-1;
 
-    % phase gradient    
+    % phase gradient
     M = real(planar_val);
     N = imag(planar_val);
     U = M;
@@ -556,7 +556,7 @@ for t = 1:size(xx,1)
 
     % Coordinates
     [XX,YY] = meshgrid(1:size(xph_img,2), ...
-                       1:size(xph_img,1));
+        1:size(xph_img,1));
 
     clf(hfig)
 
@@ -568,7 +568,7 @@ for t = 1:size(xx,1)
     colormap hot
 
     hold on
-    
+
 
     % Quiver overlay
     quiver(XX,YY,U,V, ...
@@ -636,7 +636,7 @@ for t = 1:size(xx,1)
     M = real(planar_val);
     N = imag(planar_val);
     U = M;
-    V = N;   
+    V = N;
 
     % Crop
     xph_img = xph_img(rows,cols);
@@ -645,7 +645,7 @@ for t = 1:size(xx,1)
 
     % Grid coordinates
     [XX,YY] = meshgrid(1:size(xph_img,2), ...
-                       1:size(xph_img,1));
+        1:size(xph_img,1));
 
     % Figure
     h = figure;
@@ -722,66 +722,66 @@ end
 %fig = openfig('WavePattern1a.fig');
 % % Find quiver objects
 % q = findall(fig,'Type','quiver');
-% 
+%
 % % ----- Arrowhead settings -----
 % headLength = 0.35;    % length of each side of arrowhead
 % headAngle  = 25;      % angle of each side relative to shaft (degrees)
 % % ------------------------------
-% 
+%
 % for k = 1:numel(q)
-% 
+%
 %     ax = ancestor(q(k),'axes');
-% 
+%
 %     % Get data from existing quiver
 %     X = q(k).XData;
 %     Y = q(k).YData;
 %     U = q(k).UData;
 %     V = q(k).VData;
-% 
+%
 %     % Get actual displayed arrow scaling
 %     if isprop(q(k),'ScaleFactor')
 %         sf = q(k).ScaleFactor;
 %     else
 %         sf = 1;
 %     end
-% 
+%
 %     U = sf * U;
 %     V = sf * V;
-% 
+%
 %     % Arrow tip locations
 %     Xt = X + U;
 %     Yt = Y + V;
-% 
+%
 %     % Direction of each arrow
 %     theta = atan2(V,U);
-% 
+%
 %     % Coordinates of the two arrowhead sides
 %     x1 = Xt - headLength*cos(theta - deg2rad(headAngle));
 %     y1 = Yt - headLength*sin(theta - deg2rad(headAngle));
-% 
+%
 %     x2 = Xt - headLength*cos(theta + deg2rad(headAngle));
 %     y2 = Yt - headLength*sin(theta + deg2rad(headAngle));
-% 
+%
 %     % Hide MATLAB's original arrowheads
 %     q(k).ShowArrowHead = 'off';
-% 
+%
 %     hold(ax,'on');
-% 
+%
 %     % Draw custom arrowheads
 %     for ii = 1:numel(Xt)
-% 
+%
 %         plot(ax,...
 %             [x1(ii) Xt(ii) x2(ii)],...
 %             [y1(ii) Yt(ii) y2(ii)],...
 %             'Color',q(k).Color,...
 %             'LineWidth',q(k).LineWidth);
-% 
+%
 %     end
 % end
 % drawnow
 
 
-%%%%% increase arrow length 
+%%%%% increase arrow length
 fig = openfig('WavePattern2a.fig');
 
 % Find all quiver objects
@@ -809,10 +809,10 @@ drawnow
 
 % % Find all quiver objects
 % q = findall(fig,'Type','quiver');
-% 
+%
 % % Scale the arrowhead size
 % headScale = 2;   % 2 = make arrowhead sides about twice as long
-% 
+%
 % for k = 1:numel(q)
 %     q(k).MaxHeadSize = q(k).MaxHeadSize * headScale;
 % end
@@ -855,6 +855,43 @@ for i=1:length(tt)
 end
 
 
+%% GETTING SUMMARY STATS FOR WAVES (NUMBER PER TRIAL, DURATION, DUTY CYCLE ETC.)
+% wave duration
+% number of waves per second
+% duty cycle
+wave_duration_days=[];
+num_waves_days=[];
+duty_cycle_days=[];
+for days=1:length(stats_cl_hg_days)
+    stats_cl_hg = stats_cl_hg_days{days};
+    stats_cl = stats_cl_days{days};
+    wave_dur=[];
+    num_waves=[];
+    duty_cycle=[];
+    for i=1:length(stats_cl_hg)
+
+        stab = stats_cl(i).stab;
+        stab1 = zscore(stab(15:end));
+        [out,st,stp] = wave_stability_detect(stab1);
+        st = st+14;
+        stp = stp+14;
+        wave_dur = [wave_dur out*20];
+        num_waves = [num_waves length(out)/(length(stab1)*20/1e3)];
+
+        tmp=stab1;
+        t = length(tmp) * 20/1e3;
+        f = length(out)/t; % frequency/s
+        d = mean(out) * 20/1e3; %duration in s
+        duty_cycle = [duty_cycle f*d];        
+    end
+    wave_duration_days(days) = mean(wave_dur);
+    num_waves_days(days) = mean(num_waves);
+    duty_cycle_days(days) = mean(duty_cycle);
+end
+figure;boxplot(wave_duration_days)
+figure;boxplot(num_waves_days)
+figure;boxplot(duty_cycle_days)
+
 %% PLOTTING
 
 cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New\Figure5\')
@@ -862,7 +899,7 @@ cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_tex
 % svg
 set(gcf,'PaperPositionMode','auto');
 print(gcf,'MuOscillations.svg','-dsvg','-painters','-r300');
-    
+
 
 % png
 set(gcf,'PaperPositionMode','auto');

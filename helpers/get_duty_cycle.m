@@ -9,8 +9,18 @@ for days=1:length(stats_cl_days)
     res_err=[];dc_err=[];d_err=[];f_err=[];
     stats_cl = stats_cl_days{days};
     for i=1:length(stats_cl)
-        stab = zscore(stats_cl(i).stab);
-        [out,st,stp]=wave_stability_detect(stab);
+        %%% old
+        %stab = zscore(stats_cl(i).stab);
+        %[out,st,stp]=wave_stability_detect(stab);
+
+
+        %%% new, after state 1 roughly
+        stab = stats_cl(i).stab;
+        stab1 = zscore(stab(15:end));
+        [out,st,stp] = wave_stability_detect(stab1);
+        st = st+14;
+        stp = stp+14;
+
         wav_det=zeros(length(stab),1);
         for k=1:length(st)
             wav_det(st(k):stp(k))=1;
