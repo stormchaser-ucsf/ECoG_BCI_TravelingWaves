@@ -299,16 +299,105 @@ for i=1:length(idx)
     plot_beautify
 end
 
+
+%%%% (MAIN) %%%%
+% stats on the curl of a traveling wave -> roughly portion center portion
+% of entire grid
+cols=[11:18];
+rows=[1:11];
+wave_data = df(103:118,:);
+% compute curl at each time point
+curl_coeff=[];
+pvals=[];
+pvals_perm=[];
+yc = 5;
+xc = 5;
+[X,Y] = meshgrid(1:size(xph,2),1:size(xph,1));
+d = max(abs(X-xc),abs(Y-yc)); % Chebyshev distance from center -> square rings
+rings = unique(d(:));
+for i=1:size(wave_data,1)
+
+    tmp = wave_data(i,:);
+    xph = tmp(ecog_grid);
+    xph = xph(rows,cols);
+    [planar_val,aa,bb,xphs] = planar_stats_muller(xph);
+    M = real(planar_val);
+    N = imag(planar_val);
+    [XX,YY] = meshgrid( 1:size(xph,2), 1:size(xph,1) );
+    [curl_val0] = curl(XX,YY,M,N);
+
+    pl = angle(xph);
+    %pl = angle(xphs);
+    cl = curl_val0;
+
+    [cc,pv,center_point] = ...
+        phase_correlation_rotation( pl, cl,[5,5],1 ); %pl -> phase map, cl -> curl map
+    curl_coeff(i) = cc;
+    pvals(i) = pv;
+
+    % to get pvalue from null permutation testing
+    boot_val=[];
+    parfor iter=1:1000
+        xph_shuff = xph;
+        for r = 1:length(rings)
+            idx = find(d == rings(r));
+            % shuffle phase values within this square ring
+            xph_shuff(idx) = xph(idx(randperm(length(idx))));
+        end
+        pl = angle(xph_shuff);
+        [cc,pv,center_point] = ...
+            phase_correlation_rotation( pl, cl,[5,5],1 ); %pl -> phase map, cl -> curl map
+        boot_val(iter) = cc;
+    end
+    pvals_perm(i) = max(1/length(boot_val),...
+        sum(boot_val>curl_coeff(i))/length(boot_val));
+end
+median(curl_coeff)
+figure;
+boxplot(curl_coeff)
+ylim([0.4 0.7])
+ylabel('Circular-circular R')
+plot_beautify
+xlim([.85 1.15])
+xticks ''
+
+% null hypothesis testing:
+% shuffle phase values in concentric square rings around center
+yc = 5;
+xc = 5;
+[X,Y] = meshgrid(1:size(xph,2),1:size(xph,1));
+d = max(abs(X-xc),abs(Y-yc)); % Chebyshev distance from center -> square rings
+rings = unique(d(:));
+boot_val=[];
+for i=1:size(wave_data,1)
+    tmp = wave_data(i,:);
+    xph = tmp(ecog_grid);
+    xph = xph(rows,cols);
+    xph_shuff = xph;
+    for r = 1:length(rings)
+        idx = find(d == rings(r));
+        % shuffle phase values within this square ring
+        xph_shuff(idx) = xph(idx(randperm(length(idx))));
+    end
+    pl = angle(xph_shuff);
+    [cc,pv,center_point] = ...
+        phase_correlation_rotation( pl, cl,[5,5],1 ); %pl -> phase map, cl -> curl map
+    boot_val(i) = cc;
+end
+median(abs(boot_val))
+
+%%%% END    
+
 % plot mu waves activity over time at specific electrodes
 
 % upsample the data in specific periods
-xx = df(64:77,:); %103 to 118
+xx = df(103:118,:); %103 to 118 get the start and stop from out,st,stp
 xx = resample(xx,4,1);
 tt = [0:(size(xx,1)-1)]*(1000/(50*4));
-%cols=[11:18];
-%rows=[1:11];
-cols=[8:12];
-rows=[1:4];
+cols=[11:18];
+rows=[1:11];
+%cols=[8:12];
+%rows=[1:4];
 
 %clim = [min(xx(:)) max(xx(:))];
 figure;
@@ -387,13 +476,15 @@ end
 
 %%%%% with quivers (MAIN)
 % upsample the data in specific periods
-xx = df(64:74,:);
+xx = df(103:118,:); %64to 74
 xx = resample(xx,4,1);
 
 tt = (0:(size(xx,1)-1))*(1000/(50*4));
 
-cols=[1:4];
-rows=[1:11];
+%cols=[1:4];
+%rows=[1:11];
+cols=[11:18];
+rows = [1:11];
 
 % ===================== VIDEO =====================
 
@@ -505,7 +596,7 @@ close(v);
 
 cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/mat_plots/WaveExamples')
 
-for t = 1:64
+for t = 1:size(xx,1)
 
     tmp = xx(t,:);
 

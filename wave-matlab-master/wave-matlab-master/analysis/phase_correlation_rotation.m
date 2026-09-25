@@ -1,4 +1,5 @@
-function [cc,pv,center_point] = phase_correlation_rotation( pl, cl, center_point, varargin )
+function [cc,pv,center_point] = ...
+    phase_correlation_rotation( pl, cl, center_point, varargin )
 % *WAVE*
 %
 % PHASE CORRELATION ROTATION    correlation of phase with rotation angle

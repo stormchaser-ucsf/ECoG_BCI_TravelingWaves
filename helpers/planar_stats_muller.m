@@ -1,4 +1,4 @@
-function [planar_val,s1,s2] = planar_stats_muller(xph)
+function [planar_val,s1,s2,xphs] = planar_stats_muller(xph)
 
 M = real(xph);
 N = imag(xph);
