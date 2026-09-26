@@ -920,9 +920,9 @@ for days=1:length(stats_cl_days)
     duty_cycle_days(days) = mean(duty_cycle);
     num_waves_all = [num_waves_all num_waves];
 end
-figure;boxplot(wave_duration_days)
+%figure;boxplot(wave_duration_days)
 % figure;boxplot(num_waves_days)
-figure;boxplot(duty_cycle_days)
+%figure;boxplot(duty_cycle_days)
 
 figure;histogram(num_waves_all,12)
 xlim([0 5])
@@ -930,9 +930,10 @@ xlabel('Number of traveling waves/sec (Freq.)')
 ylabel('Count across trials')
 plot_beautify
 title('B6')
+bb = sort(bootstrp(1000,@mean,num_waves_all));
+[bb(25) mean(num_waves_all) bb(975)]
 
-
-% plotting boxplots of average wave duration
+%%%%% plotting boxplots of average wave duration
 b1 = res_B1.wave_duration_days; b1(end+1:11) = NaN;
 b3 = res_B3.wave_duration_days;
 b6 = res_B6.wave_duration_days;
@@ -949,6 +950,8 @@ boxplot(b3)
 subplot(1,3,3)
 boxplot(b6)
 
+bb = sort(bootstrp(10000,@nanmedian,data(:)));
+[bb(250) nanmedian(data(:)) bb(9750)]
 
 %%%% as better scatter plot, traveling wave duration
 b1_acc = b1;
@@ -997,6 +1000,10 @@ b1_acc = res_B1.duty_cycle_days;
 b3_acc = res_B3.duty_cycle_days;
 b6_acc = res_B6.duty_cycle_days;
 res=[b1_acc b3_acc b6_acc];
+
+bb = sort(bootstrp(10000,@median,res));
+[bb(250) median(res) bb(9750)]
+
 m11 = b1_acc;%m11(m11>.25) = NaN;
 m22 = b3_acc;%m22(m22>.25) = NaN;
 m33 = b6_acc;%m33(m33>.25) = NaN;
