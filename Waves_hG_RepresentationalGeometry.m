@@ -10,7 +10,7 @@ clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B1';
+subj ='B6';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -1212,19 +1212,21 @@ for days = 1:length(stats_cl_days)
             tmp1 = stats_cl_hg(i).hg_nonwave;
             tmp1 = cell2mat(tmp1');
 
+            for j=1:size(tmp1,2)
+                tmp1(:,j) =smooth(tmp1(:,j),10);
+            end
+
+
             if size(tmp,1) > size(tmp1,1)
                 idx = randperm(size(tmp,1),size(tmp1,1));
                 %idx = 1:size(tmp1,1);
                 tmp = tmp(idx,:);
             end
 
-            % for j=1:size(tmp,2)
-            %     tmp(:,j) =smooth(tmp(:,j),10);
-            % end
-
+          
 
             % remove bad channels
-            %tmp(:,bad_ch) = 1e-4*randn(size(tmp,1),length(bad_ch));
+            tmp(:,bad_ch) = 1e-4*randn(size(tmp,1),length(bad_ch));
 
 
             % store wave stability values
@@ -1251,7 +1253,7 @@ for i=1:length(condn_data)
 end
 condn_data=condn_data1;
 
-iterations=3;
+iterations=10;
 [acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance] = ...
     accuracy_imagined_data(condn_data, iterations);
 %accuracy_imagined_data_Hand_B3
@@ -1295,8 +1297,8 @@ for days = 1:length(stats_cl_days)
             % end
 
 
-             % remove bad channels
-            %tmp(:,bad_ch) = 1e-4*randn(size(tmp,1),length(bad_ch));
+            % remove bad channels
+            tmp(:,bad_ch) = 1e-4*randn(size(tmp,1),length(bad_ch));
 
 
 
@@ -1400,11 +1402,12 @@ xticklabels({'Non wave epochs', 'Wave epochs'})
 signrank(res(:,1),res(:,2))
 title('Bin Level Acc.')
 
-%save hg_wave_nonwave_MLP_3DArrow_CL_AllData_v4_AllFolders acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
+save hg_wave_nonwave_MLP_3DArrow_CL_AllData_v5_AllFolders acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
 %hg_wave_nonwave_MLP 
 %hg_wave_nonwave_MLP_3DArrow_CL_v2
 %hg_wave_nonwave_MLP_3DArrow_CL_v2_AllData
 % hg_wave_nonwave_MLP_3DArrow_CL_AllData_v4_AllFolders for B6 
+%hg_wave_nonwave_MLP_3DArrow_CL_AllData_v5_AllFolders.mat % for B6 
 
 % v2 -> using smoothed hG in trialdata, all time points (not just during
 % correct decodes)
@@ -2390,7 +2393,7 @@ ecog_grid1(aa3)=ecog_grid1(aa3)-3;
 
 %all_data = cell2mat(stats_cl_hg_days);
 all_data = [cell2mat(stats_ol_hg_days) cell2mat(stats_cl_hg_days)];
-save all_data_B1_ol_cl ecog_grid1 all_data -v7.3
+%save all_data_B1_ol_cl ecog_grid1 all_data -v7.3
 
 
 %% ANALYSIS 7 (MAIN) 
