@@ -5,8 +5,8 @@
 % duration
 % B3, load the prelim from ECoG_Waves_PreProcessSubjectData.m
 
-days=6;
-cl_chk=1;
+days=3;
+
 folders_imag =  strcmp(session_data(days).folder_type,'I');
 folders_online = strcmp(session_data(days).folder_type,'O');
 folders_batch = strcmp(session_data(days).folder_type,'B');
@@ -28,6 +28,7 @@ for ii=1:length(folders)
 end
 
 
+cl_chk=1;
 wav_dur=[];
 num_waves=[];
 good_ch=ones(256,1);
@@ -36,6 +37,8 @@ good_ch = logical(good_ch);
 vec_field={};
 stats={};kk=1;
 stats_hg={};
+corr_coef=[];
+mu_power=[];
 for ii=1:length(files)
 
     disp(['Processing file ' num2str(ii) ' of ' num2str(length(files))])
@@ -230,9 +233,36 @@ for ii=1:length(files)
         stp = stp+14;
         wav_dur(ii) = median(out);
         num_waves(ii) = length(out);
-    end
 
+        %%%%% CORRELATION BETWEEN MU POWER AND PHASE GRADIENT STABILITY
+        x = df(:,ecog_grid);
+        x = abs(x(2:end,:));
+        x = mean(x,2);
+        r = corrcoef(stab,x);
+        corr_coef = [corr_coef r(1,2)];
+
+        %%%%% MU POWER DURING WAVE EPOCHS AS OPPOSED NON-WAVE EPOCHS
+        I = zeros(size(stab));
+        I(1:14) = NaN;
+        for j=1:length(out)
+            I(st(j):stp(j)-1)=1;
+        end
+        wave_idx = find(I==1);
+        nonwave_idx = find(I==0);
+        mu_power = [mu_power; [mean(x(nonwave_idx)) mean(x(wave_idx)) ] ];
+    end
 end
+
+
+figure;
+hist(corr_coef)
+title('correlation between mu power and wave stability')
+xlim([0 1])
+
+figure;boxplot(mu_power)
+ylabel('Mu power')
+xticks(1:2)
+xticklabels({'Nonwave','Wave'})
 
 wave_dur=wav_dur;
 figure;stem(wave_dur)
