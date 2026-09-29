@@ -2,7 +2,7 @@
 clear
 clc
 close all
-subj='B1';
+subj='B3';
 
 % LOAD SUBJECT SPECIFIC DATA
 

@@ -271,6 +271,7 @@ close all
 load('ECOG_Grid_8596_000067_B3.mat')
 
 
+
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
 load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_hg_days')
 [res_days_B1] = get_plv_waves(stats_cl_hg_days,ecog_grid,cortex,elecmatrix);
@@ -282,8 +283,6 @@ load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_h
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
 load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat','stats_cl_hg_days')
 [res_days_B6] = get_plv_waves(stats_cl_hg_days(1:end-1),ecog_grid,cortex,elecmatrix);
-
-
 
 res_days = [res_days_B1;res_days_B3;res_days_B6];
 figure;hold on
