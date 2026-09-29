@@ -442,12 +442,14 @@ parfor i=1:1000
     end
     data_tmp = table(percent_tmp,subject);
     glm_boot = fitlme(data_tmp,'percent_tmp ~ 1+ (1|subject)');
-    boot(i) = glm_boot.Coefficients.tStat;
+    glm.Coefficients.tStat;
+
+
+
+
 end
 
- [p,h,s] = signrank(percent_change);
- p
- s
+
 
 %% ANALYSIS 0 and 1 -> VARIANCE, PCA style (MAIN)
 % PRINCIPAL ANGLES 
