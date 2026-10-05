@@ -199,8 +199,8 @@ for ii=1:length(files)
         st = st+14;
         stp = stp+14;
 
-        figure;
-        plot(zscore(stab))
+        % figure;
+        % plot(zscore(stab))
         
 
 

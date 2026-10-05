@@ -5,9 +5,9 @@ res_days=[];
 res_days_f=[];
 res_days_d=[];
 for days=1:length(stats_cl_days)
-    res_acc=[];dc_acc=[];d_acc=[];f_acc=[];
-    res_err=[];dc_err=[];d_err=[];f_err=[];
     stats_cl = stats_cl_days{days};
+    res_acc=[];dc_acc=[];d_acc=[];f_acc=[];
+    res_err=[];dc_err=[];d_err=[];f_err=[];    
     for i=1:length(stats_cl)
         %%% old
         %stab = zscore(stats_cl(i).stab);
