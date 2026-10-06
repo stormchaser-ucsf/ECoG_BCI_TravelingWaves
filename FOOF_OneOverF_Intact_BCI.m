@@ -2331,10 +2331,21 @@ bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',Fs);
 % bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
 %                'HalfPowerFrequency', 3, 'SampleRate', Fs);
+hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'SampleRate',Fs);
+
 ch=1:256;
-mu_wave = filtfilt(bpFilt,(lfp(:,ch)));
+mu_wave = filtfilt(bpFilt,zscore(lfp(:,ch)));
 mu_wave = hilbert(mu_wave);
 mu_pow = abs(mu_wave);
+mu_phase = angle(mu_wave);
+
+hg = filtfilt(hGFilt,zscore(lfp));
+hg = abs(hilbert(hg));
+hg_mu = filtfilt(bpFilt,hg);
+hg_mu = angle(hilbert(hg_mu));
+
 %mu_wave(:,bad_ch) = 1e-8*randn(size(mu_wave(:,bad_ch)));
 dcyc_move = [];
 dcyc_hold = [];
