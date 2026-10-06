@@ -36,7 +36,7 @@ for days=1:length(stats_cl_days)
         % end
 
         % duty cycle
-        tmp=stab;
+        tmp=stab1;        
         t = length(tmp) * 20/1e3;
         f = length(out)/t; % frequency/s
         d = mean(out) * 20/1e3; %duration in s
@@ -56,10 +56,11 @@ for days=1:length(stats_cl_days)
             f_err = [f_err;f];
         end
     end
-    res_days(days,:)=[mean(dc_err) mean(dc_acc)];
+    %[nanmean(dc_err) nanmean(dc_acc)]
+    res_days(days,:)=[nanmean(dc_err) nanmean(dc_acc)];
     %res_days(days,:)=[mean(res_err) mean(res_acc)];
-    res_days_f(days,:) = [mean(f_err) mean(f_acc)];
-    res_days_d(days,:) = [mean(d_err) mean(d_acc)];
+    res_days_f(days,:) = [nanmean(f_err) nanmean(f_acc)];
+    res_days_d(days,:) = [nanmean(d_err) nanmean(d_acc)];
 end
 
 [p,h]=signrank(res_days(:,1),res_days(:,2))
