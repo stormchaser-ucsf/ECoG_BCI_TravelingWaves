@@ -93,6 +93,11 @@ res_days=[];
 res_days_map=[];
 for days=1:length(stats_cl_hg_days)
     stats_cl_hg = stats_cl_hg_days{days};    
+    % for b3 hand taking only the cl2 blocks
+    l = round(length(stats_cl_hg)/2);
+    stats_cl_hg = stats_cl_hg(l+1:end);
+    %stats_cl_hg = stats_cl_hg(end-36:end);
+    % end
     wave_plv_iter=[];
     nonwave_plv_iter=[];
     parfor iter=1:20

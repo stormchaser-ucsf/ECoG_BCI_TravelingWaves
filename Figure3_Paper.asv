@@ -276,8 +276,8 @@ acc_days=[];
 for i=1:length(stats_cl_days)
     a = stats_cl_days{i};
     l = round(length(a)/2);
-    a = a(l+1:end);
-    %a = a(end-24:end);
+    %a = a(l+1:end);
+    a =
     dcyc_corr=[];
     dcyc_err=[];
     acc_days(i) = mean([a(1:end).accuracy]);
@@ -285,7 +285,7 @@ for i=1:length(stats_cl_days)
         tmp  = a(j).stab;
         % correct trials
         if a(j).accuracy==1 
-            tmp = tmp(50:end);
+            tmp = tmp(1:end);
             [out,st,stp] = wave_stability_detect(zscore(tmp));
             t = length(tmp) * 20/1e3;
             f = length(out)/t; % frequency/s
@@ -295,7 +295,7 @@ for i=1:length(stats_cl_days)
 
         % incorrect trials
         if a(j).accuracy==0
-            tmp = tmp(50:end);
+            tmp = tmp(1:end);
             [out,st,stp] = wave_stability_detect(zscore(tmp));
             t = length(tmp) * 20/1e3;
             f = length(out)/t; % frequency/s
@@ -313,7 +313,7 @@ figure;
 plot(dcyc_days_corr-dcyc_days_err,'.','MarkerSize',20)
 
 
-%%%% does mu PAC difference between wave and nonwave epochs change across days
+% does mu PAC difference between wave and nonwave epochs change across days
 [res_days_B3] = get_plv_waves(stats_cl_hg_days,ecog_grid,cortex,elecmatrix);
 %tmp = (res_days_B3(:,1) - res_days_B3(:,2))./(res_days_B3(:,2));
 tmp = (res_days_B3(:,1) - res_days_B3(:,2));
@@ -340,54 +340,6 @@ tstat = mdl.Coefficients.tStat(2);
 pval  = mdl.Coefficients.pValue(2);
 fprintf('slope = %.4f +/- %.4f SE, t = %.3f, p = %.4g\n', ...
     beta,SE,tstat,pval);
-
-
-
-%%%% does mu power difference between wave and nonwave epochs change across days
-mu_wave_pow_days=[];
-mu_nonwave_pow_days=[];
-for i=1:length(stats_cl_hg_days)
-    a = stats_cl_hg_days{i};
-    %l = round(length(a)/2);
-    %a = a(l:end);
-    wave_pow=[];
-    nonwave_pow=[];
-    for j=1:length(a)
-        tmp = abs(cell2mat(a(j).mu_wave'));
-        wave_pow = [wave_pow mean(tmp(:))];
-
-        tmp = abs(cell2mat(a(j).mu_nonwave'));
-        nonwave_pow = [nonwave_pow mean(tmp(:))];
-    end
-
-    mu_wave_pow_days(i) = median(wave_pow);
-    mu_nonwave_pow_days(i) = median(nonwave_pow);
-
-end
-
-figure;
-boxplot([mu_wave_pow_days' mu_nonwave_pow_days'])
-% 
-% figure;
-% plot(mu_wave_pow_days - mu_nonwave_pow_days,'.','MarkerSize',30)
-
-tmp = (mu_wave_pow_days - mu_nonwave_pow_days);
-%tmp = tmp(:)*100;
-day = (1:length(tmp))';
-mdl = fitlm(day,tmp,'RobustOpts','on')
-bhat = mdl.Coefficients.Estimate;
-xhat = linspace(1,10,100);
-yhat = predict(mdl,xhat(:));
-
-figure;plot(tmp,'.','MarkerSize',30)
-hold on
-plot(xhat,yhat,'k','LineWidth',1);
-xticks(1:10)
-xlabel('Days')
-ylabel('Delta Mu Power  Waves - NonWaves')
-xlim([0.5 10.5])
-plot_beautify
-ylim([0.04 0.12])
 
 
 %% stuff to save the data
