@@ -2,7 +2,7 @@
 clear
 clc
 close all
-subj='B1';
+subj='B3';
 
 % LOAD SUBJECT SPECIFIC DATA
 
@@ -13,8 +13,8 @@ if strcmp(subj,'B3')
         addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
         cd(root_path)
         addpath('C:\Users\nikic\Documents\MATLAB\DrosteEffect-BrewerMap-5b84f95')
-        %load session_data_B3_Hand
-        load session_data_B3
+        load session_data_B3_Hand
+        %load session_data_B3
         addpath 'C:\Users\nikic\Documents\MATLAB'
         load('ECOG_Grid_8596_000067_B3.mat')
         addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves\'))
@@ -23,8 +23,8 @@ if strcmp(subj,'B3')
         %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
         root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
         cd(root_path)
-        %load session_data_B3_Hand
-        load session_data_B3
+        load session_data_B3_Hand
+        %load session_data_B3
         load('ECOG_Grid_8596_000067_B3.mat')
         addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 

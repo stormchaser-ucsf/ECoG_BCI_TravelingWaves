@@ -812,17 +812,30 @@ bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',Fs);
 % bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
 %                'HalfPowerFrequency', 3, 'SampleRate', Fs);
+hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'SampleRate',Fs);
+
 ch=1:256;
-mu_wave = filtfilt(bpFilt,(lfp(:,ch)));
-mu_wave = hilbert(mu_wave);
+
+hg = filtfilt(hGFilt,zscore(lfp(:,ch)));
+hg = abs(hilbert(hg));
+hg_mu = filtfilt(bpFilt,hg);
+hg_mu  = hilbert(hg_mu);
+
+mu_signal = filtfilt(bpFilt,zscore(lfp(:,ch)));
+mu_wave = hilbert(mu_signal);
 mu_pow = abs(mu_wave);
 %mu_wave(:,bad_ch) = 1e-8*randn(size(mu_wave(:,bad_ch)));
+
 dcyc_move = [];
 dcyc_hold = [];
 wave_f = [];
 wave_dur = [];
 mu_pow_waves=[];
 mu_pow_non_waves=[];
+stats={};
+
 for i=1:length(trial_timings)
     timings = [trial_timings(i).movement.cue.time];
     % for j=1:length(timings)
@@ -841,14 +854,16 @@ for i=1:length(trial_timings)
     %     stp=st+3;
     % end
     index = (lfp_time >= st) .* (lfp_time<=stp);
-    data = mu_wave(logical(index),:);
-    data_pow = mu_pow(logical(index),:);
+    data = mu_wave(logical(index),:); % hilbert of mu
+    data_pow = mu_pow(logical(index),:); %mu amplitude
+    hg_mu_data = hg_mu(logical(index),:); %hilbert of hg mu
 
     % downsample to 50Hz
     tx = (1/Fs)*[0:size(data,1)-1];
-    df = resample(data,tx,50);
-    df_pow = resample(data_pow,tx,50);
-
+    df = resample(data,tx,50); %hilbert of mu
+    df_pow = resample(data_pow,tx,50); %mu amplitude
+    hg_mu_data = resample(hg_mu_data,tx,50); %hilbert of hg mu
+    
     % detect waves based on spatiotemporally stable phase gradients    
     planar_val_time=[];
     parfor t=1:size(df,1)        
@@ -874,20 +889,36 @@ for i=1:length(trial_timings)
     dcyc=ff1*d;
     dcyc_hold =  [dcyc_hold dcyc];
 
-    % get mu power within wave periods
+    %%%% get mu power and plv within wave periods
     tmp={};tmp_mu={};I=ones(length(stab1)+1,1);
+    tmp_hg_mu={};
     for k=1:length(st)
-        tmp{k} = df_pow(st(k):stp(k),bad_chI);
-        tmp_mu{k} = df(st(k):stp(k),bad_chI);
+        tmp{k} = df_pow(st(k):stp(k),bad_chI); %mu amplitude
+        tmp_mu{k} = df(st(k):stp(k),bad_chI); %hilbert of mu
+        tmp_hg_mu{k} = hg_mu_data(st(k):stp(k),bad_chI); %hilbert of hg mu
         I(st(k):stp(k))=0;
     end
+    % power
     tmp = cell2mat(tmp');
     mu_pow_waves = [mu_pow_waves ;nanmean(tmp,1)];
 
+    %plv
+    tmp_mu = angle(cell2mat(tmp_mu'));
+    tmp_hg_mu = angle(cell2mat(tmp_hg_mu'));
+    res_wave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
+    stats(i).plv_wave = res_wave;
 
-    % get mu power within non wave periods
-    tmp_nonwave = df_pow(logical(I),bad_chI);
+
+    %%%% get mu power within non wave periods
+    I = logical(I);
+    % power
+    tmp_nonwave = df_pow(I,bad_chI);
     mu_pow_non_waves = [mu_pow_non_waves ;nanmean(tmp_nonwave,1)];
+    % plv
+    tmp_mu = angle(df(I,bad_chI));
+    tmp_hg_mu = angle(hg_mu_data(I,bad_chI));
+    res_nonwave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
+    stats(i).plv_nonwave = res_nonwave;
 
 
 
@@ -908,7 +939,7 @@ for i=1:length(trial_timings)
     parfor t=1:size(df,1)        
         % estimate planar waves across mini grid
         tmp = df(t,:);
-        tmp(bad_ch)= NaN;
+        tmp(bad_ch)= NaN + 1i*NaN;
         xph = tmp(ecog_grid);
         [planar_val,aa,bb] = planar_stats_muller(xph);        
         planar_val_time(t,:,:) = planar_val;
@@ -937,6 +968,7 @@ figure;
 boxplot([mean(mu_pow_waves,2) mean(mu_pow_non_waves,2)])
 signrank(mean(mu_pow_waves,2)', mean(mu_pow_non_waves,2)')
 
+res = get_plv_stats_intact(stats);
 
 
 %%%%%
@@ -1590,17 +1622,36 @@ bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',Fs);
 % bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
 %                'HalfPowerFrequency', 3, 'SampleRate', Fs);
+hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
+    'SampleRate',Fs);
+
 ch=1:256;
-mu_wave = filtfilt(bpFilt,(lfp(:,ch)));
-mu_wave = hilbert(mu_wave);
+%ch=129:256;
+%bad_ch_orig = bad_ch;
+%ecog_grid_orig = ecog_grid;
+%bad_ch = bad_ch(bad_ch>128);
+%ecog_grid=ecog_grid(:,1:8);
+%bad_chI=bad_chI(129:end);
+
+hg = filtfilt(hGFilt,zscore(lfp(:,ch)));
+hg = abs(hilbert(hg));
+hg_mu = filtfilt(bpFilt,hg);
+hg_mu  = hilbert(hg_mu);
+
+mu_signal = filtfilt(bpFilt,zscore(lfp(:,ch)));
+mu_wave = hilbert(mu_signal);
 mu_pow = abs(mu_wave);
 %mu_wave(:,bad_ch) = 1e-8*randn(size(mu_wave(:,bad_ch)));
+
 dcyc_move = [];
 dcyc_hold = [];
 wave_f = [];
 wave_dur = [];
 mu_pow_waves=[];
 mu_pow_non_waves=[];
+stats={};
+
 for i=1:length(trial_timings)
     timings = [trial_timings(i).movement.cue.time];
     % for j=1:length(timings)
@@ -1612,27 +1663,30 @@ for i=1:length(trial_timings)
 
     %%%% HOLD PERIOD %%%%%%
     st = trial_timings(i).movement.cue(2).time; %anin    
-    st = st+0.5;
-    %stp=st+2.5;
-    stp = trial_timings(i).movement.cue(3).time; %anin    
+    %st=st-0.5;
+    stp=st+3.0;
+    %st = st-0.5;    
+    %stp = trial_timings(i).movement.cue(2).time; %anin    
     % if stp-st > 3
     %     stp=st+3;
     % end
     index = (lfp_time >= st) .* (lfp_time<=stp);
-    data = mu_wave(logical(index),:);
-    data_pow = mu_pow(logical(index),:);
+    data = mu_wave(logical(index),:); % hilbert of mu
+    data_pow = mu_pow(logical(index),:); %mu amplitude
+    hg_mu_data = hg_mu(logical(index),:); %hilbert of hg mu
 
     % downsample to 50Hz
     tx = (1/Fs)*[0:size(data,1)-1];
-    df = resample(data,tx,50);
-    df_pow = resample(data_pow,tx,50);
-
+    df = resample(data,tx,50); %hilbert of mu
+    df_pow = resample(data_pow,tx,50); %mu amplitude
+    hg_mu_data = resample(hg_mu_data,tx,50); %hilbert of hg mu
+    
     % detect waves based on spatiotemporally stable phase gradients    
     planar_val_time=[];
     parfor t=1:size(df,1)        
         % estimate planar waves across mini grid
         tmp = df(t,:);
-        tmp(bad_ch)= NaN + 1i*NaN;
+        %tmp(bad_ch)= NaN + 1i*NaN;
         xph = tmp(ecog_grid);
         [planar_val,aa,bb] = planar_stats_muller(xph);        
         planar_val_time(t,:,:) = planar_val;
@@ -1652,20 +1706,36 @@ for i=1:length(trial_timings)
     dcyc=ff1*d;
     dcyc_hold =  [dcyc_hold dcyc];
 
-    % get mu power within wave periods
+    %%%% get mu power and plv within wave periods
     tmp={};tmp_mu={};I=ones(length(stab1)+1,1);
+    tmp_hg_mu={};
     for k=1:length(st)
-        tmp{k} = df_pow(st(k):stp(k),bad_chI);
-        tmp_mu{k} = df(st(k):stp(k),bad_chI);
+        tmp{k} = df_pow(st(k):stp(k),bad_chI); %mu amplitude
+        tmp_mu{k} = df(st(k):stp(k),bad_chI); %hilbert of mu
+        tmp_hg_mu{k} = hg_mu_data(st(k):stp(k),bad_chI); %hilbert of hg mu
         I(st(k):stp(k))=0;
     end
+    % power
     tmp = cell2mat(tmp');
     mu_pow_waves = [mu_pow_waves ;nanmean(tmp,1)];
 
+    %plv
+    tmp_mu = angle(cell2mat(tmp_mu'));
+    tmp_hg_mu = angle(cell2mat(tmp_hg_mu'));
+    res_wave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
+    stats(i).plv_wave = res_wave;
 
-    % get mu power within non wave periods
-    tmp_nonwave = df_pow(logical(I),bad_chI);
+
+    %%%% get mu power within non wave periods
+    I = logical(I);
+    % power
+    tmp_nonwave = df_pow(I,bad_chI);
     mu_pow_non_waves = [mu_pow_non_waves ;nanmean(tmp_nonwave,1)];
+    % plv
+    tmp_mu = angle(df(I,bad_chI));
+    tmp_hg_mu = angle(hg_mu_data(I,bad_chI));
+    res_nonwave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
+    stats(i).plv_nonwave = res_nonwave;
 
 
 
@@ -1686,7 +1756,7 @@ for i=1:length(trial_timings)
     parfor t=1:size(df,1)        
         % estimate planar waves across mini grid
         tmp = df(t,:);
-        tmp(bad_ch)= NaN;
+        %tmp(bad_ch)= NaN + 1i*NaN;
         xph = tmp(ecog_grid);
         [planar_val,aa,bb] = planar_stats_muller(xph);        
         planar_val_time(t,:,:) = planar_val;
@@ -1709,11 +1779,19 @@ end
 
 figure;
 boxplot([ dcyc_hold(:) dcyc_move(:)])
-[p,h] = signrank(dcyc_hold,dcyc_move)
+[p,h] = signrank(dcyc_hold,dcyc_move);
 
 figure;
 boxplot([mean(mu_pow_waves,2) mean(mu_pow_non_waves,2)])
-signrank(mean(mu_pow_waves,2)', mean(mu_pow_non_waves,2)')
+p=signrank(mean(mu_pow_waves,2)', mean(mu_pow_non_waves,2)');
+xticks(1:2)
+xticklabels({'Wave','Non wave'})
+ylabel('Mu power')
+title(['pval of ' num2str(p)])
+plot_beautify
+
+res = get_plv_stats_intact(stats,1);
+
 %%%%%%%
 
 
@@ -2331,28 +2409,32 @@ bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'SampleRate',Fs);
 % bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
 %                'HalfPowerFrequency', 3, 'SampleRate', Fs);
+% bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
+%                'HalfPowerFrequency', 3, 'SampleRate', Fs);
 hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
     'SampleRate',Fs);
 
 ch=1:256;
-mu_wave = filtfilt(bpFilt,zscore(lfp(:,ch)));
-mu_wave = hilbert(mu_wave);
-mu_pow = abs(mu_wave);
-mu_phase = angle(mu_wave);
 
-hg = filtfilt(hGFilt,zscore(lfp));
+hg = filtfilt(hGFilt,zscore(lfp(:,ch)));
 hg = abs(hilbert(hg));
 hg_mu = filtfilt(bpFilt,hg);
-hg_mu = angle(hilbert(hg_mu));
+hg_mu  = hilbert(hg_mu);
 
+mu_signal = filtfilt(bpFilt,zscore(lfp(:,ch)));
+mu_wave = hilbert(mu_signal);
+mu_pow = abs(mu_wave);
 %mu_wave(:,bad_ch) = 1e-8*randn(size(mu_wave(:,bad_ch)));
+
 dcyc_move = [];
 dcyc_hold = [];
 wave_f = [];
 wave_dur = [];
 mu_pow_waves=[];
 mu_pow_non_waves=[];
+stats={};
+
 for i=1:length(trial_timings)
     timings = [trial_timings(i).movement.cue.time];
     % for j=1:length(timings)
@@ -2371,20 +2453,22 @@ for i=1:length(trial_timings)
     %     stp=st+3;
     % end
     index = (lfp_time >= st) .* (lfp_time<=stp);
-    data = mu_wave(logical(index),:);
-    data_pow = mu_pow(logical(index),:);
+    data = mu_wave(logical(index),:); % hilbert of mu
+    data_pow = mu_pow(logical(index),:); %mu amplitude
+    hg_mu_data = hg_mu(logical(index),:); %hilbert of hg mu
 
     % downsample to 50Hz
     tx = (1/Fs)*[0:size(data,1)-1];
-    df = resample(data,tx,50);
-    df_pow = resample(data_pow,tx,50);
-
+    df = resample(data,tx,50); %hilbert of mu
+    df_pow = resample(data_pow,tx,50); %mu amplitude
+    hg_mu_data = resample(hg_mu_data,tx,50); %hilbert of hg mu
+    
     % detect waves based on spatiotemporally stable phase gradients    
     planar_val_time=[];
     parfor t=1:size(df,1)        
         % estimate planar waves across mini grid
         tmp = df(t,:);
-        tmp(bad_ch)= NaN + 1i*NaN;
+        %tmp(bad_ch)= NaN + 1i*NaN;
         xph = tmp(ecog_grid);
         [planar_val,aa,bb] = planar_stats_muller(xph);        
         planar_val_time(t,:,:) = planar_val;
@@ -2404,20 +2488,36 @@ for i=1:length(trial_timings)
     dcyc=ff1*d;
     dcyc_hold =  [dcyc_hold dcyc];
 
-    % get mu power within wave periods
+    %%%% get mu power and plv within wave periods
     tmp={};tmp_mu={};I=ones(length(stab1)+1,1);
+    tmp_hg_mu={};
     for k=1:length(st)
-        tmp{k} = df_pow(st(k):stp(k),bad_chI);
-        tmp_mu{k} = df(st(k):stp(k),bad_chI);
+        tmp{k} = df_pow(st(k):stp(k),bad_chI); %mu amplitude
+        tmp_mu{k} = df(st(k):stp(k),bad_chI); %hilbert of mu
+        tmp_hg_mu{k} = hg_mu_data(st(k):stp(k),bad_chI); %hilbert of hg mu
         I(st(k):stp(k))=0;
     end
+    % power
     tmp = cell2mat(tmp');
     mu_pow_waves = [mu_pow_waves ;nanmean(tmp,1)];
 
+    %plv
+    tmp_mu = angle(cell2mat(tmp_mu'));
+    tmp_hg_mu = angle(cell2mat(tmp_hg_mu'));
+    res_wave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
+    stats(i).plv_wave = res_wave;
 
-    % get mu power within non wave periods
-    tmp_nonwave = df_pow(logical(I),bad_chI);
+
+    %%%% get mu power within non wave periods
+    I = logical(I);
+    % power
+    tmp_nonwave = df_pow(I,bad_chI);
     mu_pow_non_waves = [mu_pow_non_waves ;nanmean(tmp_nonwave,1)];
+    % plv
+    tmp_mu = angle(df(I,bad_chI));
+    tmp_hg_mu = angle(hg_mu_data(I,bad_chI));
+    res_nonwave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
+    stats(i).plv_nonwave = res_nonwave;
 
 
 
@@ -2438,7 +2538,7 @@ for i=1:length(trial_timings)
     parfor t=1:size(df,1)        
         % estimate planar waves across mini grid
         tmp = df(t,:);
-        tmp(bad_ch)= NaN;
+        %tmp(bad_ch)= NaN + 1i*NaN;
         xph = tmp(ecog_grid);
         [planar_val,aa,bb] = planar_stats_muller(xph);        
         planar_val_time(t,:,:) = planar_val;
@@ -2461,11 +2561,21 @@ end
 
 figure;
 boxplot([ dcyc_hold(:) dcyc_move(:)])
-[p,h] = signrank(dcyc_hold,dcyc_move)
+[p,h] = signrank(dcyc_hold,dcyc_move);
 
 figure;
 boxplot([mean(mu_pow_waves,2) mean(mu_pow_non_waves,2)])
-signrank(mean(mu_pow_waves,2)', mean(mu_pow_non_waves,2)')
+p=signrank(mean(mu_pow_waves,2)', mean(mu_pow_non_waves,2)');
+xticks(1:2)
+xticklabels({'Wave','Non wave'})
+ylabel('Mu power')
+title(['pval of ' num2str(p)])
+plot_beautify
+
+
+res = get_plv_stats_intact(stats,2);
+
+
 %%%%%%%%
 
 % phase amplitude coupling between the hG and mu at specific task phases
