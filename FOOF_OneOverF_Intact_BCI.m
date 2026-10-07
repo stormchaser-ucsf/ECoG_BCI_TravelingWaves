@@ -805,6 +805,8 @@ ylabel('Z score')
 plot_beautify
 axis tight
 
+close all
+
 
 %%%% MU TRAVELING WAVE ANALYSES
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
@@ -846,10 +848,18 @@ for i=1:length(trial_timings)
 
 
     %%%% HOLD PERIOD %%%%%%
+    %%%% main
     st = trial_timings(i).movement.cue(2).time; %anin    
     st = st+0.5;
     %stp=st+2.5;
     stp = trial_timings(i).movement.cue(3).time; %anin    
+    %%%% main end
+
+    %%% for movement
+    % st = trial_timings(i).movement.cue(3).time; %anin  
+    % st=st+0.5;
+    % stp = st+3;
+
     % if stp-st > 3
     %     stp=st+3;
     % end
