@@ -1077,9 +1077,8 @@ ylabel('Duty cycle')
 cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New\Figure2_New\')
 
 % svg
-plot_beautify
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'RotCorr_EC189_Trial5_HoldPeriod.svg','-dsvg','-painters','-r300');
+print(gcf,'EC189_PhaseGradient_Timept2.svg','-dsvg','-painters','-r300');
     
 % png
 set(gcf,'PaperPositionMode','auto');
