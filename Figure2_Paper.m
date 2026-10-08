@@ -335,7 +335,11 @@ if ispc
     addpath('C:\Users\nikic\Documents\MATLAB')
 end
 
-cd('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
+if ispc
+    cd('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
+else
+    cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/')
+end
 
 ec176 = load('EC176_Mu_Pow.mat');
 ec189 = load('EC189_Mu_Power.mat');
@@ -357,13 +361,19 @@ for i=1:length(subj_names)
     pow_move = subj.(subj_names{i}).pow_s3;
     good_ch = find(bad_chI==1);
 
-    a = mean(pow_hold,2);
-    pow_hold_all =[pow_hold_all; a(good_ch)];
-    
+    % % averaging across trials 
+    % a = mean(pow_hold,2);
+    % pow_hold_all =[pow_hold_all; a(good_ch)];
+    % b = mean(pow_move,2);
+    % pow_move_all =[pow_move_all; b(good_ch)];
+    % idxx = [idxx;i*ones(length(good_ch),1)];
 
-    b = mean(pow_move,2);
-    pow_move_all =[pow_move_all; b(good_ch)];
-    idxx = [idxx;i*ones(length(good_ch),1)];
+    % averaging across channels 
+    a = mean(pow_hold(good_ch,:),1);
+    pow_hold_all =[pow_hold_all; a'];
+    b = mean(pow_move(good_ch,:),1);
+    pow_move_all =[pow_move_all; b'];
+    idxx = [idxx;i*ones(length(a),1)];
 end
 
 

@@ -594,7 +594,7 @@ for i=1:length(trial_timings)
         xph = tmp(ecog_grid);
         %[planar_val,aa,bb] = planar_stats_muller_intact(xph,mask);        
         [planar_val,aa,bb] = planar_stats_muller(xph);   
-        planar_val(mask==0) = NaN +1i*NaN;
+        %planar_val(mask==0) = NaN +1i*NaN;
         planar_val_time(t,:,:) = planar_val;
     end
 
@@ -816,7 +816,7 @@ colormap hot
 
 
 clf
-v = VideoWriter('EC189_WaveExample.avi','Motion JPEG AVI');
+v = VideoWriter('EC189_WaveExample.mp4','MPEG-4');
 v.FrameRate = 20;
 v.Quality=100;
 open(v);
