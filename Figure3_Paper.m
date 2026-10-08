@@ -285,7 +285,7 @@ for i=1:length(stats_cl_days)
         tmp  = a(j).stab;
         % correct trials
         if a(j).accuracy==1 
-            tmp = tmp(50:end);
+            tmp = tmp(1:end);
             [out,st,stp] = wave_stability_detect(zscore(tmp));
             t = length(tmp) * 20/1e3;
             f = length(out)/t; % frequency/s
@@ -295,7 +295,7 @@ for i=1:length(stats_cl_days)
 
         % incorrect trials
         if a(j).accuracy==0
-            tmp = tmp(50:end);
+            tmp = tmp(1:end);
             [out,st,stp] = wave_stability_detect(zscore(tmp));
             t = length(tmp) * 20/1e3;
             f = length(out)/t; % frequency/s
@@ -311,6 +311,12 @@ figure;
 boxplot([dcyc_days_corr'  dcyc_days_err'])
 figure;
 plot(dcyc_days_corr-dcyc_days_err,'.','MarkerSize',20)
+tmp = dcyc_days_corr - dcyc_days_err;
+day = (1:length(tmp))';
+mdl = fitlm(day,tmp,'RobustOpts','on')
+bhat = mdl.Coefficients.Estimate;
+xhat = linspace(1,10,100);
+yhat = predict(mdl,xhat(:));
 
 
 %%%% does mu PAC difference between wave and nonwave epochs change across days

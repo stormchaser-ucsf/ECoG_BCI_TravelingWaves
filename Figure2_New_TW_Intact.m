@@ -129,7 +129,7 @@ for i=1:length(trial_timings)
         xph = tmp(ecog_grid);
         %[planar_val,aa,bb] = planar_stats_muller_intact(xph,mask);        
         [planar_val,aa,bb] = planar_stats_muller(xph);   
-        %planar_val(mask==0) = NaN +1i*NaN;
+        planar_val(mask==0) = NaN +1i*NaN;
         planar_val_time(t,:,:) = planar_val;
     end
 
@@ -142,14 +142,17 @@ for i=1:length(trial_timings)
     stab1 = zscore(stab(1:end));
     [out,st,stp] = wave_stability_detect(stab1,0,3);
 
-    figure;plot(stab1)
-    hline(0)
+    % figure;plot(stab1)
+    % hline(0)
 
     t = length(stab1) * 20/1e3;
     ff1 = length(out)/t; % frequency/s
     d = mean(out) * 20/1e3; %duration in s
     dcyc=ff1*d;
     dcyc_hold =  [dcyc_hold dcyc];
+    wave_f(i) = ff1;
+    wave_dur(i) = d;
+
 
     %%%% get mu power and plv within wave periods
     tmp={};tmp_mu={};I=ones(length(stab1)+1,1);
@@ -240,6 +243,11 @@ plot_beautify
 res = get_plv_stats_intact(stats);
 figure;boxplot(res(:,1)-res(:,2));hline(0)
 
+
+EC189_hold_waves_stats.freq = wave_f;
+EC189_hold_waves_stats.dur = wave_dur;
+EC189_hold_waves_stats.dcyc = dcyc_hold;
+save EC189_hold_waves_stats EC189_hold_waves_stats -v7.3
 
 res_EC189_Mu_hG_plv_waves = res;
 res_EC189_mu_pow_waves = mu_pow_waves;
@@ -620,6 +628,33 @@ for t = 1:size(xx,1)
 end
 %%%%%
 
+%% PLOT WAVE STATISTICS ACROSS ALL 3 PARTICIPANTS
+
+clc;clear
+close all
+
+
+filepath = '/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC176_ProcessingForNikhilesh/ecog_data_NN';
+filename = 'EC176_hold_waves_stats.mat';
+ec176 = load(fullfile(filepath,filename));
+
+filepath = '/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC189_ProcessingForNikhilesh/EC189';
+filename = 'EC189_hold_waves_stats.mat';
+ec189 = load(fullfile(filepath,filename));
+
+filepath = '/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC210';
+filename = 'EC210_hold_waves_stats.mat';
+ec210 = load(fullfile(filepath,filename));
+
+% histogram of wave frequency
+tmp{1} = ec176.EC176_hold_waves_stats.freq;
+tmp{2} = ec189.EC189_hold_waves_stats.freq;
+tmp{3} = ec210.EC210_hold_waves_stats.freq;
+figure;
+hold
+ksdensity(tmp1)
+ksdensity(tmp2)
+ksdensity(tmp3)
 
 
 

@@ -1744,6 +1744,8 @@ for i=1:length(trial_timings)
     d = mean(out) * 20/1e3; %duration in s
     dcyc=ff1*d;
     dcyc_hold =  [dcyc_hold dcyc];
+    wave_f(i) = ff1;
+    wave_dur(i) = d;
 
     %%%% get mu power and plv within wave periods
     tmp={};tmp_mu={};I=ones(length(stab1)+1,1);
@@ -1832,6 +1834,13 @@ plot_beautify
 
 res = get_plv_stats_intact(stats,1);
 figure;boxplot(res(:,1)-res(:,2));hline(0)
+
+
+
+EC210_hold_waves_stats.freq = wave_f;
+EC210_hold_waves_stats.dur = wave_dur;
+EC210_hold_waves_stats.dcyc = dcyc_hold;
+save EC210_hold_waves_stats EC210_hold_waves_stats -v7.3
 
 res_EC210_Mu_hG_plv_waves = res;
 res_EC210_mu_pow_waves = mu_pow_waves;
@@ -2542,6 +2551,8 @@ for i=1:length(trial_timings)
     d = mean(out) * 20/1e3; %duration in s
     dcyc=ff1*d;
     dcyc_hold =  [dcyc_hold dcyc];
+    wave_f(i) = ff1;
+    wave_dur(i) = d;
 
     %%%% get mu power and plv within wave periods
     tmp={};tmp_mu={};I=ones(length(stab1)+1,1);
@@ -2631,6 +2642,13 @@ plot_beautify
 
 res = get_plv_stats_intact(stats);
 figure;boxplot(res(:,1)-res(:,2));hline(0)
+
+
+
+EC176_hold_waves_stats.freq = wave_f;
+EC176_hold_waves_stats.dur = wave_dur;
+EC176_hold_waves_stats.dcyc = dcyc_hold;
+save EC176_hold_waves_stats EC176_hold_waves_stats -v7.3
 
 res_EC176_Mu_hG_plv_waves = res;
 res_EC176_mu_pow_waves = mu_pow_waves;

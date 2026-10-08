@@ -129,7 +129,7 @@ for i=1:length(trial_timings)
         xph = tmp(ecog_grid);
         %[planar_val,aa,bb] = planar_stats_muller_intact(xph,mask);        
         [planar_val,aa,bb] = planar_stats_muller(xph);   
-        %planar_val(mask==0) = NaN +1i*NaN;
+        planar_val(mask==0) = NaN +1i*NaN;
         planar_val_time(t,:,:) = planar_val;
     end
 
@@ -142,14 +142,17 @@ for i=1:length(trial_timings)
     stab1 = zscore(stab(1:end));
     [out,st,stp] = wave_stability_detect(stab1,0,3);
 
-    figure;plot(stab1)
-    hline(0)
+    % figure;plot(stab1)
+    % hline(0)
 
     t = length(stab1) * 20/1e3;
     ff1 = length(out)/t; % frequency/s
     d = mean(out) * 20/1e3; %duration in s
     dcyc=ff1*d;
     dcyc_hold =  [dcyc_hold dcyc];
+    wave_f(i) = ff1;
+    wave_dur(i) = d;
+
 
     %%%% get mu power and plv within wave periods
     tmp={};tmp_mu={};I=ones(length(stab1)+1,1);
@@ -241,6 +244,11 @@ res = get_plv_stats_intact(stats);
 figure;boxplot(res(:,1)-res(:,2));hline(0)
 
 
+EC189_hold_waves_stats.freq = wave_f;
+EC189_hold_waves_stats.dur = wave_dur;
+EC189_hold_waves_stats.dcyc = dcyc_hold;
+save EC189_hold_waves_stats EC189_hold_waves_stats -v7.3
+
 res_EC189_Mu_hG_plv_waves = res;
 res_EC189_mu_pow_waves = mu_pow_waves;
 res_EC189_mu_pow_non_waves = mu_pow_non_waves;
@@ -250,7 +258,7 @@ save EC189_PAC_MuPower_Waves_HoldPeriod res_EC189_Mu_hG_plv_waves ...
 
 %%%%% PLOT SOME EXAMPLE TRAVELING WAVES SPATIAL GRADIENTS
 % plotting of phase gradients
-idx=58:60;
+idx=59:61;
 %idx = 9:11;
 %idx = 42:44;
 %idx = 69:71;
@@ -324,7 +332,7 @@ curl_coeff=abs(curl_coeff);
 median(curl_coeff)
 figure;
 boxplot(curl_coeff)
-ylim([0 1])
+ylim([0.4 1])
 ylabel('Circular-circular R')
 plot_beautify
 xlim([.85 1.15])
@@ -620,7 +628,11 @@ for t = 1:size(xx,1)
 end
 %%%%%
 
+%% PLOT WAVE STATISTICS ACROSS ALL 3 PARTICIPANTS
 
+filepath = '/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC176_ProcessingForNikhilesh/ecog_data_NN';
+filename = 'EC176_hold_waves_stats.mat';
+ec176 = load(fillfile())
 
 
 %% HG DECODING ACCURACIES DURING WAVES VS. NON WAVE EPOCHS
