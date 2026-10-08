@@ -809,17 +809,8 @@ close all
 
 
 %%%% MU TRAVELING WAVE ANALYSES
-bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
-    'SampleRate',Fs);
-% bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
-%                'HalfPowerFrequency', 3, 'SampleRate', Fs);
-hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
-    'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
-    'SampleRate',Fs);
 
-
-
+%%%% MU TRAVELING WAVE ANALYSES
 ch=1:256;
 
 hg = filtfilt(hGFilt,zscore(lfp(:,ch)));

@@ -7,7 +7,7 @@ res_days_d=[];
 for days=1:length(stats_cl_days)
     stats_cl = stats_cl_days{days};
     res_acc=[];dc_acc=[];d_acc=[];f_acc=[];
-    res_err=[];dc_err=[];d_err=[];f_err=[];    
+    res_err=[];dc_err=[];d_err=[];f_err=[];
     for i=1:length(stats_cl)
         %%% old
         %stab = zscore(stats_cl(i).stab);
@@ -16,6 +16,12 @@ for days=1:length(stats_cl_days)
 
         %%% new, after state 1 roughly
         stab = stats_cl(i).stab;
+        l=length(stab);
+        % if l>=50
+        % 
+        %     stab = stab(1:50);% duration matching
+        % end
+
         stab1 = zscore(stab(15:end));
         [out,st,stp] = wave_stability_detect(stab1);
         st = st+14;
@@ -27,6 +33,10 @@ for days=1:length(stats_cl_days)
         end
 
         output = stats_cl(i).output;
+        % if l>=50
+        %     output = output(1:50);% duration matching
+        % end
+
         idx=find(output==1);
         stab_acc = wav_det(idx);
         prop_waves = sum(wav_det(idx))/length(idx);
@@ -36,7 +46,7 @@ for days=1:length(stats_cl_days)
         % end
 
         % duty cycle
-        tmp=stab1;        
+        tmp=stab1;
         t = length(tmp) * 20/1e3;
         f = length(out)/t; % frequency/s
         d = mean(out) * 20/1e3; %duration in s
