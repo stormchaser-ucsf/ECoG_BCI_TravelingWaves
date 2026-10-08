@@ -380,6 +380,11 @@ res = [res_days_B1;res_days_B3;res_days_B6];
 idx=[ones(length(res_days_B1),1);2*ones(length(res_days_B3),1);...
     3*ones(length(res_days_B6),1)];
 
+
+[p,h,stats] = signrank(res_days_B1(:,1),res_days_B1(:,2))
+[p,h,stats] = signrank(res_days_B3(:,1),res_days_B3(:,2))
+[p,h,stats] = signrank(res_days_B6(:,1),res_days_B6(:,2))
+
 figure; hold on;
 colors = [1 0 0;    % Wave: red
           0 0 1];   % Non-wave: blue
@@ -432,6 +437,10 @@ res_days_B6 = [mean(ec210.res_EC210_mu_pow_waves,2) mean(ec210.res_EC210_mu_pow_
 res = [res_days_B1;res_days_B3;res_days_B6];
 idx=[ones(length(res_days_B1),1);2*ones(length(res_days_B3),1);...
     3*ones(length(res_days_B6),1)];
+
+[p,h,stats] = signrank(res_days_B1(:,1),res_days_B1(:,2))
+[p,h,stats] = signrank(res_days_B3(:,1),res_days_B3(:,2))
+[p,h,stats] = signrank(res_days_B6(:,1),res_days_B6(:,2))
 
 figure; hold on;
 colors = [1 0 0;    % Wave: red
