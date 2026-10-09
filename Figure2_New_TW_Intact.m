@@ -1098,11 +1098,12 @@ end
 %% PLOTTING AS SVG
 
 
-cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New\Figure6\')
+cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New\Figure2\')
 
 % svg
+plot_beautify
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'NaturalMotorControl_Waves_NonWaves_Mu_hG_PAC.svg','-dsvg','-painters','-r300');
+print(gcf,'RotWave_Ec189_v2_7.svg','-dsvg','-painters','-r300');
     
 % png
 set(gcf,'PaperPositionMode','auto');
