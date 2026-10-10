@@ -58,7 +58,7 @@ for i=1:length(stats_cl_days)
         % correct trials
         if a(j).accuracy==1 
             tmp = tmp(1:end);
-            [out,st,stp] = wave_stability_detect(zscore(tmp));
+            [out,st,stp] = wave_stability_detect(zscore(tmp),0.0,3);
             t = length(tmp) * 20/1e3;
             f = length(out)/t; % frequency/s
             d = mean(out) * 20/1e3; %duration in s
@@ -70,7 +70,7 @@ for i=1:length(stats_cl_days)
         % incorrect trials
         if a(j).accuracy==0
             tmp = tmp(1:end);
-            [out,st,stp] = wave_stability_detect(zscore(tmp));
+            [out,st,stp] = wave_stability_detect(zscore(tmp),0.0,3);
             t = length(tmp) * 20/1e3;
             f = length(out)/t; % frequency/s
             d = mean(out) * 20/1e3; %duration in s
@@ -79,15 +79,15 @@ for i=1:length(stats_cl_days)
             wav_freq = [wav_freq mean(f)];
         end
     end
-    dcyc_days_corr(i) = mean(dcyc_corr);
-    dcyc_days_err(i) = mean(dcyc_err);
+    dcyc_days_corr(i) = nanmean(dcyc_corr);
+    dcyc_days_err(i) = nanmean(dcyc_err);
 end
 
 figure;
 boxplot([dcyc_days_corr'  dcyc_days_err'])
-%signrank(dcyc_days_corr' , dcyc_days_err');
+signrank(dcyc_days_corr' , dcyc_days_err')
 figure;
-plot(dcyc_days_corr-dcyc_days_err,'.','MarkerSize',20)
+plot(dcyc_days_err-dcyc_days_corr,'.','MarkerSize',20)
 tmp = dcyc_days_corr - dcyc_days_err;
 day = (1:length(tmp))';
 mdl = fitlm(day,tmp,'RobustOpts','on')
@@ -106,7 +106,7 @@ figure;
 boxplot(wav_dur*1e3,'Symbol','')
 ylabel('Wave duration (ms)')
 plot_beautify
-ylim([50 300])
+ylim([50 400])
 xticks ''
 xlim([.85 1.15])
 bb = sort(bootstrp(1000,@mean,wav_freq));
