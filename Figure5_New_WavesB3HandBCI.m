@@ -182,3 +182,16 @@ ylim([0.04 0.12])
 
 
 
+%% PLOTTING AS SVG
+
+
+cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New\Figure5\')
+
+% svg
+set(gcf,'PaperPositionMode','auto');
+print(gcf,'WaveDutyCycle.svg','-dsvg','-painters','-r300');
+    
+% png
+set(gcf,'PaperPositionMode','auto');
+print(gcf,'B3_BrainElec.png','-dpng','-r500');
+
