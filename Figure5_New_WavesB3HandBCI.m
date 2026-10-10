@@ -217,7 +217,7 @@ cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_tex
 
 % svg
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'B3_Hand_Delta_PAC_WavesVsNonwaves_Regression.svg','-dsvg','-painters','-r300');
+print(gcf,'B3_Hand_WaveDuration.svg','-dsvg','-painters','-r300');
     
 % png
 set(gcf,'PaperPositionMode','auto');
