@@ -149,8 +149,7 @@ for i=1:length(stats_cl_hg_days)
 end
 
 figure;
-boxplot([mu_wave_pow_days' mu_nonwave_pow_days'],'Symbol','',...
-    'Whisker',2.5)
+boxplot([mu_wave_pow_days' mu_nonwave_pow_days'],'Whisker',1.6)
 xticks(1:2)
 xticklabels({'Waves','Nonwaves'})
 ylabel('Mu Power (z)')
