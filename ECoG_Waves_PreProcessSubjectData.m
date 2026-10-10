@@ -31,18 +31,18 @@ if strcmp(subj,'B3')
     end
 
 
-    % d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    %     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
-    %     'SampleRate',1e3);
-    % d2 = designfilt('bandpassiir','FilterOrder',4, ...
-    %     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
-    %     'SampleRate',50);
     d1 = designfilt('bandpassiir','FilterOrder',4, ...
-        'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+        'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
         'SampleRate',1e3);
     d2 = designfilt('bandpassiir','FilterOrder',4, ...
-        'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+        'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
         'SampleRate',50);
+    % d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    %     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    %     'SampleRate',1e3);
+    % d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    %     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    %     'SampleRate',50);
     % bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
     %     'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
     %     'SampleRate',1e3);
@@ -86,18 +86,18 @@ if strcmp(subj,'B1')
 
 
     % was earlier 7 to 9
-    % d1 = designfilt('bandpassiir','FilterOrder',4, ...
-    %     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
-    %     'SampleRate',1e3); % center freq is 8.5
-    % d2 = designfilt('bandpassiir','FilterOrder',4, ...
-    %     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
-    %     'SampleRate',50);
     d1 = designfilt('bandpassiir','FilterOrder',4, ...
-        'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
-        'SampleRate',1e3);
+        'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+        'SampleRate',1e3); % center freq is 8.5
     d2 = designfilt('bandpassiir','FilterOrder',4, ...
-        'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+        'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
         'SampleRate',50);
+    % d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    %     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    %     'SampleRate',1e3);
+    % d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    %     'HalfPowerFrequency1',0.5,'HalfPowerFrequency2',4, ...
+    %     'SampleRate',50);
     bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
         'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
         'SampleRate',1e3); % center freq is 110
@@ -1378,3 +1378,140 @@ ylim([0 1])
 % ylim([0 0.5])
 % xlim([0 11])
 
+%% GET DATA FOR RUNFENG WAVE (B1 and B6)
+% single trials, mu complex data along with wave/nonwave time labels
+
+% run this code section for B1 or B6
+
+hilbert_flag=1;
+trial_data={};
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',1e3); % center freq is 8.5
+d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',50);
+for days=1:length(folders) %if B1-> it is -1
+
+    disp(['Processing day ' num2str(days)])
+
+    folderpath = fullfile(root_path,folders{days},'Robot3DArrow');
+    % if i<=2
+    %     folderpath = fullfile(root_path,folders_robot{i},'Robot3D');
+    % else
+    %     folderpath = fullfile(root_path,folders_robot{i},'RealRobotBatch');
+    % end
+    D= dir(folderpath);
+    D = D(3:end);
+    imag_idx=[];
+    online_idx=[];
+    for j=1:length(D)
+        subfoldername = dir(fullfile(folderpath,D(j).name));
+        if length(subfoldername)>2
+            if strcmp(subfoldername(3).name,'Imagined')
+                imag_idx=[imag_idx j];
+            elseif strcmp(subfoldername(3).name,'BCI_Fixed')
+                online_idx=[online_idx j];
+            end
+        end
+    end
+    
+
+
+
+    %%%%%% get imagined data files
+    files=[];
+    for ii=1:length(imag_idx)
+        imag_folderpath = fullfile(folderpath, D(imag_idx(ii)).name,'Imagined');
+        files = [files;findfiles('mat',imag_folderpath)'];
+    end
+
+    len = min(200,length(files));
+    idx=randperm(length(files),len);
+    trial_data = [trial_data;...
+        planar_waves_stats_only_wave(files(idx),d2,hilbert_flag,ecog_grid,...
+         grid_layout,elecmatrix,bpFilt,d1,0)];
+
+    %%%%%% get online data files %%%%%
+    files=[];
+    for ii=1:length(online_idx)
+        imag_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
+        files = [files;findfiles('mat',imag_folderpath)'];
+    end
+
+    len = min(200,length(files));
+    idx=randperm(length(files),len);
+    trial_data = [trial_data;...
+        planar_waves_stats_only_wave(files(idx),d2,hilbert_flag,ecog_grid,...
+        grid_layout,elecmatrix,bpFilt,d1,1)];    
+end
+
+mu_wave_trial_data_labeled = [trial_data{:}];
+save mu_wave_trial_data_labeled mu_wave_trial_data_labeled -v7.3
+
+%% GET DATA FOR RUNFENG WAVE (B3)
+% single trials, mu complex data along with wave/nonwave time labels
+
+% run this code section for B3
+
+hilbert_flag=1;
+trial_data={};
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',1e3); % center freq is 8.5
+d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',50);
+for days=1:length(folders) %if B1-> it is -1
+
+    disp(['Processing day ' num2str(days)])
+
+    folders_imag =  strcmp(session_data(days).folder_type,'I');
+    folders_online = strcmp(session_data(days).folder_type,'O');
+    folders_batch = strcmp(session_data(days).folder_type,'B');
+    folders_batch1 = strcmp(session_data(days).folder_type,'B1');
+    imag_idx = find(folders_imag==1);
+    online_idx = find(folders_online==1);
+    batch_idx = find(folders_batch==1);
+    batch_idx1 = find(folders_batch1==1);
+    online_idx=[online_idx batch_idx batch_idx1];
+    %online_idx=[online_idx batch_idx batch_idx1];
+    %online_idx = [batch_idx batch_idx1];
+
+    %%%%%% get imagined data files
+    folders = session_data(days).folders(imag_idx);
+    day_date = session_data(days).Day;
+    files=[];
+    for ii=1:length(folders)
+        %folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
+        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'Imagined');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end    
+
+    len = min(200,length(files));
+    idx=randperm(length(files),len);
+    trial_data = [trial_data;...
+        planar_waves_stats_only_wave(files(idx),d2,hilbert_flag,ecog_grid,...
+         grid_layout,elecmatrix,bpFilt,d1,0)];
+
+    %%%%%% get online data files %%%%%
+    folders = session_data(days).folders(online_idx);
+    day_date = session_data(days).Day;
+    files=[];
+    for ii=1:length(folders)
+        %folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
+        %cd(folderpath)
+        files = [files;findfiles('mat',folderpath)'];
+    end
+
+    len = min(200,length(files));
+    idx=randperm(length(files),len);
+    trial_data = [trial_data;...
+        planar_waves_stats_only_wave(files(idx),d2,hilbert_flag,ecog_grid,...
+        grid_layout,elecmatrix,bpFilt,d1,1)];    
+end
+
+mu_wave_trial_data_labeled = [trial_data{:}];
+save mu_wave_trial_data_labeled mu_wave_trial_data_labeled -v7.3
