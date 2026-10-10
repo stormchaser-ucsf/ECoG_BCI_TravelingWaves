@@ -109,12 +109,11 @@ plot_beautify
 ylim([50 300])
 xticks ''
 xlim([.85 1.15])
-bb = sort(bootstrp(1000,@mean,wav_freq));
-fprintf('Freq stats:\n mean = %.4f, 95 percent C.I. lower is %.4f, upper is  %.4f\n', ...
-    mean(wav_freq),bb(25),bb(975));
-bb = sort(bootstrp(1000,@mean,wav_dur))*1e3;
-fprintf('Duration stats:\n mean = %.4f, 95 percent C.I. lower is %.4f, upper is  %.4f\n', ...
-    1e3*mean(wav_dur),bb(25),bb(975));
+bb = sort(bootstrp(1000,@mean,wave_freq));
+fprintf(['95 percent ci and mean wave freq is' ...
+    'slope = %.4f +/- %.4f SE, t = %.3f, p = %.4g\n'], ...
+    beta,SE,tstat,pval);
+
 
 %%%% does mu PAC difference between wave and nonwave epochs change across days
 [res_days_B3] = get_plv_waves(stats_cl_hg_days,ecog_grid,cortex,elecmatrix);
