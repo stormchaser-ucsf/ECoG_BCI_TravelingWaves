@@ -2,7 +2,7 @@
 clear
 clc
 close all
-subj='B6';
+subj='B3';
 
 % LOAD SUBJECT SPECIFIC DATA
 
@@ -23,8 +23,8 @@ if strcmp(subj,'B3')
         %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
         root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
         cd(root_path)
-        load session_data_B3_Hand
-        %load session_data_B3
+        %load session_data_B3_Hand
+        load session_data_B3
         load('ECOG_Grid_8596_000067_B3.mat')
         addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 
@@ -1382,6 +1382,7 @@ ylim([0 1])
 % single trials, mu complex data along with wave/nonwave time labels
 
 % run this code section for B1 or B6
+parallel_check
 
 hilbert_flag=1;
 trial_data={};
@@ -1391,7 +1392,7 @@ d1 = designfilt('bandpassiir','FilterOrder',4, ...
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
     'SampleRate',50);
-for days=1:length(folders) %if B1-> it is -1
+for days=1:length(folders)-1 %if B1-> it is -1
 
     disp(['Processing day ' num2str(days)])
 
@@ -1416,9 +1417,6 @@ for days=1:length(folders) %if B1-> it is -1
         end
     end
     
-
-
-
     %%%%%% get imagined data files
     files=[];
     for ii=1:length(imag_idx)
@@ -1446,14 +1444,14 @@ for days=1:length(folders) %if B1-> it is -1
         grid_layout,elecmatrix,bpFilt,d1,1)];    
 end
 
-mu_wave_trial_data_labeled = [trial_data{:}];
-save mu_wave_trial_data_labeled mu_wave_trial_data_labeled -v7.3
+mu_wave_trial_data_labeled_B1 = [trial_data{:}];
+save mu_wave_trial_data_labeled_B1 mu_wave_trial_data_labeled_B1 -v7.3
 
 %% GET DATA FOR RUNFENG WAVE (B3)
 % single trials, mu complex data along with wave/nonwave time labels
 
 % run this code section for B3
-
+parallel_check
 hilbert_flag=1;
 trial_data={};
 d1 = designfilt('bandpassiir','FilterOrder',4, ...
@@ -1462,7 +1460,7 @@ d1 = designfilt('bandpassiir','FilterOrder',4, ...
 d2 = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
     'SampleRate',50);
-for days=1:length(folders) %if B1-> it is -1
+for days=1:len_days
 
     disp(['Processing day ' num2str(days)])
 
@@ -1513,5 +1511,5 @@ for days=1:length(folders) %if B1-> it is -1
         grid_layout,elecmatrix,bpFilt,d1,1)];    
 end
 
-mu_wave_trial_data_labeled = [trial_data{:}];
-save mu_wave_trial_data_labeled mu_wave_trial_data_labeled -v7.3
+mu_wave_trial_data_labeled_B3 = [trial_data{:}];
+save mu_wave_trial_data_labeled_B3 mu_wave_trial_data_labeled_B3 -v7.3
