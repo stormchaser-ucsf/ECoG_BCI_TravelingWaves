@@ -1513,3 +1513,17 @@ end
 
 mu_wave_trial_data_labeled_B3 = [trial_data{:}];
 save mu_wave_trial_data_labeled_B3 mu_wave_trial_data_labeled_B3 -v7.3
+
+
+% convert mu to 3d tensors
+load('ECOG_Grid_8596_000067_B3.mat')
+parfor i=1:length(mu_wave_trial_data_labeled_B3)
+    tmp = mu_wave_trial_data_labeled_B3(i).mu;
+    tmp1=[];
+    for j=1:size(tmp,1)
+        x = tmp(j,:);
+        tmp1(j,:,:) = x(ecog_grid);
+    end
+    mu_wave_trial_data_labeled_B3(i).mu = tmp1;
+end
+save mu_wave_trial_data_labeled_B3 mu_wave_trial_data_labeled_B3 -v7.3
