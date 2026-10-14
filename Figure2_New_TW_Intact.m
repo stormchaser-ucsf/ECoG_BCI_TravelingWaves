@@ -557,6 +557,12 @@ for i=1:length(trial_timings)
     %     vline(timings(3),'g') % go
     % end
 
+    %%%% KINEMATIC DATA %%%%
+    st = trial_timings(i).movement.cue(1).time; %anin    
+    stp = trial_timings(i).movement.cue(3).time+3.5; %anin    
+    index = (kin_time_resample >= st) .* (kin_time_resample<=stp);
+    kin_data = kindata_full_length_resampled(logical(index),:); % hilbert of mu
+
 
     %%%% HOLD PERIOD %%%%%%
     %%%% main
@@ -665,7 +671,7 @@ for i=1:length(trial_timings)
     df = resample(data,tx,50);
 
     % detect waves based on spatiotemporally stable phase gradients    
-    planar_val_time=[];
+    planar_val_time=[];s1=[];s2=[];
     parfor t=1:size(df,1)        
         % estimate planar waves across mini grid
         tmp = df(t,:);
@@ -675,6 +681,8 @@ for i=1:length(trial_timings)
         [planar_val,aa,bb] = planar_stats_muller(xph);        
         planar_val(mask==0) = NaN +1i*NaN;
         planar_val_time(t,:,:) = planar_val;
+        s1(t) = aa;
+        s2(t) = bb;
     end
 
     stab=[];
@@ -707,23 +715,60 @@ plot_beautify
 
 res = get_plv_stats_intact(stats);
 figure;boxplot(res(:,1)-res(:,2));hline(0)
+% 
+% 
+% EC189_hold_waves_stats.freq = wave_f;
+% EC189_hold_waves_stats.dur = wave_dur;
+% EC189_hold_waves_stats.dcyc = dcyc_hold;
+% save EC189_hold_waves_stats EC189_hold_waves_stats -v7.3
+% 
+% res_EC189_Mu_hG_plv_waves = res;
+% res_EC189_mu_pow_waves = mu_pow_waves;
+% res_EC189_mu_pow_non_waves = mu_pow_non_waves;
+% save EC189_PAC_MuPower_Waves_HoldPeriod res_EC189_Mu_hG_plv_waves ...
+%     res_EC189_mu_pow_waves res_EC189_mu_pow_non_waves -v7.3
 
 
-EC189_hold_waves_stats.freq = wave_f;
-EC189_hold_waves_stats.dur = wave_dur;
-EC189_hold_waves_stats.dcyc = dcyc_hold;
-save EC189_hold_waves_stats EC189_hold_waves_stats -v7.3
+%%%%% PLOT EXAMPLE SINGLE TRIAL TRAVELING WAVES IN MU DATA
+idx = (st(3)-30):(stp(3)+30);
+tmp = real(df(idx,:));
+tmp1 = angle(df(idx,:));
+tmp_ch = [252	253	254	255	256
+236	237	238	239	240
+220	221	222	223	224
+204	205	206	207	208
+188	189	190	191	192
+172	173	174	175	176
+156	157	158	159	160];
+tmp = tmp(:,tmp_ch);
+tmp = zscore(tmp);
+aa = 5*(0:(size(tmp,2)-1));
+tmp = tmp + aa;
+figure;
+plot(tmp,'Color','k','LineWidth',1)
+plot_beautify
+axis off
 
-res_EC189_Mu_hG_plv_waves = res;
-res_EC189_mu_pow_waves = mu_pow_waves;
-res_EC189_mu_pow_non_waves = mu_pow_non_waves;
-save EC189_PAC_MuPower_Waves_HoldPeriod res_EC189_Mu_hG_plv_waves ...
-    res_EC189_mu_pow_waves res_EC189_mu_pow_non_waves -v7.3
+tmp = tmp1(:,tmp_ch);
+tmp = zscore(tmp);
+aa = 5*(0:(size(tmp,2)-1));
+tmp = tmp + aa;
+figure;
+plot(tmp,'Color','k','LineWidth',1)
+plot_beautify
+axis off
 
+
+% indicator variable of waves
+I = zeros(size(planar_val_time,1),1);
+for i=1:length(out)
+    I(st(i):stp(i)-1)=1;
+end
 
 %%%%% PLOT SOME EXAMPLE TRAVELING WAVES SPATIAL GRADIENTS
 % plotting of phase gradients
-idx=59:61;
+idx=59:61; % FROM TRIAL 5
+idx=1:20; % random
 %idx = 9:11;
 %idx = 42:44;
 %idx = 69:71;
@@ -737,6 +782,9 @@ for i=1:length(idx)
     set(gca,'Ydir','reverse')
     axis off
     plot_beautify
+    if I(i)==1
+        title('wave')
+    end
 end
 
 %%%% (MAIN) %%%%

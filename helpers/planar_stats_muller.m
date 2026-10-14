@@ -3,6 +3,7 @@ function [planar_val,s1,s2,xphs] = planar_stats_muller(xph)
 M = real(xph);
 N = imag(xph);
 [tmp,s1] = smoothn({M,N},'robust');
+%[tmp] = smoothn({M,N},0.19,'robust');s1=0;
 M = tmp{1}; N = tmp{2};
 xphs = M+1j*N;
 
@@ -14,6 +15,7 @@ ph=pd;
 M =  pm.*cos(ph);
 N =  pm.*sin(ph);
 [tmp,s2] = smoothn({M,N},'robust');
+%[tmp] = smoothn({M,N},0.13,'robust');s2=0;
 M = tmp{1}; N = tmp{2};
 planar_val = M + 1j*N;
 

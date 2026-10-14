@@ -1,6 +1,25 @@
 %% LOOKING AT HOW REPRESENTATIONAL GEOMETRY OF HG CHANGES DURING
 %  WAVE EPOCHS COMPARED TO NON WAVE EPOCHS
 
+
+%% init
+
+clear
+clc
+
+
+if ispc
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves'))
+    addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_HighDim'))
+else
+
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
+    addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
+    cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
+end
+
+parallel_check
+
 %% WAVE PROCESSING SUBJECTS' DATA
 
 
@@ -271,18 +290,20 @@ close all
 load('ECOG_Grid_8596_000067_B3.mat')
 
 
-
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
 load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_hg_days')
-[res_days_B1] = get_plv_waves(stats_cl_hg_days,ecog_grid,cortex,elecmatrix);
+%[res_days_B1] = get_plv_waves(stats_cl_hg_days,ecog_grid,cortex,elecmatrix);
+[res_days_B1] =  get_plv_waves_singleTrials(stats_cl_hg_days);
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
 load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_hg_days')
-[res_days_B3] = get_plv_waves(stats_cl_hg_days,ecog_grid,cortex,elecmatrix);
+%[res_days_B3] = get_plv_waves(stats_cl_hg_days,ecog_grid,cortex,elecmatrix);
+res_days_B3 =   get_plv_waves_singleTrials(stats_cl_hg_days);
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
 load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat','stats_cl_hg_days')
-[res_days_B6] = get_plv_waves(stats_cl_hg_days(1:end-1),ecog_grid,cortex,elecmatrix);
+%[res_days_B6] = get_plv_waves(stats_cl_hg_days(1:end-1),ecog_grid,cortex,elecmatrix);
+res_days_B6 =   get_plv_waves_singleTrials(stats_cl_hg_days(1:end-1));
 
 res_days = [res_days_B1;res_days_B3;res_days_B6];
 figure;hold on
@@ -445,9 +466,206 @@ parfor i=1:1000
     boot(i) = glm_boot.Coefficients.tStat;
 end
 
+figure;hist(boot)
+vline(stat)
+max(1/length(boot),sum(boot>abs(stat))/length(boot))
+
  [p,h,s] = signrank(percent_change);
  p
  s
+
+ %% ANALYSES -1A (MAIN) : Mu power during waves vs. nonwaves
+
+clear
+imaging_B3_waves;
+close all
+load('ECOG_Grid_8596_000067_B3.mat')
+
+
+
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
+load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_hg_days')
+[res_days_B1] = get_mu_pow_waves(stats_cl_hg_days,ecog_grid,cortex,elecmatrix);
+
+
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
+load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_hg_days')
+[res_days_B3] = get_mu_pow_waves(stats_cl_hg_days,ecog_grid,cortex,elecmatrix);
+
+cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
+load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat','stats_cl_hg_days')
+[res_days_B6] = get_mu_pow_waves(stats_cl_hg_days(1:end-1),ecog_grid,cortex,elecmatrix);
+
+res_days = [res_days_B1;res_days_B3;res_days_B6];
+figure;hold on
+%b1
+idx = [ones(size(res_days_B1,1),1) 2*ones(size(res_days_B1,1),1)];
+idx = idx + 0.05*randn(size(idx));
+scatter(idx(:,1),res_days_B1(:,1),50,'b','LineWidth',1)
+scatter(idx(:,2),res_days_B1(:,2),50,'b',"filled",'LineWidth',1)
+for i=1:size(idx,1)
+    plot([idx(i,1),idx(i,2)],[res_days_B1(i,1),res_days_B1(i,2)],...
+        'Color',[0 0 1 .25])
+end
+
+%b3
+%figure;hold on
+idx = [ones(size(res_days_B3,1),1) 2*ones(size(res_days_B3,1),1)];
+idx = idx + 0.05*randn(size(idx));
+scatter(idx(:,1),res_days_B3(:,1),50,'r','LineWidth',1)
+scatter(idx(:,2),res_days_B3(:,2),50,'r',"filled",'LineWidth',1)
+for i=1:size(idx,1)
+    plot([idx(i,1),idx(i,2)],[res_days_B3(i,1),res_days_B3(i,2)],...
+        'Color',[1 0 0 .25])
+end
+
+%b6
+%figure;hold on
+idx = [ones(size(res_days_B6,1),1) 2*ones(size(res_days_B6,1),1)];
+idx = idx + 0.05*randn(size(idx));
+scatter(idx(:,1),res_days_B6(:,1),50,'k','LineWidth',1)
+scatter(idx(:,2),res_days_B6(:,2),50,'k',"filled",'LineWidth',1)
+for i=1:size(idx,1)
+    plot([idx(i,1),idx(i,2)],[res_days_B6(i,1),res_days_B6(i,2)],...
+        'Color',[0.25 0.25 0.25 .25])
+end
+xlim([.5 2.5])
+
+boxplot(res_days)
+xticks(1:2)
+xticklabels({'Wave epochs','Nonwave epochs'})
+ylabel('PAC mu and hG')
+plot_beautify
+%ylim([25 70])
+
+signrank(res_days(:,1),res_days(:,2))
+
+
+
+% scatter plot as percentage change
+figure;
+hold on
+a = (res_days_B1);
+r = 100*((a(:,1)-a(:,2))./a(:,2));
+idx = ones(size(r))+0.03*randn(size(r));
+scatter(idx,r,'b','LineWidth',1)
+a = (res_days_B3);
+r = 100*((a(:,1)-a(:,2))./a(:,2));
+idx = ones(size(r))+0.03*randn(size(r));
+scatter(idx,r,'r','LineWidth',1)
+a = (res_days_B6);
+r = 100*((a(:,1)-a(:,2))./a(:,2));
+idx = ones(size(r))+0.03*randn(size(r));
+scatter(idx,r,'k','LineWidth',1)
+ylabel('Percent Increase in PAC')
+a = (res_days);
+r = 100*((a(:,1)-a(:,2))./a(:,2));
+boxplot(r)
+ylim([-10 25])
+xticks ''
+plot_beautify
+xlim([0.8 1.2])
+hline(0,'--k')
+
+disp(signrank(r))
+
+%%%% STATS, paired test
+% perform a LMM
+subj_idx = [ones(size(res_days_B1,1),1);2*ones(size(res_days_B3,1),1);...
+    3*ones(size(res_days_B6,1),1)];
+%bhat = [bhat_mu bhat_lfo];bhat=bhat(:);
+dcyc = res_days(:);
+oscillation_type = categorical([zeros(size(res_days,1),1);...
+    ones(size(res_days,1),1)]);
+subject = categorical([subj_idx;subj_idx]);
+data = table(dcyc,oscillation_type,subject);
+glm = fitlme(data,'dcyc ~ 1+(oscillation_type) + (1|subject)')
+
+% difference with CI via bootstrap
+a = res_days(:,1) - res_days(:,2);
+ab = sort(bootstrp(1000,@mean,a));
+[ab(25) mean(a) ab(975)]
+% pval
+stat = glm.Coefficients.tStat(2);
+boot=[];
+bhat_mu  = res_days(:,1);
+bhat_lfo  = res_days(:,2);
+parfor i=1:1000
+
+    oscillation_type_rand=[];
+    subject_rnd = [];
+    pac_rnd=[];
+    for ii=1:3
+        idx = find(subj_idx==ii);
+        mu_tmp = bhat_mu(idx);
+        lfo_tmp = bhat_lfo(idx);
+        subj_tmp = subj_idx(idx);
+        osc_tmp = categorical([zeros(size(mu_tmp));ones(size(lfo_tmp))]);
+        osc_tmp = osc_tmp(randperm(numel(osc_tmp)));
+        
+        subject_rnd = [subject_rnd;[subj_tmp;subj_tmp]];
+        pac_rnd = [pac_rnd;[mu_tmp;lfo_tmp]];
+        oscillation_type_rand = [oscillation_type_rand;osc_tmp];
+    end   
+    
+    data_rnd = table(pac_rnd,oscillation_type_rand,subject_rnd);
+    glm_rnd = fitlme(data_rnd,...
+        'pac_rnd ~ 1+(oscillation_type_rand) + (1|subject_rnd)');
+    boot(i) = glm_rnd.Coefficients.tStat(2);
+end
+
+figure;hist(boot)
+vline(stat)
+max(1/length(boot),sum(boot>abs(stat))/length(boot))
+
+% WSRT
+stats=[];
+pval=[];
+for ii=1:3
+    idx = find(subj_idx==ii);
+    a = bhat_mu(idx);
+    b = bhat_lfo(idx);
+    [p,h,s] = signrank(b,a,'method','approximate');
+    stats(ii) = s.zval;
+    pval(ii) = p;
+end
+stats
+pval
+
+%%%% STATS ON JUST THE PERCENT CHANGE   
+a = (res_days);
+percent_change = 100*((a(:,1)-a(:,2))./a(:,2));
+subject = [ones(size(res_days_B1,1),1);2*ones(size(res_days_B3,1),1);...
+    3*ones(size(res_days_B6,1),1)];
+data = table(percent_change,subject);
+glm = fitlme(data,'percent_change ~ 1+ (1|subject)');
+
+stat=glm.Coefficients.tStat;
+boot=[];
+parfor i=1:1000
+    percent_tmp=[];
+    for j=1:3
+        idx = find(subject==j);
+        tmp = percent_change(idx);
+        if rand(1)>=0.5
+            tmp = tmp*-1;
+        end
+        percent_tmp = [percent_tmp;tmp];
+    end
+    data_tmp = table(percent_tmp,subject);
+    glm_boot = fitlme(data_tmp,'percent_tmp ~ 1+ (1|subject)');
+    boot(i) = glm_boot.Coefficients.tStat;
+end
+
+figure;hist(boot)
+vline(stat)
+max(1/length(boot),sum(boot>abs(stat))/length(boot))
+
+ [p,h,s] = signrank(percent_change);
+ p
+ s
+
+
 
 %% ANALYSIS 0 and 1 -> VARIANCE, PCA style (MAIN)
 % PRINCIPAL ANGLES 
