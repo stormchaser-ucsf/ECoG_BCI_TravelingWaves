@@ -616,6 +616,26 @@ for i=1:length(trial_timings)
     % figure;plot(stab1)
     % hline(0)
 
+    % get square wave of waves/no waves
+    I=zeros(length(stab1),1);
+    for k=1:length(st)
+        I(st(k):stp(k))=1;
+    end
+
+    % plotting   
+    x = [stab1];
+    t = (1000/50)*[0:length(x)-1];
+    figure;        
+    hold on
+    plot(t,x)    
+    plot(t,I)
+    ylim([-3 2])
+    hline(0,'--r')
+    xlim([0 2300])
+    xlabel('Time in ms')
+    plot_beautify
+    
+
     t = length(stab1) * 20/1e3;
     ff1 = length(out)/t; % frequency/s
     d = mean(out) * 20/1e3; %duration in s
