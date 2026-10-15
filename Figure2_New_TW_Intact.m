@@ -616,51 +616,51 @@ for i=1:length(trial_timings)
     % figure;plot(stab1)
     % hline(0)
 
-    % get square wave of waves/no waves
-    I=zeros(length(stab1),1);
-    for k=1:length(st)
-        I(st(k):stp(k))=1;
-    end
-
-    % plotting   
-    % x = [stab1];
+    % % get square wave of waves/no waves
+    % I=zeros(length(stab1),1);
+    % for k=1:length(st)
+    %     I(st(k):stp(k))=1;
+    % end
+    % 
+    % % plotting   
+    % % x = [stab1];
+    % % t = (1000/50)*[0:length(x)-1];
+    % % figure;        
+    % % hold on
+    % % plot(t,x)    
+    % % plot(t,I)
+    % % ylim([-3 2])
+    % % hline(0,'--r')
+    % % xlim([0 2300])
+    % % xlabel('Time in ms')
+    % % plot_beautify
+    % 
+    % %%%% PLOTTING WITH SHADING %%%%
+    % figure;
     % t = (1000/50)*[0:length(x)-1];
-    % figure;        
-    % hold on
-    % plot(t,x)    
-    % plot(t,I)
-    % ylim([-3 2])
+    % plot(t,stab1,'k','LineWidth',1.0);
     % hline(0,'--r')
-    % xlim([0 2300])
-    % xlabel('Time in ms')
+    % hold on;
+    % yl = [0 2];
+    % 
+    % for k = 1:length(st)
+    %     x1 = t(st(k));
+    %     x2 = t(stp(k));
+    % 
+    %     h = fill([x1 x2 x2 x1], ...
+    %         [yl(1) yl(1) yl(2) yl(2)], ...
+    %         'm', ...
+    %         'FaceAlpha',0.0, ...
+    %         'EdgeColor','r');
+    % 
+    %     % Put shading behind the stab1 trace
+    %     uistack(h,'bottom');
+    % end
+    % xlabel('Time in ms');
+    % ylabel('Phase gradient stability');
+    % box off;
     % plot_beautify
-
-    %%%% PLOTTING WITH SHADING %%%%
-    figure;
-    t = (1000/50)*[0:length(x)-1];
-    plot(t,stab1,'k','LineWidth',1.0);
-    hline(0,'--r')
-    hold on;
-    yl = [0 2];
-
-    for k = 1:length(st)
-        x1 = t(st(k));
-        x2 = t(stp(k));
-
-        h = fill([x1 x2 x2 x1], ...
-            [yl(1) yl(1) yl(2) yl(2)], ...
-            'm', ...
-            'FaceAlpha',0.0, ...
-            'EdgeColor','r');
-
-        % Put shading behind the stab1 trace
-        uistack(h,'bottom');
-    end
-    xlabel('Time in ms');
-    ylabel('Phase gradient stability');
-    box off;
-    plot_beautify
-    xlim([0 2300])
+    % xlim([0 2300])
     
 
     t = length(stab1) * 20/1e3;

@@ -20,7 +20,8 @@ parallel_check
 %% load data
 root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
 cd(root_path)
-load session_data_B3_Hand
+%load session_data_B3_Hand
+load session_data_B3
 load('ECOG_Grid_8596_000067_B3.mat')
 
 % load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2

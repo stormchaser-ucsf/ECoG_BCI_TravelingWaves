@@ -5,7 +5,14 @@
 % duration
 % B3, load the prelim from ECoG_Waves_PreProcessSubjectData.m
 
-days=3;
+days=6;
+
+d1 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',1e3);
+d2 = designfilt('bandpassiir','FilterOrder',4, ...
+    'HalfPowerFrequency1',7,'HalfPowerFrequency2',10, ...
+    'SampleRate',50);
 
 folders_imag =  strcmp(session_data(days).folder_type,'I');
 folders_online = strcmp(session_data(days).folder_type,'O');
@@ -311,6 +318,47 @@ xlim([500 2500])
 ylim([-3.1 3.1])
 
 figure;plot(zscore(stab));hline(0)
+
+
+%%%%% FOR PAPER, BOXCAR %%%%
+% get square wave of waves/no waves
+[out,st,stp] = wave_stability_detect(zscore(stab));
+out = out(1:end);
+st = st(1:end);
+stp = stp(1:end);
+I=zeros(length(stab),1);
+for k=1:length(st)
+    I(st(k):stp(k))=1;
+end
+
+%%%% PLOTTING WITH SHADING %%%%
+figure;
+t = (1000/50)*[0:length(stab)-1];
+plot(t,zscore(stab),'k','LineWidth',1.0);
+hline(0,'--r')
+hold on;
+yl = [0 2];
+
+for k = 1:length(st)
+    x1 = t(st(k));
+    x2 = t(stp(k));
+
+    h = fill([x1 x2 x2 x1], ...
+        [yl(1) yl(1) yl(2) yl(2)], ...
+        'm', ...
+        'FaceAlpha',0.3, ...
+        'EdgeColor','r');
+
+    % Put shading behind the stab1 trace
+    uistack(h,'bottom');
+end
+xlabel('Time in ms');
+ylabel('Phase gradient stability');
+box off;
+plot_beautify
+xlim([500 2500])
+ylabel ''
+ylim([-3 2])
 
 % plotting of phase gradients
 idx=106:108;
