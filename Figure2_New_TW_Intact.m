@@ -1198,7 +1198,7 @@ cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_tex
 % svg
 plot_beautify
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'PGS_WaveDetector_SingleTrial_v2.svg','-dsvg','-painters','-r300');
+print(gcf,'PGS_WaveDetector_SingleTrial_v2_Fig5B3.svg','-dsvg','-painters','-r300');
     
 % png
 set(gcf,'PaperPositionMode','auto');
