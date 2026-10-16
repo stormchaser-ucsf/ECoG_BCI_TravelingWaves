@@ -345,12 +345,15 @@ res = [res_days_B1;res_days_B3;res_days_B6];
 idx=[ones(length(res_days_B1),1);2*ones(length(res_days_B3),1);...
     3*ones(length(res_days_B6),1)];
 
-[p,h,stats] = signrank(res_days_B1(:,1),res_days_B1(:,2));
-fprintf('B1 pval of %d\n',p)
-[p,h,stats] = signrank(res_days_B3(:,1),res_days_B3(:,2));
-fprintf('B3 pval of %d\n',p)
-[p,h,stats] = signrank(res_days_B6(:,1),res_days_B6(:,2));
-fprintf('B6 pval of %d\n',p)
+[p,h,stats] = signrank(res_days_B1(:,1),res_days_B1(:,2),...
+    'method','approximate');
+fprintf('B1 pval of %f with zval %f\n',p,stats.zval)
+[p,h,stats] = signrank(res_days_B3(:,1),res_days_B3(:,2),...
+    'method','approximate');
+fprintf('B3 pval of %f with zval %f\n',p,stats.zval)
+[p,h,stats] = signrank(res_days_B6(:,1),res_days_B6(:,2),...
+    'method','approximate');
+fprintf('B6 pval of %f with zval %f\n',p,stats.zval)
 
 figure; hold on;
 colors = [1 0 0;    % Wave: red
@@ -635,12 +638,15 @@ res = [res_days_B1;res_days_B3;res_days_B6];
 idx=[ones(length(res_days_B1),1);2*ones(length(res_days_B3),1);...
     3*ones(length(res_days_B6),1)];
 
-[p,h,stats] = signrank(res_days_B1(:,1),res_days_B1(:,2));
-fprintf('B1 pval of %d\n',p)
-[p,h,stats] = signrank(res_days_B3(:,1),res_days_B3(:,2));
-fprintf('B3 pval of %d\n',p)
-[p,h,stats] = signrank(res_days_B6(:,1),res_days_B6(:,2));
-fprintf('B6 pval of %d\n',p)
+[p,h,stats] = signrank(res_days_B1(:,1),res_days_B1(:,2),...
+    'method','approximate');
+fprintf('B1 pval of %f with zval %f\n',p,stats.zval)
+[p,h,stats] = signrank(res_days_B3(:,1),res_days_B3(:,2),...
+    'method','approximate');
+fprintf('B3 pval of %f with zval %f\n',p,stats.zval)
+[p,h,stats] = signrank(res_days_B6(:,1),res_days_B6(:,2),...
+    'method','approximate');
+fprintf('B6 pval of %f with zval %f\n',p,stats.zval)
 
 figure; hold on;
 colors = [1 0 0;    % Wave: red
