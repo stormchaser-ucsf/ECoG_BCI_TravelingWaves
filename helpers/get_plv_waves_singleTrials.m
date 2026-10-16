@@ -7,6 +7,11 @@ res_days=[];
 for days=1:length(stats_cl_hg_days)
 
     stats = stats_cl_hg_days{days};
+
+    
+    l = round(length(stats)/2);
+    stats = stats(l+1:end);
+
     wave_plv_trial=[];
     nonwave_plv_trial=[];
     res=[];
