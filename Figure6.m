@@ -422,6 +422,49 @@ hline(0,'--k')
 
 disp(signrank(r))
 
+%%%% even better scatter plot
+res = [res_days_B1;res_days_B3;res_days_B6];
+res = 100*((res(:,1)-res(:,2))./res(:,2));
+m11 = 100*((res_days_B1(:,1)-res_days_B1(:,2))./res_days_B1(:,2));
+m22 = 100*((res_days_B3(:,1)-res_days_B3(:,2))./res_days_B3(:,2));
+m33 = 100*((res_days_B6(:,1)-res_days_B6(:,2))./res_days_B6(:,2));
+y=[nanmean(m11) nanmean(m22) nanmean(m33)];
+% scatter ec participants individually
+figure; hold on
+h=hline(nanmedian(res),'k');
+h.LineWidth=3;
+h.XData = [0.75 1.25];
+bb = sort(bootstrp(1000,@median,res));
+[bb(25) median(res) bb(975)]
+
+x=(1:1) + 0.1*randn(length(m11),1);
+h=scatter(x,[m11],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'b';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(1:1) + 0.1*randn(length(m22),1);
+h=scatter(x,[m22],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'r';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(1:1) + 0.1*randn(length(m33),1);
+h=scatter(x,[m33],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'k';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+xlim([.6 1.4])
+ylim([-5 45])
+xticks ''
+hline(0,'--r')
+plot_beautify
+ylabel('Percent Increase in Mu Pow.')
+
+
 %%%% STATS, paired test
 % perform a LMM
 subj_idx = [ones(size(res_days_B1,1),1);2*ones(size(res_days_B3,1),1);...
@@ -668,6 +711,50 @@ xlim([0.8 1.2])
 hline(0,'--k')
 
 disp(signrank(r))
+
+
+%%%% even better scatter plot
+res = [res_days_B1;res_days_B3;res_days_B6];
+res = 100*((res(:,1)-res(:,2))./res(:,2));
+m11 = 100*((res_days_B1(:,1)-res_days_B1(:,2))./res_days_B1(:,2));
+m22 = 100*((res_days_B3(:,1)-res_days_B3(:,2))./res_days_B3(:,2));
+m33 = 100*((res_days_B6(:,1)-res_days_B6(:,2))./res_days_B6(:,2));
+y=[nanmean(m11) nanmean(m22) nanmean(m33)];
+% scatter ec participants individually
+figure; hold on
+h=hline(nanmedian(res),'k');
+h.LineWidth=3;
+h.XData = [0.75 1.25];
+bb = sort(bootstrp(1000,@median,res));
+[bb(25) median(res) bb(975)]
+
+x=(1:1) + 0.1*randn(length(m11),1);
+h=scatter(x,[m11],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'b';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(1:1) + 0.1*randn(length(m22),1);
+h=scatter(x,[m22],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'r';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(1:1) + 0.1*randn(length(m33),1);
+h=scatter(x,[m33],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'k';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+xlim([.6 1.4])
+xticks ''
+hline(0,'--r')
+plot_beautify
+ylabel('Percent Increase in PAC')
+ylim([-6 25])
+
 
 %%%% STATS, paired test
 % perform a LMM
