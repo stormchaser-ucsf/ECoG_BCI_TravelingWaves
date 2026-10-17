@@ -996,12 +996,12 @@ plot_beautify
 res = get_plv_stats_intact(stats);
 figure;boxplot(res(:,1)-res(:,2));hline(0)
 
-
-res_EC189_Mu_hG_plv_waves = res;
-res_EC189_mu_pow_waves = mu_pow_waves;
-res_EC189_mu_pow_non_waves = mu_pow_non_waves;
-save EC189_PAC_MuPower_Waves_HoldPeriod res_EC189_Mu_hG_plv_waves ...
-    res_EC189_mu_pow_waves res_EC189_mu_pow_non_waves -v7.3
+% 
+% res_EC189_Mu_hG_plv_waves = res;
+% res_EC189_mu_pow_waves = mu_pow_waves;
+% res_EC189_mu_pow_non_waves = mu_pow_non_waves;
+% save EC189_PAC_MuPower_Waves_HoldPeriod res_EC189_Mu_hG_plv_waves ...
+%     res_EC189_mu_pow_waves res_EC189_mu_pow_non_waves -v7.3
 
 
 
@@ -1028,14 +1028,15 @@ bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
 
 
 
-mu = filtfilt(bpFilt,zscore(lfp));
-mu = angle(hilbert(mu));
+mu0 = filtfilt(bpFilt,zscore(lfp));
+mu = angle(hilbert(mu0));
 
 hg = filtfilt(hGFilt,zscore(lfp));
 hg = abs(hilbert(hg));
-hg_mu = filtfilt(bpFilt,hg);
-hg_mu = angle(hilbert(hg_mu));
-
+hg_mu0 = filtfilt(bpFilt,hg);
+hg_mu = angle(hilbert(hg_mu0));
+hg_mu_trialdata={};
+mu_trialdata={};
 plv_hold=[];
 plv_move=[];
 for i=1:length(trial_timings)
@@ -1047,13 +1048,15 @@ for i=1:length(trial_timings)
     %stp=st+3;
     index = (lfp_time >= st) .* (lfp_time<=stp);
     
-    hg1 = hg_mu(logical(index),:);
+    hg1 = hg_mu(logical(index),:);    
+    hg_mu_trialdata{i} = hg_mu0(logical(index),:);
     % hg1 = hg(logical(index),:);
     % hg1=zscore(hg1);
     % hg_mu = filtfilt(bpFilt,hg1);    
     % hg_mu = angle(hilbert(hg_mu));
     
     mu1 = mu(logical(index),:);
+    mu_trialdata{i} = mu0(logical(index),:);
     % mu1=zscore(mu1);
     % mu1=angle(hilbert(mu1));
     
@@ -1111,9 +1114,9 @@ sig_ch_hold = (pval_hold<=pfdrh);
 sum(pval_move<=pfdrm)
 sig_ch_move = (pval_move<=pfdrm);
 
-cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
-save EC189_sig_ch_mu_hG_PAC plv_move plv_hold ...
-    pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
+% cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
+% save EC189_sig_ch_mu_hG_PAC plv_move plv_hold ...
+%     pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
 
 % plot on brain 
 % hold
@@ -1155,9 +1158,9 @@ ylabel('LFO hG PAC')
 plot_beautify
 title('EC189 hG LFO PAC')
 yticks([0:.1:.9])
-
-save sig_ch_LFO_hG_PAC plv_move plv_hold ...
-    pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
+% 
+% save sig_ch_LFO_hG_PAC plv_move plv_hold ...
+%     pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
 
 % plot on brain
 val=b-a;
@@ -1175,6 +1178,32 @@ plot_beautify
 title('EC 189 LFO hG PAC (hold)')
 sum((b(bad_chI)'- a(bad_chI)')>0)/sum(bad_chI)
 
+%%%% plotting the preferred phase angle relationships in PAC %%%%
+a = exp(1i*plv_hold);
+a = a(:,sig_ch_hold);
+a = mean(a,1);
+a1 = abs(a);
+a = angle(a);
+figure;rose(a,25)
+plot_beautify
+title('Prefrred PAC angle between Mu and hG')
+
+a = exp(1i*plv_hold);
+a = mean(a,1);
+a = abs(a);
+[aa bb] = max(a)
+hg_mu_trialdata = cell2mat(hg_mu_trialdata');
+mu_trialdata = cell2mat(mu_trialdata');
+tt=(1/Fs)*[0: size(mu_trialdata,1)-1];
+figure;plot(tt,zscore(hg_mu_trialdata(:,87)))
+hold on
+plot(tt,zscore(mu_trialdata(:,87)))
+xlim([tt(2.73e4) tt(2.81e4)]) %also 3.28 to 3.37 e4
+xlim([tt(3.28e4) tt(3.37e4)]) %also 3.28 to 3.37 e4
+legend('hG','Mu')
+ylabel('Z-score')
+xlabel('Time')
+plot_beautify
 
 %% LOOK AT 1/F AND POWER IN STATE 3 VS. 1
 %ACTUAL MOTOR CONTROL
@@ -1952,10 +1981,10 @@ sig_ch_hold = (pval_hold<=pfdrh);
 [pfdrm,pval] =fdr(pval_move(~isnan(pval_move)),0.05);
 sum(pval_move<=pfdrm)
 sig_ch_move = (pval_move<=pfdrm);
-
-cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
-save EC210_sig_ch_Mu_hG_PAC plv_move plv_hold ...
-    pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
+% 
+% cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
+% save EC210_sig_ch_Mu_hG_PAC plv_move plv_hold ...
+%     pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
 
 % plot on brain 
 % hold
@@ -2015,7 +2044,14 @@ plot_beautify
 title('EC 210 mu hG PAC (move)')
 sum((b(bad_chI)'- a(bad_chI)')>0)/sum(bad_chI)
 
-
+%%%% plotting the preferred phase angle relationships in PAC %%%%
+a = exp(1i*plv_hold);
+a = a(:,bad_chI);
+a = mean(a,1);
+a = angle(a);
+figure;rose(a,25)
+plot_beautify
+title('Prefrred PAC angle between Mu and hG')
 
 
 %% %% LOOK AT 1/F AND POWER IN STATE 3 VS. 1
@@ -2760,10 +2796,10 @@ sig_ch_hold = (pval_hold<=pfdrh);
 [pfdrm,pval] =fdr(pval_move(~isnan(pval_move)),0.05);
 sum(pval_move<=pfdrm)
 sig_ch_move = (pval_move<=pfdrm);
-
-cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
-save EC176_sig_ch_mu_hG_PAC plv_move plv_hold ...
-    pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
+% 
+% cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
+% save EC176_sig_ch_mu_hG_PAC plv_move plv_hold ...
+%     pval_hold pval_move sig_ch_hold sig_ch_move bad_chI -v7.3
 
 % plot on brain 
 % hold
@@ -2831,6 +2867,17 @@ end
 plot_beautify
 title('EC 179 LFO hG PAC (hold)')
 sum( (b(bad_chI) - a(bad_chI) > 0 ))/sum(bad_chI)
+
+
+
+%%%% plotting the preferred phase angle relationships in PAC %%%%
+a = exp(1i*plv_hold);
+a = a(:,sig_ch_hold);
+a = mean(a,1);
+a = angle(a);
+figure;rose(a,25)
+plot_beautify
+title('Prefrred PAC angle between Mu and hG')
 
 
 
