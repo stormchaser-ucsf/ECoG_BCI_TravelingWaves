@@ -814,8 +814,9 @@ end
 
 %%%%% PLOT SOME EXAMPLE TRAVELING WAVES SPATIAL GRADIENTS
 % plotting of phase gradients
-idx=59:61; % FROM TRIAL 5
-idx=1:20; % random
+idx=59:61; % FROM TRIAL 5, one wave epoch
+idx=218:220; % FROM TRIAL 5, another wave epoch
+%idx=1:20; % random
 %idx = 9:11;
 %idx = 42:44;
 %idx = 69:71;
