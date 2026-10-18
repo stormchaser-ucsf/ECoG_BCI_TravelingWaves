@@ -40,11 +40,14 @@ cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
 load B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta
 
 % does duty cycle change across days
+raw_pgs_days=[];
 dcyc_days_corr=[];
 dcyc_days_err=[];
 acc_days=[];
 wav_dur=[];
 wav_freq=[];
+iwi_days=[];
+iwi_num_days=[];
 for i=1:length(stats_cl_days)
     a = stats_cl_days{i};
     l = round(length(a)/2);
@@ -52,9 +55,23 @@ for i=1:length(stats_cl_days)
     %a = a(end-24:end);
     dcyc_corr=[];
     dcyc_err=[];
+    raw_pgs=[];
+    iwi=[];
     acc_days(i) = mean([a(1:end).accuracy]);
     for j=1:length(a)
         tmp  = a(j).stab;
+        [out,st,stp] = wave_stability_detect(zscore(tmp),0.0,3);
+        %tmp = zscore(tmp);
+        tmp_pgs=[];
+        for k=1:length(out)
+            tmp_pgs(k) =  mean(tmp(st(k):stp(k)-1));
+        end
+        raw_pgs = [raw_pgs mean(tmp_pgs)];
+        %if a(j).accuracy==1
+            %iwi = [iwi mean(diff(st))];
+            x=stp(2:end) - st(1:end-1);
+            iwi = [iwi (x)];
+        %end
 
         % correct trials
         if a(j).accuracy==1 
@@ -82,7 +99,29 @@ for i=1:length(stats_cl_days)
     end
     dcyc_days_corr(i) = nanmean(dcyc_corr);
     dcyc_days_err(i) = nanmean(dcyc_err);
+    raw_pgs_days(i) = std(raw_pgs);
+    iwi_days(i) = std(iwi)/mean(iwi);%/length(iwi);
+    iwi_num_days(i) = length(iwi);
 end
+
+figure;plot(iwi_days*1,'.','MarkerSize',20)
+hold on
+X = [ones(10,1) [1:10]'];
+%figure;plot(iwi_num_days,iwi_days*20,'.','MarkerSize',20)
+%X = [ones(10,1) iwi_num_days(:)];
+mdl = fitlm(X(:,2),iwi_days,'RobustOpts','on')
+[b,bint,r,rint,stats] = regress(iwi_days',X);stats;
+x = linspace(1,10,100);
+yhat =  predict(mdl,x');
+plot(x,yhat*1,'k','LineWidth',1)
+xticks(1:10)
+xlabel('Days')
+ylabel('CV of inter wave interval')
+plot_beautify
+title('B3 BCI Learning')
+
+figure;plot(raw_pgs_days,'.','MarkerSize',20)
+
 
 figure;
 boxplot([dcyc_days_corr'  dcyc_days_err'])

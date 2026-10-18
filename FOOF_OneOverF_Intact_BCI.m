@@ -1022,19 +1022,47 @@ bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
     'SampleRate',Fs);
 
+%lowpassfilt
+lpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
+                'HalfPowerFrequency', 30, 'SampleRate', Fs);
+
 % Example: Low-pass FIR filter for LFO
 % bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
 %                'HalfPowerFrequency', 3, 'SampleRate', Fs);
 
 
+% get filter bank approach
+load('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/20240209/Robot3DArrow/141115/BCI_Fixed/Data0001.mat')
+filterbank=[];
+Params = TrialData.Params;
+Params.Fs = Fs;
+k=1;
+for i=9:16
+    [b,a] = butter(3,Params.FilterBank(i).fpass/(Params.Fs/2),'bandpass');
+    %[b,a] = butter(3,Params.FilterBank(i).fpass/(Fs/2));
+    filterbank(k).b = b;
+    filterbank(k).a = a;
+    k=k+1;
+end
 
 mu0 = filtfilt(bpFilt,zscore(lfp));
 mu = angle(hilbert(mu0));
 
 hg = filtfilt(hGFilt,zscore(lfp));
-hg = abs(hilbert(hg));
-hg_mu0 = filtfilt(bpFilt,hg);
+hg0 = abs(hilbert(hg));
+hg = filtfilt(lpFilt,hg0);
+
+% log spaced filterbank approach to get hg
+tmp=zeros([8,size(lfp)]);
+parfor i=1:length(filterbank)
+    tmp(i,:,:) = abs(hilbert(...
+        filter(filterbank(i).b,filterbank(i).b,zscore(lfp))));
+end
+hg_fb= squeeze(mean(tmp,1));
+hg_mu0 = filtfilt(bpFilt,hg0);
 hg_mu = angle(hilbert(hg_mu0));
+hg_trialdata={};
+hg_fb_trialdata={};
 hg_mu_trialdata={};
 mu_trialdata={};
 plv_hold=[];
@@ -1050,6 +1078,8 @@ for i=1:length(trial_timings)
     
     hg1 = hg_mu(logical(index),:);    
     hg_mu_trialdata{i} = hg_mu0(logical(index),:);
+    hg_trialdata{i} = hg(logical(index),:);
+    hg_fb_trialdata{i} = hg_fb(logical(index),:);
     % hg1 = hg(logical(index),:);
     % hg1=zscore(hg1);
     % hg_mu = filtfilt(bpFilt,hg1);    
@@ -1188,13 +1218,17 @@ figure;rose(a,25)
 plot_beautify
 title('Prefrred PAC angle between Mu and hG')
 
+%%%% single trial plotting
 a = exp(1i*plv_hold);
 a = mean(a,1);
 a = abs(a);
 [aa bb] = max(a)
 hg_mu_trialdata = cell2mat(hg_mu_trialdata');
 mu_trialdata = cell2mat(mu_trialdata');
+hg_trialdata  = cell2mat(hg_trialdata');
+hg_fb_trialdata = cell2mat(hg_fb_trialdata');
 tt=(1/Fs)*[0: size(mu_trialdata,1)-1];
+% plotting mu and mu(hg)
 figure;plot(tt,zscore(hg_mu_trialdata(:,87)))
 hold on
 plot(tt,zscore(mu_trialdata(:,87)))
@@ -1204,6 +1238,50 @@ legend('hG','Mu')
 ylabel('Z-score')
 xlabel('Time')
 plot_beautify
+% plotting mu and smoothed hg 
+%figure;plot(tt,smooth(zscore(hg_trialdata(:,87)),10))
+figure;plot(tt,(zscore(hg_trialdata(:,87))))
+hold on
+plot(tt,zscore(mu_trialdata(:,87)))
+xlim([tt(2.73e4) tt(2.81e4)]) %also 3.28 to 3.37 e4
+%xlim([tt(3.28e4) tt(3.37e4)]) %also 3.28 to 3.37 e4
+legend('hG','Mu')
+ylabel('Z-score')
+xlabel('Time')
+plot_beautify
+% plotting mu and filterbank hg 
+figure;plot(tt,smooth(zscore(hg_fb_trialdata(:,87)),10))
+hold on
+plot(tt,zscore(mu_trialdata(:,87)))
+xlim([tt(2.73e4) tt(2.81e4)]) %also 3.28 to 3.37 e4
+xlim([tt(3.28e4) tt(3.37e4)]) %also 3.28 to 3.37 e4
+legend('hG','Mu')
+ylabel('Z-score')
+xlabel('Time')
+plot_beautify
+
+%%%% all at once
+figure;
+subplot(2,1,1)
+plot(tt,(zscore(hg_trialdata(:,87))))
+hold on
+plot(tt,zscore(mu_trialdata(:,87)))
+xlim([tt(2.73e4) tt(2.81e4)]) %also 3.28 to 3.37 e4
+%xlim([tt(3.28e4) tt(3.37e4)]) %also 3.28 to 3.37 e4
+legend('hG','Mu')
+ylabel('Z-score')
+xlabel('Time')
+plot_beautify
+subplot(2,1,2)
+plot(tt,zscore(hg_mu_trialdata(:,87)))
+hold on
+plot(tt,zscore(mu_trialdata(:,87)))
+xlim([tt(2.73e4) tt(2.81e4)]) %also 3.28 to 3.37 e4
+legend('Mu(hG)','Mu')
+ylabel('Z-score')
+xlabel('Time')
+plot_beautify
+
 
 %% LOOK AT 1/F AND POWER IN STATE 3 VS. 1
 %ACTUAL MOTOR CONTROL
