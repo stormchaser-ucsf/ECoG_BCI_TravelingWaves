@@ -1065,6 +1065,9 @@ hg_trialdata={};
 hg_fb_trialdata={};
 hg_mu_trialdata={};
 mu_trialdata={};
+raw_trialdata={};
+mu_phase_trialdata={};
+hgmu_phase_trialdata={};
 plv_hold=[];
 plv_move=[];
 for i=1:length(trial_timings)
@@ -1080,6 +1083,8 @@ for i=1:length(trial_timings)
     hg_mu_trialdata{i} = hg_mu0(logical(index),:);
     hg_trialdata{i} = hg(logical(index),:);
     hg_fb_trialdata{i} = hg_fb(logical(index),:);
+    raw_trialdata{i} = lfp(logical(index),:);
+    hgmu_phase_trialdata{i} = hg1;
     % hg1 = hg(logical(index),:);
     % hg1=zscore(hg1);
     % hg_mu = filtfilt(bpFilt,hg1);    
@@ -1087,6 +1092,7 @@ for i=1:length(trial_timings)
     
     mu1 = mu(logical(index),:);
     mu_trialdata{i} = mu0(logical(index),:);
+    mu_phase_trialdata{i} = mu1;
     % mu1=zscore(mu1);
     % mu1=angle(hilbert(mu1));
     
@@ -1218,7 +1224,7 @@ figure;rose(a,25)
 plot_beautify
 title('Prefrred PAC angle between Mu and hG')
 
-%%%% single trial plotting
+%%%% single trial plotting (MAIN) %%%%
 a = exp(1i*plv_hold);
 a = mean(a,1);
 a = abs(a);
@@ -1227,6 +1233,9 @@ hg_mu_trialdata = cell2mat(hg_mu_trialdata');
 mu_trialdata = cell2mat(mu_trialdata');
 hg_trialdata  = cell2mat(hg_trialdata');
 hg_fb_trialdata = cell2mat(hg_fb_trialdata');
+raw_trialdata = cell2mat(raw_trialdata');
+mu_phase_trialdata =   cell2mat(mu_phase_trialdata');
+hgmu_phase_trialdata =  cell2mat(hgmu_phase_trialdata');
 tt=(1/Fs)*[0: size(mu_trialdata,1)-1];
 % plotting mu and mu(hg)
 figure;plot(tt,zscore(hg_mu_trialdata(:,87)))
@@ -1260,27 +1269,89 @@ ylabel('Z-score')
 xlabel('Time')
 plot_beautify
 
-%%%% all at once
+%%%% all at once (MAIN)
+% first, plot the raw data
 figure;
-subplot(2,1,1)
+plot(tt,zscore(raw_trialdata(:,87)))
+xlim([tt(2.73e4) tt(2.82e4)])
+%xlim([tt(3.28e4) tt(3.37e4)])
+xticks(53.75:0.25:55.25)
+xticklabels(string(0.25:0.25:1.75))
+xlabel('Time (s)')
+ylabel('uV (z-score)')
+ylim([-4 2.5])
+plot_beautify
+
+% plot hg raw, mu(hg) on top plot, and mu on bottom plot
+figure;
+subplot(2,1,1);hold on
 plot(tt,(zscore(hg_trialdata(:,87))))
-hold on
-plot(tt,zscore(mu_trialdata(:,87)))
-xlim([tt(2.73e4) tt(2.81e4)]) %also 3.28 to 3.37 e4
-%xlim([tt(3.28e4) tt(3.37e4)]) %also 3.28 to 3.37 e4
-legend('hG','Mu')
+plot(tt,zscore(hg_mu_trialdata(:,87)))
+xlim([tt(2.73e4) tt(2.82e4)])
+xticks ''
+%xticks(53.75:0.25:55.25)
+%xticklabels(string(0.25:0.25:1.75))
+%xlabel('Time (s)')
 ylabel('Z-score')
-xlabel('Time')
+legend({'hG','Mu of hG'})
 plot_beautify
 subplot(2,1,2)
-plot(tt,zscore(hg_mu_trialdata(:,87)))
-hold on
-plot(tt,zscore(mu_trialdata(:,87)))
-xlim([tt(2.73e4) tt(2.81e4)]) %also 3.28 to 3.37 e4
-legend('Mu(hG)','Mu')
+plot(tt,zscore(mu_trialdata(:,87)),'k')
+xlim([tt(2.73e4) tt(2.82e4)])
+xticks(53.75:0.25:55.25)
+xticklabels(string(0.25:0.25:1.75))
 ylabel('Z-score')
-xlabel('Time')
+legend('Mu')
+xlabel('Time (s)')
 plot_beautify
+
+
+% plotting phase time series now on top of each other
+figure;
+hold on
+plot(tt,((mu_phase_trialdata(:,87))))
+plot(tt,(hgmu_phase_trialdata(:,87)))
+xlim([tt(2.73e4) tt(2.82e4)])
+xticks(53.75:0.25:55.25)
+xticklabels(string(0.25:0.25:1.75))
+xlabel('Time (s)')
+ylabel('Phase (rad)')
+plot_beautify
+legend({'Mu Phase','Mu of hG Phase'})
+
+% plot single channel PLV across trials, showing histogram of preferred
+% phase angles
+tmp = plv_hold(:,87);
+tmp = mu_phase_trialdata(:,87) - hgmu_phase_trialdata(:,87);
+pax = plot_phases(tmp);
+
+% preferred angles at each electrode
+a = exp(1i*plv_hold(:,sig_ch_hold));
+a = mean(a,1);
+a = angle(a);
+pax = plot_phases(a);
+
+% % now plot mu filtered, and high gamma
+% figure;
+% subplot(2,1,1)
+% plot(tt,(zscore(hg_trialdata(:,87))))
+% hold on
+% plot(tt,zscore(mu_trialdata(:,87)))
+% xlim([tt(2.73e4) tt(2.81e4)]) %also 3.28 to 3.37 e4
+% %xlim([tt(3.28e4) tt(3.37e4)]) %also 3.28 to 3.37 e4
+% legend('hG','Mu')
+% ylabel('Z-score')
+% xlabel('Time')
+% plot_beautify
+% subplot(2,1,2)
+% plot(tt,zscore(hg_mu_trialdata(:,87)))
+% hold on
+% plot(tt,zscore(mu_trialdata(:,87)))
+% xlim([tt(2.73e4) tt(2.81e4)]) %also 3.28 to 3.37 e4
+% legend('Mu(hG)','Mu')
+% ylabel('Z-score')
+% xlabel('Time')
+% plot_beautify
 
 
 %% LOOK AT 1/F AND POWER IN STATE 3 VS. 1
@@ -2131,11 +2202,16 @@ figure;rose(a,25)
 plot_beautify
 title('Prefrred PAC angle between Mu and hG')
 
+% preferred angles at each electrode
+%a = exp(1i*plv_hold(:,bad_chI));
+a = exp(1i*plv_hold(:,sig_ch_hold));
+a = mean(a,1);
+a = angle(a);
+pax = plot_phases(a);
+
 
 %% %% LOOK AT 1/F AND POWER IN STATE 3 VS. 1
 %  EC176
-
-
 
 
 clc;clear
@@ -2956,6 +3032,13 @@ a = angle(a);
 figure;rose(a,25)
 plot_beautify
 title('Prefrred PAC angle between Mu and hG')
+
+% preferred angles at each electrode
+a = exp(1i*plv_hold(:,sig_ch_hold));
+a = mean(a,1);
+a = angle(a);
+pax = plot_phases(a);
+
 
 
 
