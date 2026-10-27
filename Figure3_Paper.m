@@ -398,9 +398,11 @@ ylim([0.04 0.12])
 
 %% stuff to save the data
 
+cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New\Figure2')
+
 % svg
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'MahabDist_SingleCh.svg','-dsvg','-painters','-r300');
+print(gcf,'EC189_TrWave_AnotherExample_2.svg','-dsvg','-painters','-r300');
     
 
 % png
