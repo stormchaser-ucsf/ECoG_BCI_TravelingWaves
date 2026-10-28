@@ -29,7 +29,7 @@ clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B6';
+subj ='B3';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -1476,6 +1476,7 @@ ylabel('PR')
 % B3 -> no smoothing
 % B1, B6 -> smoothing  -> this is more probably to get rid of bad channels
 
+
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
 
 num_targets=7;
@@ -1563,8 +1564,8 @@ end
 condn_data=condn_data1;
 
 iterations=10;
-[acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance] = ...
-    accuracy_imagined_data(condn_data, iterations);
+[acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance,del_iter_wave,...
+    del_mean_wave] = accuracy_imagined_data(condn_data, iterations);
 %accuracy_imagined_data_Hand_B3
 %accuracy_imagined_data_Hand_B3
 
@@ -1630,8 +1631,33 @@ for i=1:length(condn_data)
 end
 condn_data=condn_data1;
 
-[acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,bino_pdf_chance] = ...
-    accuracy_imagined_data(condn_data, iterations);
+[acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,bino_pdf_chance,del_iter_nonwave,...
+    del_mean_nonwave] = accuracy_imagined_data(condn_data, iterations);
+
+figure;
+boxplot([del_mean_nonwave' del_mean_wave'])
+xticks(1:2)
+xticklabels({'nonwaves','waves'})
+signrank(del_mean_nonwave,del_mean_wave)
+plot_beautify
+ylabel('Normalized difference in votes between 1st and 2nd class')
+
+a=[];b=[];
+for i=1:length(del_iter_nonwave)
+    tmp = del_iter_nonwave{i};
+    a(i) = mean(tmp);
+
+    tmp = del_iter_wave{i};
+    b(i) = mean(tmp);
+end
+figure;
+boxplot([a' b'])
+xticks(1:2)
+xticklabels({'nonwaves','waves'})
+signrank(a,b)
+plot_beautify
+ylabel('Normalized difference in votes between 1st and 2nd class')
+
 
 % % non wave, least global wave patterns
 % condn_data={};k=1;
@@ -1711,7 +1737,7 @@ xticklabels({'Non wave epochs', 'Wave epochs'})
 signrank(res(:,1),res(:,2))
 title('Bin Level Acc.')
 
-save hg_wave_nonwave_MLP_3DArrow_CL_AllData_v5_AllFolders acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
+%save hg_wave_nonwave_MLP_3DArrow_CL_AllData_v5_AllFolders acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
 %hg_wave_nonwave_MLP 
 %hg_wave_nonwave_MLP_3DArrow_CL_v2
 %hg_wave_nonwave_MLP_3DArrow_CL_v2_AllData
@@ -1808,7 +1834,7 @@ for i=1:size(acc_nonwave,1)
     tmp1=squeeze((acc_bin_wave(i,:,:)));
     res_bin(i,:) = [mean(diag(tmp)) mean(diag(tmp1))];
 end
-figure;boxplot(100*res)
+figure;boxplot(100*res_bin)
 xticks(1:2)
 xticklabels({'Non wave epochs', 'Wave epochs'})
 %xticklabels({'Most unstable nowave','Non wave epochs', 'Wave epochs'})
@@ -1867,7 +1893,7 @@ for i=1:size(acc_nonwave,1)
     tmp1=squeeze((acc_bin_wave(i,:,:)));
     res_bin(i,:) = [mean(diag(tmp)) mean(diag(tmp1))];
 end
-figure;boxplot(100*res,'Whisker',2)
+figure;boxplot(100*res_bin,'Whisker',2)
 xticks(1:2)
 xticklabels({'Non wave epochs', 'Wave epochs'})
 %xticklabels({'Most unstable nowave','Non wave epochs', 'Wave epochs'})
