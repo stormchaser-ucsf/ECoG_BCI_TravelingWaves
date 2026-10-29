@@ -490,7 +490,7 @@ cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_tex
 
 % svg
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'B3Hand_MuPowERPs_Day1vsDay10_SingleCh.svg','-dsvg','-painters','-r300');
+print(gcf,'B3Hand_MuPowERPs_Day1vsDay10_SingleCh_v2.svg','-dsvg','-painters','-r300');
     
 
 % png
