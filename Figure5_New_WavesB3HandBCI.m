@@ -35,6 +35,7 @@ num_targets=12;
 %% WHAT HAPPENS TO TRAVELING WAVE PHENOMENA ACROSS DAYS IN B3 HAND
 % MU POWER BETWEEN WAVES AND NON WAVES
 % PAC BETWEEN WAVES AND NON WAVES
+% coeff var in inter wave intervals 
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
 load B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta
@@ -68,9 +69,9 @@ for i=1:length(stats_cl_days)
         end
         raw_pgs = [raw_pgs mean(tmp_pgs)];
         %if a(j).accuracy==1
-            %iwi = [iwi mean(diff(st))];
-            x=stp(2:end) - st(1:end-1);
-            iwi = [iwi (x)];
+        %iwi = [iwi mean(diff(st))];
+        x=stp(2:end) - st(1:end-1);
+        iwi = [iwi (x)];
         %end
 
         % correct trials
@@ -116,11 +117,25 @@ yhat =  predict(mdl,x');
 plot(x,yhat*1,'k','LineWidth',1)
 xticks(1:10)
 xlabel('Days')
-ylabel('CV of inter wave interval')
+ylabel('CV of Inter wave interval')
 plot_beautify
 title('B3 BCI Learning')
 
 figure;plot(raw_pgs_days,'.','MarkerSize',20)
+hold on
+X = [ones(10,1) [1:10]'];
+%figure;plot(iwi_num_days,iwi_days*20,'.','MarkerSize',20)
+%X = [ones(10,1) iwi_num_days(:)];
+mdl = fitlm(X(:,2),raw_pgs_days,'RobustOpts','on')
+[b,bint,r,rint,stats] = regress(raw_pgs_days',X);stats
+x = linspace(1,10,100);
+yhat =  predict(mdl,x');
+plot(x,yhat*1,'k','LineWidth',1)
+xticks(1:10)
+xlabel('Days')
+ylabel('Std. of raw PGS values')
+plot_beautify
+title('B3 BCI Learning')
 
 
 figure;
