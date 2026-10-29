@@ -21,6 +21,7 @@ else
     cd('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves')
 end
 
+parallel_check
 
 %% Extracting power in mu across sessions b3 hand
 % AND ALSO ERPs
@@ -41,6 +42,8 @@ bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
 state_pow_days_ol={};
 state_pow_days_cl={};
 erps={};
+erps_day1={};
+erps_day10={};
 for days=1:len_days
 
     disp(['Processing day ' num2str(days)])
@@ -91,7 +94,13 @@ for days=1:len_days
     [state_pow,erps,acc,lfp_epochs] = get_state_pow(files,bpFilt);
     %title(['Day ' num2str(days) ' CL'])
     state_pow_days_cl{days}=state_pow;
-  
+    if days==1
+        erps_day1 = erps;
+    end
+
+    if days==10
+        erps_day10 = erps;
+    end  
 end
 
 
@@ -117,7 +126,7 @@ parfor i=1:length(erps)
     end
     m = mean(tmp(1:500,:),1);
     s = std(tmp(1:500,:),1);
-    tmp = (tmp-m)./1;
+    tmp = (tmp-m)./s;
     %tmp = tmp(:,ecog_grid);
     
     % earlier with full data
@@ -155,7 +164,7 @@ for i=1:length(ch)
     xlim([-1.3 2.5])
     %xticks([-1.3 -0.8:0.8:2.5])
     xticks([-1:0.5:2.5])
-    ylim([-0.75 2.5])
+    ylim([-0.5 2.0])
     vline([-0.8 0],'--k')
     hline(0)    
     xlabel('Time (s)')
@@ -163,10 +172,71 @@ for i=1:length(ch)
     plot_beautify    
 end
 
+%%%% CODE SNIPPET TO PLOT ERPS COMPARING DAY 1 AND DAY 10 SINGLE CHANNEL  
+% plot ERPs from day 1 and ERPs from day 10 (highest channel value)
+% day 1 examine which ERP has highest value 
+erp1=[];
+erp10=[];
+parfor i=1:length(erps_day10)
+    tmp = erps_day10{i};
+    tmp = tmp(501:end,:); % removing the first 500ms. 
+    tmp = detrend(tmp);
+    for j=1:size(tmp,2)
+        tmp(:,j) = smooth(tmp(:,j),10);
+    end
+    m = mean(tmp(1:500,:),1);
+    s = std(tmp(1:500,:),1);
+    tmp = (tmp-m)./s;
+    %tmp = tmp(:,ecog_grid);
+    
+    % earlier with full data
+    % first 1800ms are basically rest plus cue
+    %tmp = tmp(1:3800,:);
 
+    % after removing first 500ms and re zscoring 
+    % first 500ms is state 1, then 800ms if state 2 i.e, 1300ms
+    % take the next 3s of data ie 1300+3000 = 4300ms
+    
+    tmp = tmp(1:4300,:);
+    erp10(i,:,:) = tmp;    
+end
+%1301 to end is state3
+tmp = squeeze(mean(erp10(:,1301:end,:),1));
+tmp1 = squeeze(mean(tmp,1));
+[aa bb] = max(tmp1);bb
 
+% day 1 it is channel 53
+% day 10 it is channel 201
+% get ERPs
+figure
+%ch=[167 201];
+ch=[167 201];
+for i=1:length(ch)
+    subplot(2,1,i)
+    if i==1
+        mu_ep1 = squeeze((erp1(:,:,ch(i))))';
+    elseif i==2
+        mu_ep1 = squeeze((erp10(:,:,ch(i))))';
+    end
+    tt = linspace(-1.3,3,size(mu_ep1,1));
+    m = mean(mu_ep1,2);
+    mb = sort(bootstrp(1000,@mean,mu_ep1'));
+    [fillhandle,msg]=jbfill(tt,(mb(25,:)),(mb(975,:))...
+        ,[0.2 0.2 0.8],[0.2 0.2 0.8],1,.25);
+    hold on
+    plot(tt,m,'Color','b','LineWidth',1)
+    xlim([-1.3 2.5])
+    %xticks([-1.3 -0.8:0.8:2.5])
+    xticks([-1:0.5:2.5])    
+    ylim([-0.5 2.75])
+    vline([-0.8 0],'--k')
+    hline(0)    
+    xlabel('Time (s)')
+    ylabel('Z score')
+    plot_beautify    
+end
 
-
+%%%%% CODE END %%%%
 
 % 
 % tmp=state_pow(:,2)';
