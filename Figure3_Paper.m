@@ -119,13 +119,16 @@ save lfp_epochs_BCI lfp_epochs Fs bad_chI -v7.3
 erp=[];
 parfor i=1:length(erps)
     tmp = erps{i};
-    tmp = tmp(501:end,:); % removing the first 500ms. 
+    %tmp = tmp(501:end,:); % removing the first 500ms. 
+    tmp = tmp(1:end,:); % removing the first 500ms. 
     tmp = detrend(tmp);
     for j=1:size(tmp,2)
         tmp(:,j) = smooth(tmp(:,j),10);
     end
-    m = mean(tmp(1:500,:),1);
-    s = std(tmp(1:500,:),1);
+    %m = mean(tmp(1:500,:),1);
+    %s = std(tmp(1:500,:),1);
+    m = mean(tmp(1:1000,:),1);
+    s = std(tmp(1:1000,:),1);
     tmp = (tmp-m)./s;
     %tmp = tmp(:,ecog_grid);
     
@@ -135,9 +138,13 @@ parfor i=1:length(erps)
 
     % after removing first 500ms and re zscoring 
     % first 500ms is state 1, then 800ms if state 2 i.e, 1300ms
-    % take the next 3s of data ie 1300+3000 = 4300ms
-    
-    tmp = tmp(1:4300,:);
+    % take the next 3s of data ie 1300+3000 = 4300ms    
+    %tmp = tmp(1:4300,:);
+    %erp(i,:,:) = tmp;
+
+    % if not removing first 500ms, then first 1000ms is state 1, then 800ms
+    % is state 2 and then the next 3s is state 3 1800 + 3000 = 4800
+    tmp = tmp(1:4800,:);
     erp(i,:,:) = tmp;
 end
 
@@ -180,12 +187,15 @@ erp10=[];
 parfor i=1:length(erps_day10)
     tmp = erps_day10{i};
     tmp = tmp(501:end,:); % removing the first 500ms. 
+    %tmp = tmp(1:end,:); % removing the first 500ms. 
     tmp = detrend(tmp);
     for j=1:size(tmp,2)
         tmp(:,j) = smooth(tmp(:,j),10);
     end
     m = mean(tmp(1:500,:),1);
     s = std(tmp(1:500,:),1);
+    %m = mean(tmp(1:1000,:),1);
+    %s = std(tmp(1:1000,:),1);
     tmp = (tmp-m)./s;
     %tmp = tmp(:,ecog_grid);
     
@@ -193,24 +203,31 @@ parfor i=1:length(erps_day10)
     % first 1800ms are basically rest plus cue
     %tmp = tmp(1:3800,:);
 
+   
     % after removing first 500ms and re zscoring 
     % first 500ms is state 1, then 800ms if state 2 i.e, 1300ms
-    % take the next 3s of data ie 1300+3000 = 4300ms
-    
+    % take the next 3s of data ie 1300+3000 = 4300ms    
     tmp = tmp(1:4300,:);
+    %erp(i,:,:) = tmp;
+
+    % if not removing first 500ms, then first 1000ms is state 1, then 800ms
+    % is state 2 and then the next 3s is state 3 1800 + 3000 = 4800
+    %tmp = tmp(1:4800,:);
     erp10(i,:,:) = tmp;    
 end
 %1301 to end is state3
-tmp = squeeze(mean(erp10(:,1301:end,:),1));
+tmp = squeeze(mean(erp1(:,1301:end,:),1));
 tmp1 = squeeze(mean(tmp,1));
-[aa bb] = max(tmp1);bb
+[aa bb] = sort(tmp1,'descend');
+aa(1:5)
+bb(1:5)
 
 % day 1 it is channel 53
 % day 10 it is channel 201
 % get ERPs
 figure
 %ch=[167 201];
-ch=[167 201];
+ch=[167 57];
 for i=1:length(ch)
     subplot(2,1,i)
     if i==1
