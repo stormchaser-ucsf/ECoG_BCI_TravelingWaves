@@ -43,7 +43,7 @@ from scipy.linalg import eigh
 import matplotlib.cm as cm
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import Ellipse
-
+import statsmodels.formula.api as smf
 
 # setting up GPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -680,8 +680,158 @@ def plot_three_movements_wave_vs_nonwave(
     plt.show()
 
     
+def plot_three_movements_wave_vs_nonwave_direct(
+    wave_nonwave_dict,
+    movement_ids,
+    n_components=2):
+
+    fig, ax = plt.subplots(figsize=(6, 5))
+
+    colors = ["tab:blue", "tab:green", "tab:red"]
+
+    for i, movement_id in enumerate(movement_ids):
+
+        idx = wave_nonwave_dict["targetID"].index(movement_id)
+
+        wave = wave_nonwave_dict["latent_wave"][idx].T
+        nonwave = wave_nonwave_dict["latent_nonwave"][idx].T
+
+        # PCA per movement (shared axes for wave/nonwave of that movement)
+        X = np.vstack([wave, nonwave])
+        pca = PCA(n_components=n_components)
+        
+        Z = pca.fit_transform(X)        
+        mean_proj = pca.mean_ @ pca.components_.T
+        Z = Z + mean_proj
+        
+        Z=X
+
+        Z_wave = Z[:wave.shape[0]]
+        Z_nonwave = Z[wave.shape[0]:]
+
+        color = colors[i]
+
+        # Scatter
+        ax.scatter(
+            Z_wave[:, 0], Z_wave[:, 1],
+            alpha=0.2,
+            color=color,
+            label=f"M{movement_id} Wave"
+        )
+
+        ax.scatter(
+            Z_nonwave[:, 0], Z_nonwave[:, 1],
+            alpha=0.2,
+            color=color,
+            marker="x",
+            label=f"M{movement_id} NonWave"
+        )
+
+        # Ellipses
+        draw_gaussian_ellipse_2d(
+            ax, Z_wave[:, :],
+            color,
+            n_std=1.5,
+            linestyle="-",      # solid
+            linewidth=2
+        )
+
+        draw_gaussian_ellipse_2d(
+            ax, Z_nonwave[:, :],
+            color,
+            n_std=1.5,
+            linestyle="--",     # dashed
+            linewidth=2
+        )
+
+    ax.set_xlabel("Latent 1", fontsize=8)
+    ax.set_ylabel("Latent 2",fontsize=8)
+    ax.set_title("Latent Space: Wave (solid) vs NonWave (dashed)",fontsize=8)
+    ax.set_aspect("equal")
+    ax.legend(fontsize=6)
+    ax.grid(True)
     
-    
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_movements_wave_vs_nonwave_direct_v2(
+    wave_nonwave_dict,
+    movement_ids,
+    n_components=2):
+
+    fig, ax = plt.subplots(figsize=(6, 5))
+
+    # Automatically generate colors for any number of movements
+    colors = plt.get_cmap("tab10").colors
+
+    for i, movement_id in enumerate(movement_ids):
+
+        idx = wave_nonwave_dict["targetID"].index(movement_id)
+
+        wave = wave_nonwave_dict["latent_wave"][idx].T
+        nonwave = wave_nonwave_dict["latent_nonwave"][idx].T
+
+        # Shared latent axes
+        X = np.vstack([wave, nonwave])
+        pca = PCA(n_components=n_components)
+        
+        Z = pca.fit_transform(X)        
+        mean_proj = pca.mean_ @ pca.components_.T
+        Z = Z + mean_proj
+       
+        Z = X
+
+        Z_wave = Z[:wave.shape[0]]
+        Z_nonwave = Z[wave.shape[0]:]
+
+        color = colors[i % len(colors)]
+
+        # Scatter
+        ax.scatter(
+            Z_wave[:, 0], Z_wave[:, 1],
+            alpha=0.2,
+            color=color,
+            label=f"M{movement_id} Wave"
+        )
+
+        ax.scatter(
+            Z_nonwave[:, 0], Z_nonwave[:, 1],
+            alpha=0.2,
+            color=color,
+            marker="x",
+            label=f"M{movement_id} NonWave"
+        )
+
+        # Ellipses
+        draw_gaussian_ellipse_2d(
+            ax, Z_wave,
+            color,
+            n_std=1.5,
+            linestyle="-",
+            linewidth=2
+        )
+
+        draw_gaussian_ellipse_2d(
+            ax, Z_nonwave,
+            color,
+            n_std=1.5,
+            linestyle="--",
+            linewidth=2
+        )
+
+    ax.set_xlabel("Latent 1", fontsize=8)
+    ax.set_ylabel("Latent 2", fontsize=8)
+    ax.set_title(
+        "Latent Space: Wave (solid) vs NonWave (dashed)",
+        fontsize=8
+    )
+    ax.set_aspect("equal")
+    ax.legend(fontsize=6)
+    ax.grid(True)
+
+    plt.tight_layout()
+    plt.show()
     
     
 

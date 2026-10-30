@@ -1,4 +1,4 @@
-function [res_days] = get_Channel_TrialVariance(stats_cl_hg_days,num_targets)
+function [res_days] = get_Channel_TrialVariance(stats_cl_hg_days,num_targets,ecog_grid)
 
 
 res_days=[];pval=[];
@@ -17,8 +17,8 @@ for days=1:length(stats_cl_hg_days)
                 tmp = stats_cl_hg(i).hg_wave;
                 tmp = cell2mat(tmp');tmp1=tmp;
 
-                idx = randperm(size(tmp,1),20);
-                tmp = tmp(idx,:);
+                %idx = randperm(size(tmp,1),20);
+                %tmp = tmp(idx,:);
 
                 tmp = mean(tmp,1);
                 if ~isempty(tmp) && sum(~isnan(tmp)) == 253
@@ -29,8 +29,8 @@ for days=1:length(stats_cl_hg_days)
                 tmp = stats_cl_hg(i).hg_nonwave;
                 tmp = cell2mat(tmp');tmp1=tmp;
 
-                idx = randperm(size(tmp,1),20);
-                tmp = tmp(idx,:);
+                %idx = randperm(size(tmp,1),20);
+                %tmp = tmp(idx,:);
 
                 tmp = mean(tmp,1); % or mean here or var
                 if ~isempty(tmp) && sum(~isnan(tmp)) == 253
@@ -40,8 +40,9 @@ for days=1:length(stats_cl_hg_days)
             end
         end
         tmp=log([(std(D_wave,1))' (std(D_nonwave,1))']);
+        %tmp=([(std(D_wave,1))' (std(D_nonwave,1))']);
         res_map = [res_map tmp];
-        res = [res;median(tmp,1)];
+        res = [res;mean(tmp,1)];
     end
     %res = ([(var(D_wave,1))' (var(D_nonwave,1))']);
     
@@ -79,50 +80,50 @@ figure;boxplot(res_days,'Notch','off')
 % xticks(1:2)
 xticklabels({'Wave','Non wave'})
 ylabel('Trial to Trial Variance')
-
-
-% plotting cortical channels
-a = squeeze(mean(res_days_map(:,:,1),1));
-b = squeeze(mean(res_days_map(:,:,2),1));
-sig = a-b;
-sig1 = [sig(1:107) 0 sig(108:111) 0  sig(112:115) 0 ...
-    sig(116:end)];
-figure;imagesc(sig1(ecog_grid))
-ch_wts = sig1;
-
-sig = ones(253,1)';
-sig1 = [sig(1:107) 0 sig(108:111) 0  sig(112:115) 0 ...
-    sig(116:end)];
-
-ch_layout=[];
-for i=1:23:253
-    ch_layout = [ch_layout; i:i+22 ];
-end
-ch_layout = (fliplr(ch_layout));
-
-%plv(sig) = zscore(plv(sig))+4;
-phMap = linspace(-pi,pi,253)';
-ChColorMap = ([parula(253)]);
-figure
-%subplot(1,2,2)
-c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
-e_h = el_add(elecmatrix, 'color', 'w','msize',2);
-% elecmatrix1 = [elecmatrix(1:107,:); zeros(1,3); elecmatrix(108:111,:); zeros(1,3) ; ...
-%     elecmatrix(112:115,:) ;zeros(1,3); elecmatrix(116:end,:)];
-for j=1:256%length(sig)
-    [xx yy]=find(ecog_grid==j);
-    if ~isempty(xx)
-        ch = ch_layout(xx,yy);
-        if sig1(j)==1 && ch_wts(j)>0
-            ms = ch_wts(j)*30;
-            %[aa bb]=min(abs(pref_phase(j) - phMap));
-            c=ChColorMap(bb,:);
-            e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
-        end
-    end
-end
-
-set(gcf,'Color','w')
-sgtitle('Channels with greater increase in hG variance due to mu')
+% 
+% 
+% % plotting cortical channels
+% a = squeeze(mean(res_days_map(:,:,1),1));
+% b = squeeze(mean(res_days_map(:,:,2),1));
+% sig = a-b;
+% sig1 = [sig(1:107) 0 sig(108:111) 0  sig(112:115) 0 ...
+%     sig(116:end)];
+% figure;imagesc(sig1(ecog_grid))
+% ch_wts = sig1;
+% 
+% sig = ones(253,1)';
+% sig1 = [sig(1:107) 0 sig(108:111) 0  sig(112:115) 0 ...
+%     sig(116:end)];
+% 
+% ch_layout=[];
+% for i=1:23:253
+%     ch_layout = [ch_layout; i:i+22 ];
+% end
+% ch_layout = (fliplr(ch_layout));
+% 
+% %plv(sig) = zscore(plv(sig))+4;
+% phMap = linspace(-pi,pi,253)';
+% ChColorMap = ([parula(253)]);
+% figure
+% %subplot(1,2,2)
+% c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
+% e_h = el_add(elecmatrix, 'color', 'w','msize',2);
+% % elecmatrix1 = [elecmatrix(1:107,:); zeros(1,3); elecmatrix(108:111,:); zeros(1,3) ; ...
+% %     elecmatrix(112:115,:) ;zeros(1,3); elecmatrix(116:end,:)];
+% for j=1:256%length(sig)
+%     [xx yy]=find(ecog_grid==j);
+%     if ~isempty(xx)
+%         ch = ch_layout(xx,yy);
+%         if sig1(j)==1 && ch_wts(j)>0
+%             ms = ch_wts(j)*30;
+%             %[aa bb]=min(abs(pref_phase(j) - phMap));
+%             c=ChColorMap(bb,:);
+%             e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
+%         end
+%     end
+% end
+% 
+% set(gcf,'Color','w')
+% sgtitle('Channels with greater increase in hG variance due to mu')
 
 

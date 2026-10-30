@@ -758,18 +758,19 @@ signrank(res_days(:,1),res_days(:,2))
 % do it for both OL and CL
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
 load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat',...
-    'stats_ol_hg_days','subj')
-[res_days_B1] = get_Channel_TrialVariance(stats_ol_hg_days,7)
+    'stats_cl_hg_days','subj','ecog_grid')
+[res_days_B1] = get_Channel_TrialVariance(stats_cl_hg_days,7,ecog_grid);
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
 load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat',...
-    'stats_ol_hg_days','subj')
-[res_days_B3] = get_Channel_TrialVariance(stats_cl_hg_days,7)
+    'stats_cl_hg_days','subj','ecog_grid')
+[res_days_B3] = get_Channel_TrialVariance(stats_cl_hg_days,7,ecog_grid);
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
 load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat',...
-    'stats_ol_hg_days','subj')
-[res_days_B6] = get_Channel_TrialVariance(stats_ol_hg_days(1:end-1),7)
+    'stats_cl_hg_days','subj','ecog_grid')
+[res_days_B6] = get_Channel_TrialVariance(stats_cl_hg_days(1:end-1),7,...
+    ecog_grid);
 
 
 

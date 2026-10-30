@@ -20,8 +20,9 @@ parallel_check
 %% load data
 root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
 cd(root_path)
-%load session_data_B3_Hand
 load session_data_B3
+%load session_data_B3_Hand
+
 load('ECOG_Grid_8596_000067_B3.mat')
 
 % load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2
@@ -107,12 +108,12 @@ end
 
 figure;plot(iwi_days*1,'.','MarkerSize',20)
 hold on
-X = [ones(10,1) [1:10]'];
+X = [ones(size(iwi_days,2),1) [1:size(iwi_days,2)]'];
 %figure;plot(iwi_num_days,iwi_days*20,'.','MarkerSize',20)
 %X = [ones(10,1) iwi_num_days(:)];
 mdl = fitlm(X(:,2),iwi_days,'RobustOpts','on')
 [b,bint,r,rint,stats] = regress(iwi_days',X);stats;
-x = linspace(1,10,100);
+x = linspace(1,size(iwi_days,2),100);
 yhat =  predict(mdl,x');
 plot(x,yhat*1,'k','LineWidth',1)
 xticks(1:10)
@@ -123,12 +124,12 @@ title('B3 BCI Learning')
 
 figure;plot(raw_pgs_days,'.','MarkerSize',20)
 hold on
-X = [ones(10,1) [1:10]'];
+X = [ones(size(iwi_days,2),1) [1:size(iwi_days,2)]'];
 %figure;plot(iwi_num_days,iwi_days*20,'.','MarkerSize',20)
 %X = [ones(10,1) iwi_num_days(:)];
 mdl = fitlm(X(:,2),raw_pgs_days,'RobustOpts','on')
 [b,bint,r,rint,stats] = regress(raw_pgs_days',X);stats
-x = linspace(1,10,100);
+x = linspace(1,size(iwi_days,2),100);
 yhat =  predict(mdl,x');
 plot(x,yhat*1,'k','LineWidth',1)
 xticks(1:10)
@@ -187,16 +188,16 @@ tmp = (res_days_B3(:,1) - res_days_B3(:,2));
 day = (1:length(tmp))';
 mdl = fitlm(day,tmp,'RobustOpts','on')
 bhat = mdl.Coefficients.Estimate;
-xhat = linspace(1,10,100);
+xhat = linspace(1,length(tmp),100);
 yhat = predict(mdl,xhat(:));
 
 figure;plot(tmp,'.','MarkerSize',30)
 hold on
 plot(xhat,yhat,'k','LineWidth',1);
-xticks(1:10)
+xticks(1:length(tmp))
 xlabel('Days')
 ylabel('Difference in PAC b/w Waves and Non-waves')
-xlim([0.5 10.5])
+xlim([0.5 length(tmp)+0.5])
 plot_beautify
 
 % slope and stats
@@ -249,18 +250,18 @@ tmp = (mu_wave_pow_days - mu_nonwave_pow_days);
 day = (1:length(tmp))';
 mdl = fitlm(day,tmp,'RobustOpts','on')
 bhat = mdl.Coefficients.Estimate;
-xhat = linspace(1,10,100);
+xhat = linspace(1,length(tmp),100);
 yhat = predict(mdl,xhat(:));
 
 figure;plot(tmp,'.','MarkerSize',30)
 hold on
 plot(xhat,yhat,'k','LineWidth',1);
-xticks(1:10)
+xticks(1:length(tmp))
 xlabel('Days')
 ylabel('Delta Mu Power  Waves - NonWaves')
-xlim([0.5 10.5])
+xlim([0.5 length(tmp)+0.5])
 plot_beautify
-ylim([0.04 0.12])
+ylim([0.02 0.12])
 
 
 

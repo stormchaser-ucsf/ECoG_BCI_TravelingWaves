@@ -67,11 +67,11 @@ else:
     # filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/'
     # filename = 'B3_Wave_NonWave_hG_For_AE.mat'
     
-    filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/'
-    filename = 'B1_Wave_NonWave_hG_For_AE.mat'
+    # filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/'
+    # filename = 'B1_Wave_NonWave_hG_For_AE.mat'
     
-    # filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/'
-    # filename = 'B6_Wave_NonWave_hG_For_AE.mat'
+    filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/'
+    filename = 'B6_Wave_NonWave_hG_For_AE.mat'
     
     
     filename = filepath + filename
@@ -92,7 +92,7 @@ data_dict = mat73.loadmat(filename)
 
 condn_data = data_dict.get('condn_data')
 
-iterations = 10
+iterations = 15
 
 
 #####
@@ -139,13 +139,13 @@ for iterr in np.arange(iterations):
     
     
    
-    # parse into training, validation and testing datasets 70% training, 15% val and testing   
+    # parse into training, validation and testing datasets 70% training, 15% val and 15% testing   
     Xtrain,Xval,Xtest = training_split_wavesAE(condn_data,0.7)
     
     # model parameters for the MLP based autoencoder
     input_size=253
     hidden_size=96 #96 originally 
-    latent_dims=8 #3 originally 
+    latent_dims=2 #3 originally 
     num_classes = 7
     
     from iAE_utils_models import *
@@ -164,7 +164,7 @@ for iterr in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10    
-    nn_filename = 'iAE_B1_Waves.pth' 
+    nn_filename = 'iAE_B6_Waves.pth' 
 
     #get number of parameters
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -228,16 +228,23 @@ for iterr in np.arange(iterations):
     # get latent variances and store results
     wav_var=[]
     nonwave_var=[]
+    var_increase=[]
     for i in np.arange(len(wave_nonwave_dict["targetID"])):
         tmp = wave_nonwave_dict["latent_wave"][i]
         C = np.cov(tmp)
         eigvals,eigvec = eigh(C)
-        wav_var.append(np.prod(eigvals))
+        wav_var.append(np.prod(eigvals[-2:]))
+        a = np.prod(eigvals[-2:])
+        #wav_var.append(np.prod(eigvals[-2:]))
         
         tmp = wave_nonwave_dict["latent_nonwave"][i]
         C = np.cov(tmp)
         eigvals,eigvec = eigh(C)
-        nonwave_var.append(np.prod(eigvals))
+        nonwave_var.append(np.prod(eigvals[-2:]))
+        b = np.prod(eigvals[-2:])
+        #nonwave_var.append(np.prod(eigvals[-2:]))        
+        var_increase.append(100*(a-b)/b)
+        
     
     waves_var.append(wav_var)
     nonwaves_var.append(nonwave_var)
@@ -286,17 +293,18 @@ waves_var = np.vstack(waves_var)
 nonwaves_var = np.vstack(nonwaves_var)
 
 plt.figure()
-#plt.boxplot((waves_var.flatten(),nonwaves_var.flatten()))
-plt.boxplot((np.mean(np.log(waves_var),axis=1),np.mean(np.log(nonwaves_var),axis=1)))
+plt.boxplot((waves_var.flatten(),nonwaves_var.flatten()))
+#plt.boxplot((np.mean(np.log(waves_var),axis=1),np.mean(np.log(nonwaves_var),axis=1)))
 #plt.ylim(-0.01,0.05)
-#plt.ylim(-5,-3.5)
+#plt.ylim(0,.2)
 
-stat,p = stats.wilcoxon(np.mean(np.log(waves_var),axis=1),
-                        np.mean(np.log(nonwaves_var),axis=1))
+stat,p = stats.wilcoxon(np.mean((waves_var),axis=1),
+                        np.mean((nonwaves_var),axis=1))
 print(p)
 
-a = np.mean(np.log(waves_var),axis=1) -   np.mean(np.log(nonwaves_var),axis=1)
-a = np.divide(a, np.abs(np.mean(np.log(nonwaves_var),axis=1)))
+#a = np.mean(np.log(waves_var),axis=1) -   np.mean(np.log(nonwaves_var),axis=1)
+a = np.median((waves_var),axis=1) -   np.median((nonwaves_var),axis=1)
+a = np.divide(a, (np.median((nonwaves_var),axis=1)))
 a = 100*(a)
 plt.figure()
 plt.boxplot(a)
@@ -307,10 +315,133 @@ plt.yticks(fontsize=8)
 plt.xlim((0.85,1.15))
 plt.show()
 
-stat,p = stats.wilcoxon(waves_acc,nonwaves_acc)
+stat,p=stats.wilcoxon((a))
+print(p)
+
+# stat,p = stats.wilcoxon(waves_acc,nonwaves_acc)
+# print(p)
 
 # perhaps just plot a few movements in 2d or 3d, showcasing gaussian ellipses
 # difference in trial to trial variance b/w movements wave and non wave 
+
+####### PLOTTING WAVE ON TOP OF NONWAVE FOR 3 MOVEMENTS #####
+# from iAE_utils_models import *
+# plot_three_movements_wave_vs_nonwave_direct(
+#     wave_nonwave_dict,
+#     movement_ids=[4, 5, 6]
+# )
+# plot_three_movements_wave_vs_nonwave_direct(
+#     wave_nonwave_dict,
+#     movement_ids=[1, 3,7]
+# )
+
+# plot_movements_wave_vs_nonwave_direct_v2(
+#     wave_nonwave_dict,
+#     movement_ids=[1,2,3,4,5,6,7]
+# )
+
+#%% SAVE RESULTS 
+
+np.savez('B6_Wave_NonWave_AE_3D_MEasured2d', 
+          waves_var = waves_var,
+          nonwaves_var = nonwaves_var          
+          )
+
+print('Data saved')
+
+#%% LOADING DATA BACK AND RUNNING STATS
+
+data1 = np.load('B6_Wave_NonWave_AE_3D_MEasured2d.npz',
+               allow_pickle=True)
+data2 = np.load('B1_Wave_NonWave_AE.npz',
+               allow_pickle=True)
+data3 = np.load('B3_Wave_NonWave_AE.npz',
+               allow_pickle=True)
+waves_var=[]
+nonwaves_var=[]
+waves_var.append(data1.get('waves_var'))
+waves_var.append(data2.get('waves_var'))
+waves_var.append(data3.get('waves_var'))
+waves_var = np.array(waves_var)
+nonwaves_var.append(data1.get('nonwaves_var'))
+nonwaves_var.append(data2.get('nonwaves_var'))
+nonwaves_var.append(data3.get('nonwaves_var'))
+nonwaves_var = np.array(nonwaves_var)
+
+## scatter plot
+w_med = np.median(waves_var, axis=1)       # (3, 7)
+nw_med = np.median(nonwaves_var, axis=1)   # (3, 7)
+# Percent change in variance
+a = 100 * (w_med - nw_med) / nw_med        # (3, 7)
+fig, ax = plt.subplots(figsize=(3, 4))
+subjects = ['B6', 'B1', 'B3']
+colors = ['tab:blue', 'tab:green', 'tab:red']
+np.random.seed(42)
+for i in range(3):
+    x = 1 + np.random.uniform(-0.08, 0.08, 7)
+    ax.scatter(
+        x, a[i, :],
+        color=colors[i],
+        s=35,
+        alpha=0.8,
+        label=subjects[i]
+    )
+pop_median = np.median(a)
+ax.plot([0.85, 1.15], [pop_median, pop_median],
+        color='black', linewidth=2.5, zorder=5)
+ax.axhline(0, color='gray', linestyle='--', linewidth=1)
+ax.set_xlim(0.75, 1.25)
+ax.set_xticks([1])
+ax.set_xticklabels(['Wave vs Nonwave'])
+ax.set_ylabel('Percent change in variance', fontsize=9)
+ax.tick_params(labelsize=8)
+ax.legend(frameon=False, fontsize=8)
+plt.tight_layout()
+plt.show()
+
+
+
+# stats
+df = pd.DataFrame({
+    'subject': np.repeat(['B6', 'B1', 'B3'], 7),
+    'movement': np.tile(np.arange(1, 8), 3),
+    'pct_change': a.flatten()
+})
+
+# Linear mixed-effects model
+model = smf.mixedlm(
+    "pct_change ~ 1",
+    data=df,
+    groups=df["subject"]
+)
+
+result = model.fit(reml=True)
+
+print(result.summary())
+
+# Test whether mean differs from zero
+print("Mean percentage change:", result.params['Intercept'])
+print("p-value:", result.pvalues['Intercept'])
+print("95% CI:", result.conf_int().loc['Intercept'].values)
+
+
+# box plot
+waves_var = np.median(waves_var,axis=1).flatten()
+nonwaves_var = np.median(nonwaves_var,axis=1).flatten()
+
+a = 100*(waves_var - nonwaves_var)/nonwaves_var
+plt.figure()
+plt.boxplot(a)
+plt.hlines(0, 0.5, 1.5)
+plt.ylabel('Percent increase in variance',fontsize=8)
+plt.xticks([])
+plt.yticks(fontsize=8)
+plt.xlim((0.85,1.15))
+plt.show()
+
+stat,p=stats.wilcoxon((a))
+print(p)
+
 
 #%% PLOTTING
     
@@ -488,13 +619,6 @@ plot_movement_wave_vs_nonwave_2d_with_ellipses(
 wave_nonwave_dict,
 movement_id=6)
 
-
-####### PLOTTING WAVE ON TOP OF NONWAVE FOR 3 MOVEMENTS #####
-from iAE_utils_models import *
-plot_three_movements_wave_vs_nonwave(
-    wave_nonwave_dict,
-    movement_ids=[5, 6, 3]
-)
 
 
 #%% SAVING 
