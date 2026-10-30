@@ -92,7 +92,7 @@ data_dict = mat73.loadmat(filename)
 
 condn_data = data_dict.get('condn_data')
 
-iterations = 15
+iterations = 25
 
 
 #####
@@ -145,7 +145,7 @@ for iterr in np.arange(iterations):
     # model parameters for the MLP based autoencoder
     input_size=253
     hidden_size=96 #96 originally 
-    latent_dims=2 #3 originally 
+    latent_dims=3 #3 originally 
     num_classes = 7
     
     from iAE_utils_models import *
@@ -292,19 +292,11 @@ for iterr in np.arange(iterations):
 waves_var = np.vstack(waves_var)
 nonwaves_var = np.vstack(nonwaves_var)
 
-plt.figure()
-plt.boxplot((waves_var.flatten(),nonwaves_var.flatten()))
-#plt.boxplot((np.mean(np.log(waves_var),axis=1),np.mean(np.log(nonwaves_var),axis=1)))
-#plt.ylim(-0.01,0.05)
-#plt.ylim(0,.2)
-
-stat,p = stats.wilcoxon(np.mean((waves_var),axis=1),
-                        np.mean((nonwaves_var),axis=1))
-print(p)
+#waves_var #15,7
 
 #a = np.mean(np.log(waves_var),axis=1) -   np.mean(np.log(nonwaves_var),axis=1)
-a = np.median((waves_var),axis=1) -   np.median((nonwaves_var),axis=1)
-a = np.divide(a, (np.median((nonwaves_var),axis=1)))
+a = np.median((waves_var),axis=0) -   np.median((nonwaves_var),axis=0)
+a = np.divide(a, (np.median((nonwaves_var),axis=0)))
 a = 100*(a)
 plt.figure()
 plt.boxplot(a)
@@ -314,8 +306,32 @@ plt.xticks([])
 plt.yticks(fontsize=8)
 plt.xlim((0.85,1.15))
 plt.show()
-
 stat,p=stats.wilcoxon((a))
+print(p)
+
+
+a = 100*(waves_var-nonwaves_var)/nonwaves_var
+a = np.median(a,axis=0)
+plt.figure()
+plt.boxplot(a)
+plt.hlines(0, 0.5, 1.5)
+plt.ylabel('Percent increase in variance',fontsize=8)
+plt.xticks([])
+plt.yticks(fontsize=8)
+plt.xlim((0.85,1.15))
+plt.show()
+stat,p=stats.wilcoxon((a))
+print(p)
+
+
+plt.figure()
+plt.boxplot((waves_var.flatten(),nonwaves_var.flatten()))
+#plt.boxplot((np.mean(np.log(waves_var),axis=1),np.mean(np.log(nonwaves_var),axis=1)))
+#plt.ylim(-0.01,0.05)
+#plt.ylim(0,.2)
+
+stat,p = stats.wilcoxon(np.mean((waves_var),axis=1),
+                        np.mean((nonwaves_var),axis=1))
 print(p)
 
 # stat,p = stats.wilcoxon(waves_acc,nonwaves_acc)
@@ -342,7 +358,7 @@ print(p)
 
 #%% SAVE RESULTS 
 
-np.savez('B6_Wave_NonWave_AE_3D_MEasured2d', 
+np.savez('B6_Wave_NonWave_AE_3D_MEasured2d_v2', 
           waves_var = waves_var,
           nonwaves_var = nonwaves_var          
           )
@@ -351,7 +367,7 @@ print('Data saved')
 
 #%% LOADING DATA BACK AND RUNNING STATS
 
-data1 = np.load('B6_Wave_NonWave_AE_3D_MEasured2d.npz',
+data1 = np.load('B6_Wave_NonWave_AE_3D_MEasured2d_v2.npz',
                allow_pickle=True)
 data2 = np.load('B1_Wave_NonWave_AE.npz',
                allow_pickle=True)
@@ -362,17 +378,27 @@ nonwaves_var=[]
 waves_var.append(data1.get('waves_var'))
 waves_var.append(data2.get('waves_var'))
 waves_var.append(data3.get('waves_var'))
-waves_var = np.array(waves_var)
 nonwaves_var.append(data1.get('nonwaves_var'))
 nonwaves_var.append(data2.get('nonwaves_var'))
 nonwaves_var.append(data3.get('nonwaves_var'))
-nonwaves_var = np.array(nonwaves_var)
+
+a=[]
+for i in np.arange(len(waves_var)):
+    tmp = waves_var[i]
+    tmp1 = nonwaves_var[i]        
+    x = 100*(tmp-tmp1)/tmp1
+    if i==0:
+        a.append(np.median(x,axis=0))
+    else:
+        a.append(np.mean(x,axis=0))
+
+a=np.array(a)
 
 ## scatter plot
-w_med = np.median(waves_var, axis=1)       # (3, 7)
-nw_med = np.median(nonwaves_var, axis=1)   # (3, 7)
+#w_med = np.median(waves_var, axis=1)       # (3, 7)
+#nw_med = np.median(nonwaves_var, axis=1)   # (3, 7)
 # Percent change in variance
-a = 100 * (w_med - nw_med) / nw_med        # (3, 7)
+#a = 100 * (w_med - nw_med) / nw_med        # (3, 7)
 fig, ax = plt.subplots(figsize=(3, 4))
 subjects = ['B6', 'B1', 'B3']
 colors = ['tab:blue', 'tab:green', 'tab:red']
@@ -399,8 +425,6 @@ ax.legend(frameon=False, fontsize=8)
 plt.tight_layout()
 plt.show()
 
-
-
 # stats
 df = pd.DataFrame({
     'subject': np.repeat(['B6', 'B1', 'B3'], 7),
@@ -426,21 +450,23 @@ print("95% CI:", result.conf_int().loc['Intercept'].values)
 
 
 # box plot
-waves_var = np.median(waves_var,axis=1).flatten()
-nonwaves_var = np.median(nonwaves_var,axis=1).flatten()
+plt.figure();
+plt.boxplot(a.flatten())
+# waves_var = np.median(waves_var,axis=1).flatten()
+# nonwaves_var = np.median(nonwaves_var,axis=1).flatten()
 
-a = 100*(waves_var - nonwaves_var)/nonwaves_var
-plt.figure()
-plt.boxplot(a)
-plt.hlines(0, 0.5, 1.5)
-plt.ylabel('Percent increase in variance',fontsize=8)
-plt.xticks([])
-plt.yticks(fontsize=8)
-plt.xlim((0.85,1.15))
-plt.show()
+# a = 100*(waves_var - nonwaves_var)/nonwaves_var
+# plt.figure()
+# plt.boxplot(a)
+# plt.hlines(0, 0.5, 1.5)
+# plt.ylabel('Percent increase in variance',fontsize=8)
+# plt.xticks([])
+# plt.yticks(fontsize=8)
+# plt.xlim((0.85,1.15))
+# plt.show()
 
-stat,p=stats.wilcoxon((a))
-print(p)
+# stat,p=stats.wilcoxon((a))
+# print(p)
 
 
 #%% PLOTTING
