@@ -29,7 +29,7 @@ clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B3';
+subj ='B6';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -1880,7 +1880,7 @@ clearvars -except res_B3 res_B1 res_bin_B3 res_bin_B1
 root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6';
 cd(root_path)
 %load hg_wave_nonwave_MLP_3DArrow_CL_AllData_v3_AllFolders
-load hg_wave_nonwave_MLP_3DArrow_CL_AllData_v4_AllFolders
+load hg_wave_nonwave_MLP_3DArrow_CL_AllData_v5_AllFolders
 
 res=[];res_bin=[];
 for i=1:size(acc_nonwave,1)
@@ -1894,7 +1894,7 @@ for i=1:size(acc_nonwave,1)
     tmp1=squeeze((acc_bin_wave(i,:,:)));
     res_bin(i,:) = [mean(diag(tmp)) mean(diag(tmp1))];
 end
-figure;boxplot(100*res_bin,'Whisker',2)
+figure;boxplot(100*res,'Whisker',2)
 xticks(1:2)
 xticklabels({'Non wave epochs', 'Wave epochs'})
 %xticklabels({'Most unstable nowave','Non wave epochs', 'Wave epochs'})
@@ -1919,6 +1919,143 @@ figure;
 boxplot(res_bin,'notch','on')
 ylim([0.45 0.625])
 signrank(res_bin(:,1),res_bin(:,2))
+
+%% ANALYSIS 4.12 (CONTROL FOR ABOVE, MAIN MAIN)
+% build a classifer across days looking at decoding performance in hg
+% during wave vs. non wave epochs
+
+% B3 -> no smoothing
+% B1, B6 -> smoothing  -> this is more probably to get rid of bad channels
+
+
+addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
+
+num_targets=7;
+
+if strcmp(subj,'B6')
+    stats_cl_days = stats_cl_days(1:end-1);
+    stats_cl_hg_days = stats_cl_hg_days(1:end-1);
+    stats_ol_days = stats_ol_days(1:end-1);
+    stats_ol_hg_days = stats_ol_hg_days(1:end-1);
+end
+
+
+if strcmp(subj,'B6')
+    bad_ch = [ 15    24    78   100   103   107   143   146   155   185   253];
+elseif strcmp(subj,'B1')
+    bad_ch = [64	69	93	125	134	141	169	175	215	223	227	233	236	243];
+elseif strcmp(subj,'B3')
+    bad_ch=[];
+end
+
+boot=[];
+condn_data_wave_og = get_condn_data_wave(stats_cl_hg_days,stats_cl_days,bad_ch,num_targets);
+condn_data_nonwave_og = get_condn_data_nonwave(stats_cl_hg_days,stats_cl_days,bad_ch,num_targets);
+for iter=112:200
+    disp(['bootstrap iteration of ' num2str(iter)])
+
+    condn_data_wave=[];
+    condn_data_nonwave=[];
+    for i=1:length(condn_data_wave_og)
+        if rand(1)>=0.5 % flip labels
+            tmp_wave = condn_data_wave_og(i).neural ;
+            tmp_nonwave = condn_data_nonwave_og(i).neural ;
+            condn_data_wave(i).neural  = tmp_nonwave;
+            condn_data_nonwave(i).neural  = tmp_wave;
+            condn_data_wave(i).targetID = condn_data_wave_og(i).targetID;
+            condn_data_nonwave(i).targetID = condn_data_nonwave_og(i).targetID;
+        else
+            condn_data_wave(i).neural = condn_data_wave_og(i).neural;
+            condn_data_wave(i).targetID = condn_data_wave_og(i).targetID;
+            condn_data_nonwave(i).neural = condn_data_nonwave_og(i).neural;
+            condn_data_nonwave(i).targetID = condn_data_nonwave_og(i).targetID;
+        end
+    end
+
+    [acc_wave,train_permutations,acc_bin_wave,bino_pdf,...
+        bino_pdf_chance,del_iter_wave,del_mean_wave] = ...
+        accuracy_imagined_data(condn_data_wave, 1);
+    acc_wave = squeeze(mean(acc_wave,1));
+
+    [acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,...
+        bino_pdf_chance,del_iter_nonwave,del_mean_nonwave] = ...
+        accuracy_imagined_data(condn_data_nonwave, 1);
+    acc_nonwave = squeeze(mean(acc_nonwave,1));
+
+    boot(iter) = mean(diag(acc_nonwave)) - mean(diag(acc_wave));
+
+    boot_MLP_hG_wave_nonwave_B6 = boot;
+    save boot_MLP_hG_wave_nonwave_B6 boot_MLP_hG_wave_nonwave_B6 -v7.3
+end
+
+
+% compare to actual data
+clear acc_nonwave acc_wave
+if strcmp(subj,'B1')
+    load hg_wave_nonwave_MLP_3DArrow_CL_v2
+elseif strcmp(subj,'B3')
+    load hg_wave_nonwave_MLP_3DArrow_CL_v2
+elseif strcmp(subj,'B6')
+    %load hg_wave_nonwave_MLP_3DArrow_CL_AllData_v4_AllFolders
+    %load hg_wave_nonwave_MLP_3DArrow_CL_AllData_v3_AllFolders
+    load hg_wave_nonwave_MLP_3DArrow_CL_AllData_v5_AllFolders    
+end
+
+res=[];
+for i=1:size(acc_nonwave,1)
+    tmp=squeeze((acc_nonwave(i,:,:)));
+    tmp1=squeeze((acc_wave(i,:,:)));
+    res(i,:) = [ mean(diag(tmp)) mean(diag(tmp1))];
+end
+stat = mean(res(:,1)-res(:,2));
+
+boot_val=[];
+for i=1:1000
+    idx = randi(length(boot),1,10);
+    boot_val(i) = mean(boot(idx));
+end
+figure;
+hist(boot_val)
+vline(stat)
+1-sum(stat>=boot_val)/length(boot_val)
+% 
+% res=[];
+% for i=1:size(acc_nonwave,1)
+%     %tmp0=squeeze((acc_nonwave_least(i,:,:)));
+%     tmp=squeeze((acc_nonwave(i,:,:)));
+%     tmp1=squeeze((acc_wave(i,:,:)));
+%     %res(i,:) = [mean(diag(tmp0)) mean(diag(tmp)) mean(diag(tmp1))];
+%     res(i,:) = [ mean(diag(tmp)) mean(diag(tmp1))];
+% end
+% figure;boxplot(100*res)
+% xticks(1:2)
+% xticklabels({'Non wave epochs', 'Wave epochs'})
+% %xticklabels({'Most unstable nowave','Non wave epochs', 'Wave epochs'})
+% title('Trial Level Acc.')
+% signrank(res(:,1),res(:,2))
+% ylim([40 100])
+% 
+% res=[];
+% for i=1:size(acc_nonwave,1)
+%     tmp=squeeze((acc_bin_nonwave(i,:,:)));
+%     tmp1=squeeze((acc_bin_wave(i,:,:)));
+%     res(i,:) = [mean(diag(tmp)) mean(diag(tmp1))];
+% end
+% figure;boxplot(res)
+% xticks(1:2)
+% xticklabels({'Non wave epochs', 'Wave epochs'})
+% signrank(res(:,1),res(:,2))
+% title('Bin Level Acc.')
+
+%save hg_wave_nonwave_MLP_3DArrow_CL_AllData_v5_AllFolders acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
+%hg_wave_nonwave_MLP 
+%hg_wave_nonwave_MLP_3DArrow_CL_v2
+%hg_wave_nonwave_MLP_3DArrow_CL_v2_AllData
+% hg_wave_nonwave_MLP_3DArrow_CL_AllData_v4_AllFolders for B6 
+%hg_wave_nonwave_MLP_3DArrow_CL_AllData_v5_AllFolders.mat % for B6 
+
+% v2 -> using smoothed hG in trialdata, all time points (not just during
+% correct decodes)
 
 
 %% ANALYSIS 4.5 WITHIN DAY VERSION OF ABOVE
