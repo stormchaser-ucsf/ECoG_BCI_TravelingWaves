@@ -858,6 +858,59 @@ max(1/length(boot),sum(boot>abs(stat))/length(boot))
  p
  s
 
+ %% FROM PYTHON, VARIANCE INCREASES DURING WAVES
+
+res=[19.9437	1.41116	-6.51709	42.71	17.7258	27.1444	30.4762;
+54.7497	28.0577	48.1426	16.5549	79.6906	49.4339	38.5925;
+25.9932	87.5184	38.0112	76.0616	101.015	25.3192	38.3801]';
+
+res_days_B1 = res(:,2);
+res_days_B3 = res(:,3);
+res_days_B6 = res(:,1);
+
+m11 = res_days_B1;
+m22 = res_days_B3;
+m33 = res_days_B6;
+
+y=[nanmean(m11) nanmean(m22) nanmean(m33)];
+% scatter ec participants individually
+figure; hold on
+h=hline(nanmedian(res(:)),'k');
+h.LineWidth=3;
+h.XData = [0.75 1.25];
+bb = sort(bootstrp(1000,@median,res(:)));
+[bb(25) median(res(:)) bb(975)]
+
+x=(1:1) + 0.1*randn(length(m11),1);
+h=scatter(x,[m11],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'b';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(1:1) + 0.1*randn(length(m22),1);
+h=scatter(x,[m22],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'r';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(1:1) + 0.1*randn(length(m33),1);
+h=scatter(x,[m33],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'k';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+xlim([.6 1.4])
+xticks ''
+hline(0,'--r')
+plot_beautify
+ylabel('% Increase in latent variance')
+xlabel('BCI control actions')
+ylim([-20 110])
+
+
+
 %% PLOTTING AS SVG
 
 
