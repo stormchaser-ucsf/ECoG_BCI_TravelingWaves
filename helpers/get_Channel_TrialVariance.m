@@ -6,6 +6,8 @@ res_std_days=[];
 res_days_map=[];
 for days=1:length(stats_cl_hg_days)
     stats_cl_hg = stats_cl_hg_days{days};
+    %l=round(length(stats_cl_hg_days)/2);
+    %stats_cl_hg = stats_cl_hg(l:end);
     res=[];
     res_std=[];
     res_map=[];
@@ -39,8 +41,8 @@ for days=1:length(stats_cl_hg_days)
                 end
             end
         end
-        tmp=log([(std(D_wave,1))' (std(D_nonwave,1))']);
-        %tmp=([(std(D_wave,1))' (std(D_nonwave,1))']);
+        %tmp=log([(std(D_wave,1))' (std(D_nonwave,1))']);
+        tmp=([(std(D_wave,1))' (std(D_nonwave,1))']);
         res_map = [res_map tmp];
         res = [res;mean(tmp,1)];
     end
@@ -80,6 +82,30 @@ figure;boxplot(res_days,'Notch','off')
 % xticks(1:2)
 xticklabels({'Wave','Non wave'})
 ylabel('Trial to Trial Variance')
+
+
+% plotting ksdesnity variance channel level
+ch=[90 92];
+l = size(D_wave,1)*1;%length(ch);
+x=[];y=[];
+for i=1%length(ch)
+    %x=[x;[D_wave(:,ch(i));D_nonwave(:,ch(i))]];
+    x= [x; D_wave(:,ch(i))];
+    y= [y; D_nonwave(:,ch(i))];
+end
+x=[x;y];
+x=x*30;
+figure;
+ksdensity(x(1:l))
+hold on
+ksdensity(x(l+1:end))
+xlabel('Single trial means of inst. hG')
+ylabel('Density')
+legend({'Wave epochs','Non wave epochs'})
+plot_beautify
+
+
+
 % 
 % 
 % % plotting cortical channels

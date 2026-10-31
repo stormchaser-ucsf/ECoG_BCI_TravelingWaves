@@ -824,20 +824,20 @@ signrank(res_days(:,1),res_days(:,2))
 % scatter plot as percentage change
 figure;
 hold on
-a = exp(res_days_B1);
+a = (res_days_B1);
 r = 100*((a(:,1)-a(:,2))./a(:,2));
 idx = ones(size(r))+0.03*randn(size(r));
 scatter(idx,r,'b','LineWidth',1)
-a = exp(res_days_B3);
+a = (res_days_B3);
 r = 100*((a(:,1)-a(:,2))./a(:,2));
 idx = ones(size(r))+0.03*randn(size(r));
 scatter(idx,r,'r','LineWidth',1)
-a = exp(res_days_B6);
+a = (res_days_B6);
 r = 100*((a(:,1)-a(:,2))./a(:,2));
 idx = ones(size(r))+0.03*randn(size(r));
 scatter(idx,r,'k','LineWidth',1)
 ylabel('Percent Increase in Variance')
-a = exp(res_days);
+a = (res_days);
 r = 100*((a(:,1)-a(:,2))./a(:,2));
 boxplot(r)
 ylim([-5 15])

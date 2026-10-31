@@ -758,18 +758,19 @@ signrank(res_days(:,1),res_days(:,2))
 % do it for both OL and CL
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
 load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat',...
-    'stats_ol_hg_days','subj')
-[res_days_B1] = get_Channel_TrialVariance(stats_ol_hg_days,7)
+    'stats_cl_hg_days','subj','ecog_grid')
+[res_days_B1] = get_Channel_TrialVariance(stats_cl_hg_days,7,ecog_grid);
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
 load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat',...
-    'stats_ol_hg_days','subj')
-[res_days_B3] = get_Channel_TrialVariance(stats_cl_hg_days,7)
+    'stats_cl_hg_days','subj','ecog_grid')
+[res_days_B3] = get_Channel_TrialVariance(stats_cl_hg_days,7,ecog_grid);
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
 load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat',...
-    'stats_ol_hg_days','subj')
-[res_days_B6] = get_Channel_TrialVariance(stats_ol_hg_days(1:end-1),7)
+    'stats_cl_hg_days','subj','ecog_grid')
+[res_days_B6] = get_Channel_TrialVariance(stats_cl_hg_days(1:end-1),7,...
+    ecog_grid);
 
 
 
@@ -823,15 +824,15 @@ signrank(res_days(:,1),res_days(:,2))
 % scatter plot as percentage change
 figure;
 hold on
-a = exp(res_days_B1);
+a = (res_days_B1);
 r = 100*((a(:,1)-a(:,2))./a(:,2));
 idx = ones(size(r))+0.03*randn(size(r));
 scatter(idx,r,'b','LineWidth',1)
-a = exp(res_days_B3);
+a = (res_days_B3);
 r = 100*((a(:,1)-a(:,2))./a(:,2));
 idx = ones(size(r))+0.03*randn(size(r));
 scatter(idx,r,'r','LineWidth',1)
-a = exp(res_days_B6);
+a = (res_days_B6);
 r = 100*((a(:,1)-a(:,2))./a(:,2));
 idx = ones(size(r))+0.03*randn(size(r));
 scatter(idx,r,'k','LineWidth',1)
@@ -1565,7 +1566,7 @@ condn_data=condn_data1;
 
 iterations=10;
 [acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance,del_iter_wave,...
-    del_mean,wave] = accuracy_imagined_data(condn_data, iterations);
+    del_mean_wave] = accuracy_imagined_data(condn_data, iterations);
 %accuracy_imagined_data_Hand_B3
 %accuracy_imagined_data_Hand_B3
 
@@ -1631,8 +1632,33 @@ for i=1:length(condn_data)
 end
 condn_data=condn_data1;
 
-[acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,bino_pdf_chance,del_it] = ...
-    accuracy_imagined_data(condn_data, iterations);
+[acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,bino_pdf_chance,del_iter_nonwave,...
+    del_mean_nonwave] = accuracy_imagined_data(condn_data, iterations);
+
+figure;
+boxplot([del_mean_nonwave' del_mean_wave'])
+xticks(1:2)
+xticklabels({'nonwaves','waves'})
+signrank(del_mean_nonwave,del_mean_wave)
+plot_beautify
+ylabel('Normalized difference in votes between 1st and 2nd class')
+
+a=[];b=[];
+for i=1:length(del_iter_nonwave)
+    tmp = del_iter_nonwave{i};
+    a(i) = mean(tmp);
+
+    tmp = del_iter_wave{i};
+    b(i) = mean(tmp);
+end
+figure;
+boxplot([a' b'])
+xticks(1:2)
+xticklabels({'nonwaves','waves'})
+signrank(a,b)
+plot_beautify
+ylabel('Normalized difference in votes between 1st and 2nd class')
+
 
 % % non wave, least global wave patterns
 % condn_data={};k=1;

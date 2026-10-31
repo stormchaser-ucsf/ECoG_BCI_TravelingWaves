@@ -67,11 +67,11 @@ else:
     # filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/'
     # filename = 'B3_Wave_NonWave_hG_For_AE.mat'
     
-    # filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/'
-    # filename = 'B1_Wave_NonWave_hG_For_AE.mat'
+    filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/'
+    filename = 'B1_Wave_NonWave_hG_For_AE.mat'
     
-    filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/'
-    filename = 'B6_Wave_NonWave_hG_For_AE.mat'
+    # filepath = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/'
+    # filename = 'B6_Wave_NonWave_hG_For_AE.mat'
     
     
     filename = filepath + filename
@@ -145,7 +145,7 @@ for iterr in np.arange(iterations):
     # model parameters for the MLP based autoencoder
     input_size=253
     hidden_size=96 #96 originally 
-    latent_dims=3 #3 originally 
+    latent_dims=2 #3 originally 
     num_classes = 7
     
     from iAE_utils_models import *
@@ -164,7 +164,7 @@ for iterr in np.arange(iterations):
     batch_val=512
     patience=6
     gradient_clipping=10    
-    nn_filename = 'iAE_B6_Waves.pth' 
+    nn_filename = 'iAE_B1_Waves.pth' 
 
     #get number of parameters
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
