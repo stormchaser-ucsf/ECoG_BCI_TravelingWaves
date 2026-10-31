@@ -346,15 +346,16 @@ print(p)
 #     wave_nonwave_dict,
 #     movement_ids=[4, 5, 6]
 # )
-# plot_three_movements_wave_vs_nonwave_direct(
-#     wave_nonwave_dict,
-#     movement_ids=[1, 3,7]
-# )
+plot_three_movements_wave_vs_nonwave_direct(
+    wave_nonwave_dict,
+    movement_ids=[1, 2,3]
+)
+plt.savefig('WaveNonWave_B1_Example_v3.svg', format='svg', dpi=300, bbox_inches='tight')
 
-# plot_movements_wave_vs_nonwave_direct_v2(
-#     wave_nonwave_dict,
-#     movement_ids=[1,2,3,4,5,6,7]
-# )
+plot_movements_wave_vs_nonwave_direct_v2(
+    wave_nonwave_dict,
+    movement_ids=[1,2,3,7]
+)
 
 #%% SAVE RESULTS 
 
