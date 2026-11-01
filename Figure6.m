@@ -914,11 +914,11 @@ ylim([-20 110])
 %% PLOTTING AS SVG
 
 
-cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New\Figure8\')
+cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New_v2\Figure7')
 
 % svg
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'Mu_hG_PLV_PolarPlot_EC189_showingHoldPeriod.svg','-dsvg','-painters','-r300');
+print(gcf,'PercentIncreaseVariance_LatentSpace_B1B3B6.svg','-dsvg','-painters','-r300');
     
 % png
 set(gcf,'PaperPositionMode','auto');
