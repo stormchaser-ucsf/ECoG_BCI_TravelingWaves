@@ -812,8 +812,10 @@ close all
 bpFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',5.5,'HalfPowerFrequency2',8.5, ...
     'SampleRate',Fs);
+
 % bpFilt = designfilt('lowpassiir', 'FilterOrder', 4, ...
 %                'HalfPowerFrequency', 3, 'SampleRate', Fs);
+
 hGFilt = designfilt('bandpassiir','FilterOrder',4, ...
     'HalfPowerFrequency1',70,'HalfPowerFrequency2',150, ...
     'SampleRate',Fs);
@@ -844,6 +846,7 @@ wave_dur = [];
 mu_pow_waves=[];
 mu_pow_non_waves=[];
 stats={};
+stats_move={};
 for i=1:length(trial_timings)
     timings = [trial_timings(i).movement.cue.time];
     % for j=1:length(timings)
@@ -946,11 +949,15 @@ for i=1:length(trial_timings)
     st=st+0.5;
     stp = st+3;    
     index = (lfp_time >= st) .* (lfp_time<=stp);
-    data = mu_wave(logical(index),:);
+    data = mu_wave(logical(index),:); % hilbert of mu
+    data_pow = mu_pow(logical(index),:); %mu amplitude
+    hg_mu_data = hg_mu(logical(index),:); %hilbert of hg mu
 
     % downsample to 50Hz
     tx = (1/Fs)*[0:size(data,1)-1];
-    df = resample(data,tx,50);
+    df = resample(data,tx,50); %hilbert of mu
+    df_pow = resample(data_pow,tx,50); %mu amplitude
+    hg_mu_data = resample(hg_mu_data,tx,50); %hilbert of hg mu
 
     % detect waves based on spatiotemporally stable phase gradients    
     planar_val_time=[];
@@ -978,6 +985,39 @@ for i=1:length(trial_timings)
     d = mean(out) * 20/1e3; %duration in s
     dcyc=ff1*d;
     dcyc_move =  [dcyc_move dcyc];
+
+    %%% new
+    %%%% get mu power and plv within wave periods
+    tmp={};tmp_mu={};I=ones(length(stab1)+1,1);
+    tmp_hg_mu={};
+    for k=1:length(st)
+        tmp{k} = df_pow(st(k):stp(k),bad_chI); %mu amplitude
+        tmp_mu{k} = df(st(k):stp(k),bad_chI); %hilbert of mu
+        tmp_hg_mu{k} = hg_mu_data(st(k):stp(k),bad_chI); %hilbert of hg mu
+        I(st(k):stp(k))=0;
+    end
+    % power
+    tmp = cell2mat(tmp');
+    %mu_pow_waves = [mu_pow_waves ;nanmean(tmp,1)];
+
+    %plv
+    tmp_mu = angle(cell2mat(tmp_mu'));
+    tmp_hg_mu = angle(cell2mat(tmp_hg_mu'));
+    res_wave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
+    stats_move(i).plv_wave = res_wave;
+
+
+    %%%% get mu power within non wave periods
+    I = logical(I);
+    % power
+    tmp_nonwave = df_pow(I,bad_chI);
+    %mu_pow_non_waves = [mu_pow_non_waves ;nanmean(tmp_nonwave,1)];
+    % plv
+    tmp_mu = angle(df(I,bad_chI));
+    tmp_hg_mu = angle(hg_mu_data(I,bad_chI));
+    res_nonwave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
+    stats_move(i).plv_nonwave = res_nonwave;
+
 end
 
 figure;
@@ -1071,6 +1111,10 @@ hgmu_phase_trialdata={};
 plv_hold=[];
 plv_move=[];
 for i=1:length(trial_timings)
+
+    % rest period
+    %st = trial_timings(i).movement.cue(1).time; %anin
+    %stp = trial_timings(i).movement.cue(2).time; %anin   
 
     % hold period
     st = trial_timings(i).movement.cue(2).time; %anin
