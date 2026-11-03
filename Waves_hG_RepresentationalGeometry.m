@@ -29,7 +29,7 @@ clear;
 clc
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
-subj ='B6';
+subj ='B3';
 %parpool('threads')
 
 if strcmp(subj,'B1')
@@ -1924,9 +1924,10 @@ signrank(res_bin(:,1),res_bin(:,2))
 % build a classifer across days looking at decoding performance in hg
 % during wave vs. non wave epochs
 
+%%%% IMPORTANT %%%
 % B3 -> no smoothing
 % B1, B6 -> smoothing  -> this is more probably to get rid of bad channels
-
+%%%% IMPORTANT %%%
 
 addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_HighDim/'))
 
@@ -1951,7 +1952,7 @@ end
 boot=[];
 condn_data_wave_og = get_condn_data_wave(stats_cl_hg_days,stats_cl_days,bad_ch,num_targets);
 condn_data_nonwave_og = get_condn_data_nonwave(stats_cl_hg_days,stats_cl_days,bad_ch,num_targets);
-for iter=112:200
+for iter=44:200
     disp(['bootstrap iteration of ' num2str(iter)])
 
     condn_data_wave=[];
@@ -1984,8 +1985,13 @@ for iter=112:200
 
     boot(iter) = mean(diag(acc_nonwave)) - mean(diag(acc_wave));
 
-    boot_MLP_hG_wave_nonwave_B6 = boot;
-    save boot_MLP_hG_wave_nonwave_B6 boot_MLP_hG_wave_nonwave_B6 -v7.3
+    boot_MLP_hG_wave_nonwave_B3 = boot;
+    save boot_MLP_hG_wave_nonwave_B3 boot_MLP_hG_wave_nonwave_B3 -v7.3
+
+    % test hypothesis
+    [pval1,pval2] = test_hG_wave_nonwave_dec_acc(boot,subj);
+    fprintf('Pval for abs: %.4f, pval for full: %.4f, at iteration %d \n',...
+        pval1,pval2,iter);
 end
 
 
@@ -2011,13 +2017,13 @@ stat = mean(res(:,1)-res(:,2));
 
 boot_val=[];
 for i=1:1000
-    idx = randi(length(boot),1,10);
+    idx = randi(length(boot),1,size(acc_nonwave,1));
     boot_val(i) = mean(boot(idx));
 end
 figure;
 hist(boot_val)
 vline(stat)
-1-sum(stat>=boot_val)/length(boot_val)
+1-sum(stat>=(boot_val))/length(boot_val)
 % 
 % res=[];
 % for i=1:size(acc_nonwave,1)

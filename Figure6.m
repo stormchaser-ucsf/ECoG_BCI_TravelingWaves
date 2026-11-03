@@ -130,6 +130,26 @@ boxplot(res_bin,'notch','on')
 %ylim([0.45 0.625])
 signrank(res_bin(:,1),res_bin(:,2))
 title('Bin level accuracy')
+%% STATS ON DECODING ACC DIFF BET WAVE AND NONWAVE EPOCHS
+
+subjects ={'B1','B3','B6'};
+for i=1:length(subjects)
+    subj = subjects{i};
+    if strcmp(subj,'B1')
+        load('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker/boot_MLP_hG_wave_nonwave_B1.mat')
+        boot = boot_MLP_hG_wave_nonwave_B1;
+    elseif strcmp(subj,'B3')
+        load('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/boot_MLP_hG_wave_nonwave_B3.mat')
+        boot = boot_MLP_hG_wave_nonwave_B3;
+    elseif strcmp(subj,'B6')
+        load('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6/boot_MLP_hG_wave_nonwave_B6.mat')
+        boot = boot_MLP_hG_wave_nonwave_B6;
+    end
+[pval1,pval2] = test_hG_wave_nonwave_dec_acc(boot,subj);
+fprintf('Pval for abs: %.4f, pval for full: %.4f, for subject %s \n',...
+    pval1,pval2,subj);
+end
+
 
 %% DUTY CYCLE ANALYSES
 
@@ -908,6 +928,7 @@ plot_beautify
 ylabel('% Increase in latent variance')
 xlabel('BCI control actions')
 ylim([-20 110])
+
 
 
 

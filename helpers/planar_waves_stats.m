@@ -7,6 +7,7 @@ good_ch = logical(good_ch);
 vec_field={};
 stats={};kk=1;
 stats_hg={};
+corr_waves_mu_power=[];
 for ii=1:length(files)
     disp(['Processing file ' num2str(ii) ' of ' num2str(length(files))])
     loaded=1;
@@ -201,6 +202,14 @@ for ii=1:length(files)
 
         % figure;
         % plot(zscore(stab))
+        xx = abs(df(2:end,good_ch));
+        corr_waves_mu_power = [corr_waves_mu_power corr((mean(xx,2)),zscore(stab'))];
+        % figure;hold on;
+        % plot(zscore(stab));plot(zscore(mean(xx,2)))
+        % hline(0)
+        % vline(st,'g')
+        % vline(stp,'r')
+        % xlim([14 130])
         
 
 

@@ -13,9 +13,9 @@ for days = 1:length(stats_cl_days)
             tmp = stats_cl_hg(i).hg_nonwave;
             tmp = cell2mat(tmp');
 
-            for j=1:size(tmp,2)
-                tmp(:,j) =smooth(tmp(:,j),10);
-            end
+            % for j=1:size(tmp,2)
+            %     tmp(:,j) =smooth(tmp(:,j),10);
+            % end
 
             % % 
             % if size(tmp,1)>62
