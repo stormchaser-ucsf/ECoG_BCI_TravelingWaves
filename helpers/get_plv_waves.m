@@ -95,8 +95,8 @@ for days=1:length(stats_cl_hg_days)
     stats_cl_hg = stats_cl_hg_days{days};    
     
     % for b3 hand taking only the cl2 blocks
-    %l = round(length(stats_cl_hg)/2);
-    %stats_cl_hg = stats_cl_hg(l+1:end);
+    l = round(length(stats_cl_hg)/2);
+    stats_cl_hg = stats_cl_hg(l+1:end);
     %stats_cl_hg = stats_cl_hg(end-36:end);
 
     wave_plv_iter=[];
