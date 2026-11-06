@@ -269,11 +269,11 @@ ylim([0.02 0.12])
 %% PLOTTING AS SVG
 
 
-cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New\Figure5\')
+cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New_v2\Figure5\')
 
 % svg
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'B3_Hand_WaveDuration.svg','-dsvg','-painters','-r300');
+print(gcf,'B3_Hand_WaveDuration_v2.svg','-dsvg','-painters','-r300');
     
 % png
 set(gcf,'PaperPositionMode','auto');
