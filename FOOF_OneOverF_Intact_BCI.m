@@ -847,6 +847,7 @@ mu_pow_waves=[];
 mu_pow_non_waves=[];
 stats={};
 stats_move={};
+kin_var_waves=[];kin_var_nonwaves=[];
 for i=1:length(trial_timings)
     timings = [trial_timings(i).movement.cue.time];
     % for j=1:length(timings)
@@ -882,6 +883,16 @@ for i=1:length(trial_timings)
     df = resample(data,tx,50); %hilbert of mu
     df_pow = resample(data_pow,tx,50); %mu amplitude
     hg_mu_data = resample(hg_mu_data,tx,50); %hilbert of hg mu
+
+    % get kinematic data and downsample
+    index = (kin_time_resample >= st) .* (kin_time_resample<=stp);    
+    kindata = kindata_full_length_resampled(logical(index),13:15);
+    tx = (1/Fs)*[0:size(kindata,1)-1];
+    kindata = resample(kindata,tx,50); %hilbert of mu
+    kindata = kindata(:,1);
+    %[c,s,l]=pca(kindata);
+
+
     
     % detect waves based on spatiotemporally stable phase gradients    
     planar_val_time=[];
@@ -913,11 +924,14 @@ for i=1:length(trial_timings)
     %%%% get mu power and plv within wave periods
     tmp={};tmp_mu={};I=ones(length(stab1)+1,1);
     tmp_hg_mu={};
+    tmp_kin={};
     for k=1:length(st)
         tmp{k} = df_pow(st(k):stp(k),bad_chI); %mu amplitude
         tmp_mu{k} = df(st(k):stp(k),bad_chI); %hilbert of mu
         tmp_hg_mu{k} = hg_mu_data(st(k):stp(k),bad_chI); %hilbert of hg mu
         I(st(k):stp(k))=0;
+        %tmp_kin{k} = std(kindata(st(k):stp(k)))/mean(kindata(st(k):stp(k)));
+        tmp_kin{k} = (kindata(st(k):stp(k)));
     end
     % power
     tmp = cell2mat(tmp');
@@ -927,7 +941,10 @@ for i=1:length(trial_timings)
     tmp_mu = angle(cell2mat(tmp_mu'));
     tmp_hg_mu = angle(cell2mat(tmp_hg_mu'));
     res_wave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
+    kin_waves = std(cell2mat(tmp_kin'));
     stats(i).plv_wave = res_wave;
+    stats(i).kin_wave = kin_waves;
+    kin_var_waves(i) = kin_waves;
 
 
     %%%% get mu power within non wave periods
@@ -940,6 +957,19 @@ for i=1:length(trial_timings)
     tmp_hg_mu = angle(hg_mu_data(I,bad_chI));
     res_nonwave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
     stats(i).plv_nonwave = res_nonwave;
+
+    % get kinematic var during non wave periods
+    I = [0;diff(I)];
+    [aa bb] = find(I==1);
+    [aa1 bb1] = find(I==-1);
+    tmp_kin={};
+    for k=1:length(aa1)
+        %tmp_kin{k} = std(kindata(aa(k):aa1(k)))/mean(kindata(aa(k):aa1(k)));
+        tmp_kin{k} = (kindata(aa(k):aa1(k)));
+    end
+    kin_nonwaves = std(cell2mat(tmp_kin'));
+    kin_var_nonwaves(i) = kin_nonwaves;
+    stats(i).kin_nonwave = kin_nonwaves;
 
 
 
