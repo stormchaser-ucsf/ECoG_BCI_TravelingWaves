@@ -509,6 +509,26 @@ plot(lfp_time,smooth(zscore(hg(:,250)),100))
 plot(lfp_time,smooth(zscore(mu(:,250)),100))
 legend({'hG','mu'})
 
+%%%% plot kinematics by extracting full kinematics
+kin_ep=[];tmp=[];
+for i=1:length(trial_timings)
+    timings = [trial_timings(i).movement.cue.time];
+    go_time = trial_timings(i).movement.cue(1).time; %rest
+    st = go_time-0; % start from rest period
+    stp = go_time+11; %covers 5s of rest, 4s of hold and 2s of movement
+    index = (kin_time_resample >= st) .* (kin_time_resample<=stp);
+    if sum(index) == 5594
+        [aa bb] = find(index==1);
+        index(aa+1)=1;
+    end
+    kin_ep(:,i) = kindata_full_length_resampled(logical(index),13);
+    tmp(i) = sum(index);
+end
+tt = (1/Fs)*[0:(size(kin_ep,1)-1)];
+figure;plot(tt,mean(kin_ep,2))
+vline([5 9])
+
+
 mu_ep=[];
 hg_ep=[];
 alp_ep=[];
@@ -615,6 +635,8 @@ end
 
 % lfp_epochs is a cell with each cell TXCh data matrix
 %save lfp_epochs_moveState lfp_epochs Fs bad_chI -v7.3 
+
+
 
 % plot oscillation clusters
 f=2:40;
