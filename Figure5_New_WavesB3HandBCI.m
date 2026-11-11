@@ -52,8 +52,8 @@ iwi_days=[];
 iwi_num_days=[];
 for i=1:length(stats_cl_days)
     a = stats_cl_days{i};
-    l = round(length(a)/2);
-    a = a(l+1:end);
+    %l = round(length(a)/2);
+    %a = a(l+1:end);
     %a = a(end-24:end);
     dcyc_corr=[];
     dcyc_err=[];
@@ -262,6 +262,43 @@ ylabel('Delta Mu Power  Waves - NonWaves')
 xlim([0.5 length(tmp)+0.5])
 plot_beautify
 ylim([0.02 0.12])
+
+
+
+% does hG decoding information over m1 and pmd channels increase more
+% across-days during nonwave as compared to wave
+
+% 
+elec=[137	143	148	152	155
+159	160	30	28	25
+134	140	170	174	178
+49	45	41	38	35
+221	62	59	56	52
+205	208	211	214	218
+70	66	194	198	202];
+md_wave=[];
+md_nonwave=[];
+for i=1:length(stats_cl_hg_days)
+    a = stats_cl_hg_days{i};
+    l = round(length(a)/2);
+    a = a(l+1:end);
+    data_wave={};
+    data_nonwave={};
+    for idx=1:12
+        tmp_data=[];
+        tmp_data_nw=[];
+        for j=1:length(a)
+            if a(j).target_id == idx
+                tmp = cell2mat(a(j).hg_wave');
+                tmp_data = [tmp_data;tmp];
+
+                tmp = cell2mat(a(j).hg_nonwave');
+                tmp_data_nw = [tmp_data_nw;tmp];
+            end
+        end
+
+
+end
 
 
 

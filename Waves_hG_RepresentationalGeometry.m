@@ -229,12 +229,26 @@ save wave_data_B3 wave_data_B3 -v7.3
 
 % looking at hg differences between two conditions, wave vs. non wave
 res=[];
+elec=[137	143	148	152
+159	160	30	28
+134	140	170	174
+49	45	41	38
+221	62	59	56
+205	208	211	214
+70	66	194	198];
+%elec=1:253;
 for days=1:length(stats_cl_hg_days)
-    stats_cl_hg = stats_cl_hg_days{days};
-    stats_cl = stats_cl_days{days};
+    % stats_cl_hg = stats_cl_hg_days{days};
+    % stats_cl = stats_cl_days{days};
+    a = stats_cl_hg_days{days};
+    l = round(length(a)/2);
+    a = a(l+1:end);
+    %a = a(1:l);
+    stats_cl=a;
+   
     D_wave=[];D_nonwave=[];
-    for tid0=1:7
-        for tid=tid0+1:7
+    for tid0=1:12
+        for tid=tid0+1:12
             act1=[];act2=[];
             act1_nonwave=[];act2_nonwave=[];
             for i=1:length(stats_cl_hg)
@@ -242,23 +256,42 @@ for days=1:length(stats_cl_hg_days)
                     tmp = stats_cl_hg(i).hg_wave;
                     tmp = cell2mat(tmp');
 
+                    %size normalization
+                    idx=randperm(size(tmp,1),50);
+                    tmp = tmp(idx,elec);
+
                     %if stats_cl(i).accuracy==0
                         act1 = [act1;tmp];
                     %end
 
                     tmp = stats_cl_hg(i).hg_nonwave;
                     tmp = cell2mat(tmp');
+                    
+                    %size normalization
+                    idx=randperm(size(tmp,1),50);
+                    tmp = tmp(idx,elec);
+
                     act1_nonwave = [act1_nonwave;tmp];
                 end
                 if stats_cl_hg(i).target_id ==tid 
                     tmp = stats_cl_hg(i).hg_wave;
                     tmp = cell2mat(tmp');
+
+                    %size normalization
+                    idx=randperm(size(tmp,1),50);
+                    tmp = tmp(idx,elec);
+
                     %if stats_cl(i).accuracy==0
                         act2 = [act2;tmp];
                     %end
 
                     tmp = stats_cl_hg(i).hg_nonwave;
                     tmp = cell2mat(tmp');
+
+                    %size normalization
+                    idx=randperm(size(tmp,1),50);
+                    tmp = tmp(idx,elec);
+
                     act2_nonwave = [act2_nonwave;tmp];
                 end
             end
@@ -279,6 +312,9 @@ title(subj)
 plot_beautify
 
 figure;plot(res)
+legend({'Wave','Non wave'})
+
+figure;plot(res(:,2)-res(:,1),'.','MarkerSize',20)
 
 %% ANALYSIS -1  (MAIN)
 % PLV between mu and hg
