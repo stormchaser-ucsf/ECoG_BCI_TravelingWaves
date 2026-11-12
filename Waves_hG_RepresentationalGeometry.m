@@ -57,7 +57,7 @@ elseif strcmp(subj,'B3')
     % load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2
     % num_targets=7;
 
-    load B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta_New
+    load B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta
     num_targets=12;
 
 
@@ -1832,6 +1832,8 @@ bad_ch = [ 15    24    78   100   103   107   143   146   155   185   253];
 % B1
 %bad_ch = [64	69	93	125	134	141	169	175	215	223	227	233	236	243];
 
+% B3
+bad_ch=[];
 
 % wave
 % have to get the data into a cell array of condn_data, with target id and
@@ -1840,6 +1842,9 @@ condn_data={};k=1;
 for days = 1:length(stats_cl_days)
     stats_cl = stats_cl_days{days};
     stats_cl_hg = stats_cl_hg_days{days};
+    l = round(length(stats_cl)/2);
+    stats_cl = stats_cl(l+1:end);
+    stats_cl_hg = stats_cl_hg(l+1:end);
     for i=1:length(stats_cl)
         tid=stats_cl(i).target_id;
         if tid<=num_targets
@@ -1900,17 +1905,24 @@ for i=1:length(condn_data)
 end
 condn_data=condn_data1;
 
-iterations=10;
-[acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance,del_iter_wave,...
-    del_mean_wave] = accuracy_imagined_data(condn_data, iterations);
+iterations=3;
+%[acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance,del_iter_wave,...
+%    del_mean_wave] = accuracy_imagined_data_Hand_B3(condn_data, iterations);
+
+[acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance] = ...
+    accuracy_imagined_data_Hand_B3(condn_data, iterations);
 %accuracy_imagined_data_Hand_B3
 %accuracy_imagined_data_Hand_B3
+%accuracy_imagined_data
 
 % non wave
 condn_data={};k=1;
 for days = 1:length(stats_cl_days)
     stats_cl = stats_cl_days{days};
     stats_cl_hg = stats_cl_hg_days{days};
+    l = round(length(stats_cl)/2);
+    stats_cl = stats_cl(l+1:end);
+    stats_cl_hg = stats_cl_hg(l+1:end);
     for i=1:length(stats_cl)
         tid=stats_cl(i).target_id;
         if tid<=num_targets
@@ -1968,8 +1980,11 @@ for i=1:length(condn_data)
 end
 condn_data=condn_data1;
 
-[acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,bino_pdf_chance,del_iter_nonwave,...
-    del_mean_nonwave] = accuracy_imagined_data(condn_data, iterations);
+% [acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,bino_pdf_chance,del_iter_nonwave,...
+%     del_mean_nonwave] = accuracy_imagined_data(condn_data, iterations);
+
+[acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,bino_pdf_chance] = ...
+    accuracy_imagined_data_Hand_B3(condn_data, iterations);
 
 figure;
 boxplot([del_mean_nonwave' del_mean_wave'])
