@@ -151,7 +151,7 @@ for i=1:length(session_data)
 
 
     % get the mahab dist at each channel
-    [mahab_dist] = get_mahab_dist(files);
+    [mahab_dist] = get_mahab_dist(files); % have to change this to get waves vs. non waves
     mahab_dist_days(i,:) = mahab_dist;
 
 

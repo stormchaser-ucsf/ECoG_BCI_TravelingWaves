@@ -241,8 +241,10 @@ for days=1:length(stats_cl_hg_days)
     % stats_cl_hg = stats_cl_hg_days{days};
     % stats_cl = stats_cl_days{days};
     a = stats_cl_hg_days{days};
-    l = round(length(a)/2);
-    a = a(l+1:end);
+    %l = round(length(a)/2);    
+    %a = a(l+1:end);
+    a=a(end-24:end);
+    
     %a = a(1:l);
     stats_cl=a;
    
@@ -315,6 +317,130 @@ figure;plot(res)
 legend({'Wave','Non wave'})
 
 figure;plot(res(:,2)-res(:,1),'.','MarkerSize',20)
+
+a = res(1:5,2) - res(1:5,1);
+b = res(6:end,2) - res(6:end,1);
+figure;
+boxplot([a b])
+signrank(a,b)
+
+%% ANALYSIS -1.5 
+%MAHAB Distances single channel level 
+% B3 -> flipud 
+
+% looking at hg differences between two conditions, wave vs. non wave
+res=[];
+elec=[137	143	148
+159	160	30
+134	140	170
+49	45	41
+221	62	59];
+%elec=1:253;
+for days=1:length(stats_cl_hg_days)
+    disp(['Processing day ' num2str(days)])
+    % stats_cl_hg = stats_cl_hg_days{days};
+    % stats_cl = stats_cl_days{days};
+    a = stats_cl_hg_days{days};
+    l = round(length(a)/2);    
+    a = a(l+1:end);
+    %a=a(end-24:end);
+    
+    %a = a(1:l);
+    stats_cl=a;
+   
+    D_wave=[];D_nonwave=[];
+    for tid0=1:12
+        for tid=tid0+1:12
+            act1=[];act2=[];
+            act1_nonwave=[];act2_nonwave=[];
+            for i=1:length(stats_cl_hg)
+                if stats_cl_hg(i).target_id ==tid0 
+                    tmp = stats_cl_hg(i).hg_wave;
+                    tmp = cell2mat(tmp');
+
+                    for jj=1:size(tmp,2)
+                        tmp(:,jj) = smooth(tmp(:,jj),10);
+                    end
+
+                    %size normalization
+                    idx=randperm(size(tmp,1),50);
+                    tmp = tmp(idx,:);
+
+                    %if stats_cl(i).accuracy==0
+                        act1 = [act1;tmp];
+                    %end
+
+                    tmp = stats_cl_hg(i).hg_nonwave;
+                    tmp = cell2mat(tmp');
+
+                    for jj=1:size(tmp,2)
+                        tmp(:,jj) = smooth(tmp(:,jj),10);
+                    end
+                    
+                    %size normalization
+                    idx=randperm(size(tmp,1),50);
+                    tmp = tmp(idx,:);
+
+                    act1_nonwave = [act1_nonwave;tmp];
+                end
+                if stats_cl_hg(i).target_id ==tid 
+                    tmp = stats_cl_hg(i).hg_wave;
+                    tmp = cell2mat(tmp');
+
+                    for jj=1:size(tmp,2)
+                        tmp(:,jj) = smooth(tmp(:,jj),10);
+                    end
+
+                    %size normalization
+                    idx=randperm(size(tmp,1),50);
+                    tmp = tmp(idx,:);
+
+                    %if stats_cl(i).accuracy==0
+                        act2 = [act2;tmp];
+                    %end
+
+                    tmp = stats_cl_hg(i).hg_nonwave;
+                    tmp = cell2mat(tmp');
+                    for jj=1:size(tmp,2)
+                        tmp(:,jj) = smooth(tmp(:,jj),10);
+                    end
+
+                    %size normalization
+                    idx=randperm(size(tmp,1),50);
+                    tmp = tmp(idx,:);
+
+                    act2_nonwave = [act2_nonwave;tmp];
+                end
+            end
+            d1 = mahal2_singch(act1,act2);
+            d2 = mahal2_singch(act1_nonwave,act2_nonwave);
+            D_wave = [D_wave d1'];
+            D_nonwave = [D_nonwave d2'];
+        end
+    end
+    %res(days,:) = [median(D_wave) median(D_nonwave)];
+    tmp1 = mean(median(D_nonwave(elec,:),2));
+    tmp2 = mean(median(D_wave(elec,:),2));
+    res(days,:) = [tmp1 tmp2];
+end
+figure;boxplot(res)
+[p,h] = signrank(res(:,1),res(:,2))
+xticks(1:2)
+xticklabels({'Nonwave epochs','Wave epochs'})
+ylabel('Pairwise Mahalanobis dist.')
+title(subj)
+plot_beautify
+
+figure;plot(res)
+legend({'Non wave','Wave'})
+
+figure;plot(res(:,1)-res(:,2),'.','MarkerSize',20)
+
+a = res(1:5,1) - res(1:5,2);
+b = res(6:end,1) - res(6:end,2);
+figure;
+boxplot([a b])
+signrank(a,b)
 
 %% ANALYSIS -1  (MAIN)
 % PLV between mu and hg

@@ -23,8 +23,8 @@ if strcmp(subj,'B3')
         %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
         root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
         cd(root_path)
-        %load session_data_B3_Hand
-        load session_data_B3
+        load session_data_B3_Hand
+        %load session_data_B3
         load('ECOG_Grid_8596_000067_B3.mat')
         addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 
@@ -58,7 +58,7 @@ if strcmp(subj,'B3')
 
     imaging_B3_waves;
     len_days = min(11,length(session_data));
-    num_targets=7;
+    num_targets=12;
 end
 
 
@@ -176,6 +176,7 @@ close all
 
 %% MAIN CODE TO PROCESS B3 HAND/ARROW
 
+parallel_check
 % load cl2 trials from last day
 %i=length(session_data);
 xol_days=[];
@@ -220,10 +221,12 @@ for days=1:len_days
 
     len = min(150,length(files));
     idx=randperm(length(files),len);
-    [stats_ol,stats_ol_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
-        grid_layout,elecmatrix,bpFilt,d1,0);
-    stats_ol_days{days}=stats_ol;
-    stats_ol_hg_days{days} = stats_ol_hg;
+    % [stats_ol,stats_ol_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+    %     grid_layout,elecmatrix,bpFilt,d1,0);
+    % stats_ol_days{days}=stats_ol;
+    % stats_ol_hg_days{days} = stats_ol_hg;
+    stats_ol_days{days} = [];
+    stats_ol_hg_days{days} =[];
 
     % %  % stats on PLV, OL
     % wave_plv=[];nonwave_plv=[];wave_len=[];nonwave_len=[];nonwave_len_corr=[];
@@ -270,16 +273,17 @@ for days=1:len_days
     day_date = session_data(days).Day;
     files=[];
     for ii=1:length(folders)
-        %folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
-        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
+        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        %folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
         %cd(folderpath)
         files = [files;findfiles('mat',folderpath)'];
     end
 
-    len = min(150,length(files));
-    idx=randperm(length(files),len);
-     [stats_cl,stats_cl_hg] = ...
-         planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
+    %len = min(150,length(files));
+    %idx=randperm(length(files),len);
+    idx=1:length(files);
+    [stats_cl,stats_cl_hg] = ...
+        planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
         grid_layout,elecmatrix,bpFilt,d1,1);
     stats_cl_days{days}=stats_cl;
     stats_cl_hg_days{days}=stats_cl_hg;
@@ -299,8 +303,8 @@ for days=1:len_days
         mu_nonwav_pow(ii,:) = mean(tmp,1);
     end
 
-    figure;
-    boxplot([mean(mu_wave_pow,1)' mean(mu_nonwav_pow,1)'])
+    % figure;
+    % boxplot([mean(mu_wave_pow,1)' mean(mu_nonwav_pow,1)'])
 
 
 
@@ -368,70 +372,75 @@ for days=1:len_days
     % plot_beautify
     % title(['Day ' num2str(days)])
 
-
-    x=[];
-    for i = 1:length(stats_ol)
-        %tmp = stats_ol(i).size;
-        %tmp = stats_ol(i).corr;
-        %x(i,:) = smooth(tmp(1:2.2e3),50);
-        %tmp = smooth(tmp,50);
-        %x= [x; nanmedian(tmp)];
-        %x=[x;sum(isnan(tmp))/length(tmp)];
-        %x(i) = median(abs(tmp));
-        tmp = (stats_ol(i).stab);
-        tmp=zscore(tmp(1:end));
-        %x(i) = sum(tmp>0.0)/length(tmp);
-        out = wave_stability_detect(tmp);
-        %x(i) = median(out);
-        %x(i) = sum(out)/length(tmp);
-        %x(i) = length(out)/length(tmp);
-        t = length(tmp) * 20/1e3;
-        f =length(out)/t; % frequency/s
-        d = median(out) * 20/1e3; %duration in s
-        x(i) = f*d;
-    end
-    %figure;plot(mean(x,1))
-    xol=x;
-
-    x=[];
-    for i = 1:length(stats_cl)
-        %tmp = stats_cl(i).corr;
-        %tmp = smooth(tmp,10);
-        %x= [x; nanmedian(tmp)];
-        %x(i,:) = smooth(tmp(1:500),50);
-        %x=[x;sum(isnan(tmp))/length(tmp)];
-        %x(i) = median(abs(tmp));
-        tmp = (stats_cl(i).stab);
-        tmp=zscore(tmp(1:end));
-        %x(i) = sum(tmp>0.0)/length(tmp);
-        out = wave_stability_detect(tmp);
-        %x(i) = median(out);
-        %x(i) = sum(out)/length(tmp);
-        %x(i) = length(out)/length(tmp);
-        t = length(tmp) * 20/1e3;
-        f =length(out)/t; % frequency/s
-        d = median(out) * 20/1e3; %duration in s
-        x(i) = f*d;
-    end
-    xcl=x;
-
-    %xol(end+1:length(xcl))=NaN;
-    %[p,h] = ranksum(xol,xcl)
-    %figure;boxplot([xol' xcl'],'notch','off')
-    %title(['Day ' num2str(days)]);
-    xcl_days(days)=mean(xcl);
-    xol_days(days)=mean(xol);
+    % 
+    % x=[];
+    % for i = 1:length(stats_ol)
+    %     %tmp = stats_ol(i).size;
+    %     %tmp = stats_ol(i).corr;
+    %     %x(i,:) = smooth(tmp(1:2.2e3),50);
+    %     %tmp = smooth(tmp,50);
+    %     %x= [x; nanmedian(tmp)];
+    %     %x=[x;sum(isnan(tmp))/length(tmp)];
+    %     %x(i) = median(abs(tmp));
+    %     tmp = (stats_ol(i).stab);
+    %     tmp=zscore(tmp(1:end));
+    %     %x(i) = sum(tmp>0.0)/length(tmp);
+    %     out = wave_stability_detect(tmp);
+    %     %x(i) = median(out);
+    %     %x(i) = sum(out)/length(tmp);
+    %     %x(i) = length(out)/length(tmp);
+    %     t = length(tmp) * 20/1e3;
+    %     f =length(out)/t; % frequency/s
+    %     d = median(out) * 20/1e3; %duration in s
+    %     x(i) = f*d;
+    % end
+    % %figure;plot(mean(x,1))
+    % xol=x;
+    % 
+    % x=[];
+    % for i = 1:length(stats_cl)
+    %     %tmp = stats_cl(i).corr;
+    %     %tmp = smooth(tmp,10);
+    %     %x= [x; nanmedian(tmp)];
+    %     %x(i,:) = smooth(tmp(1:500),50);
+    %     %x=[x;sum(isnan(tmp))/length(tmp)];
+    %     %x(i) = median(abs(tmp));
+    %     tmp = (stats_cl(i).stab);
+    %     tmp=zscore(tmp(1:end));
+    %     %x(i) = sum(tmp>0.0)/length(tmp);
+    %     out = wave_stability_detect(tmp);
+    %     %x(i) = median(out);
+    %     %x(i) = sum(out)/length(tmp);
+    %     %x(i) = length(out)/length(tmp);
+    %     t = length(tmp) * 20/1e3;
+    %     f =length(out)/t; % frequency/s
+    %     d = median(out) * 20/1e3; %duration in s
+    %     x(i) = f*d;
+    % end
+    % xcl=x;
+    % 
+    % %xol(end+1:length(xcl))=NaN;
+    % %[p,h] = ranksum(xol,xcl)
+    % %figure;boxplot([xol' xcl'],'notch','off')
+    % %title(['Day ' num2str(days)]);
+    % xcl_days(days)=mean(xcl);
+    % xol_days(days)=mean(xol);
 
     %[p,h] = signrank(xol,xcl)
     %figure;boxplot([xol' xcl'],'notch','off')
+
+    save B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta_New -v7.3    
     
 end
 
 %save B3_waves_hand_stability_Muller_hG -v7.3
 %save B3_waves_hand_stability_Muller_hG_plv -v7.3
-save B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta -v7.3
+%save B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta_New -v7.3
 
 % (IMPT) v2 is hg_smoothed by 10 samples (200ms)
+
+%B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta_New :
+%files unsorted, the last files are the last few blocks
 
 %% MAIN CODE TO PROCESS B1 and B6
 
