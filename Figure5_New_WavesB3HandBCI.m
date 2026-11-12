@@ -40,6 +40,7 @@ num_targets=12;
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
 load B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta
+%load B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta_New
 
 % does duty cycle change across days
 raw_pgs_days=[];
@@ -52,8 +53,8 @@ iwi_days=[];
 iwi_num_days=[];
 for i=1:length(stats_cl_days)
     a = stats_cl_days{i};
-    %l = round(length(a)/2);
-    %a = a(l+1:end);
+    l = round(length(a)/2);
+    a = a(l+1:end);
     %a = a(end-24:end);
     dcyc_corr=[];
     dcyc_err=[];

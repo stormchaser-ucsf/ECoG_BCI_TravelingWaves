@@ -54,12 +54,12 @@ elseif strcmp(subj,'B3')
     %load B3_waves_stability_hgFilterBank_PLV_AccStatsCL
     %load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL
     
-    load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2
-    num_targets=7;
+    % load B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2
+    % num_targets=7;
 
-    % load B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta
-    % num_targets=12;
-    % 
+    load B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta_New
+    num_targets=12;
+
 
 
 elseif strcmp(subj,'B6')
@@ -238,15 +238,16 @@ elec=[137	143	148	152
 70	66	194	198];
 %elec=1:253;
 for days=1:length(stats_cl_hg_days)
+    disp(['Processing day ' num2str(days)])
     % stats_cl_hg = stats_cl_hg_days{days};
     % stats_cl = stats_cl_days{days};
     a = stats_cl_hg_days{days};
-    %l = round(length(a)/2);    
-    %a = a(l+1:end);
-    a=a(end-24:end);
+    l = round(length(a)/2);    
+    a = a(l+1:end);
+    %a=a(end-24:end);
     
     %a = a(1:l);
-    stats_cl=a;
+    stats_cl_hg=a;
    
     D_wave=[];D_nonwave=[];
     for tid0=1:12
@@ -257,6 +258,9 @@ for days=1:length(stats_cl_hg_days)
                 if stats_cl_hg(i).target_id ==tid0 
                     tmp = stats_cl_hg(i).hg_wave;
                     tmp = cell2mat(tmp');
+                    % for jj=1:size(tmp,2)
+                    %     tmp(:,jj) = smooth(tmp(:,jj),10);
+                    % end
 
                     %size normalization
                     idx=randperm(size(tmp,1),50);
@@ -268,6 +272,9 @@ for days=1:length(stats_cl_hg_days)
 
                     tmp = stats_cl_hg(i).hg_nonwave;
                     tmp = cell2mat(tmp');
+                    % for jj=1:size(tmp,2)
+                    %     tmp(:,jj) = smooth(tmp(:,jj),10);
+                    % end
                     
                     %size normalization
                     idx=randperm(size(tmp,1),50);
@@ -278,6 +285,9 @@ for days=1:length(stats_cl_hg_days)
                 if stats_cl_hg(i).target_id ==tid 
                     tmp = stats_cl_hg(i).hg_wave;
                     tmp = cell2mat(tmp');
+                    % for jj=1:size(tmp,2)
+                    %     tmp(:,jj) = smooth(tmp(:,jj),10);
+                    % end
 
                     %size normalization
                     idx=randperm(size(tmp,1),50);
@@ -289,6 +299,9 @@ for days=1:length(stats_cl_hg_days)
 
                     tmp = stats_cl_hg(i).hg_nonwave;
                     tmp = cell2mat(tmp');
+                    % for jj=1:size(tmp,2)
+                    %     tmp(:,jj) = smooth(tmp(:,jj),10);
+                    % end
 
                     %size normalization
                     idx=randperm(size(tmp,1),50);
@@ -341,12 +354,12 @@ for days=1:length(stats_cl_hg_days)
     % stats_cl_hg = stats_cl_hg_days{days};
     % stats_cl = stats_cl_days{days};
     a = stats_cl_hg_days{days};
-    l = round(length(a)/2);    
-    a = a(l+1:end);
+    % l = round(length(a)/2);    
+    % a = a(l+1:end);
     %a=a(end-24:end);
     
     %a = a(1:l);
-    stats_cl=a;
+    stats_cl_hg=a;
    
     D_wave=[];D_nonwave=[];
     for tid0=1:12
@@ -419,8 +432,8 @@ for days=1:length(stats_cl_hg_days)
         end
     end
     %res(days,:) = [median(D_wave) median(D_nonwave)];
-    tmp1 = mean(median(D_nonwave(elec,:),2));
-    tmp2 = mean(median(D_wave(elec,:),2));
+    tmp1 = mean(mean(D_nonwave(elec,:),2));
+    tmp2 = mean(mean(D_wave(elec,:),2));
     res(days,:) = [tmp1 tmp2];
 end
 figure;boxplot(res)
@@ -435,12 +448,173 @@ figure;plot(res)
 legend({'Non wave','Wave'})
 
 figure;plot(res(:,1)-res(:,2),'.','MarkerSize',20)
+y = res(:,1)-res(:,2);
+x = 1:10;
+mdl=fitlm(x,y,'RobustOpts','on')
+xx = linspace(1,10,100);
+yfit= predict(mdl,xx');
+hold on
+plot(xx,yfit,'k','LineWidth',1)
+xlabel('Days')
+ylabel('Delta Nonwaves Minus waves in Mahab Dist')
+plot_beautify
+xlim([.5 10.5])
 
 a = res(1:5,1) - res(1:5,2);
 b = res(6:end,1) - res(6:end,2);
 figure;
 boxplot([a b])
 signrank(a,b)
+
+
+figure;
+days=1:10;x=days;
+plot(days,res(:,1),'.b','MarkerSize',20)
+mdl=fitlm(x,res(:,1),'RobustOpts','on')
+xx = linspace(1,10,100);
+yfit= predict(mdl,xx');
+hold on
+plot(xx,yfit,'b','LineWidth',1)
+
+plot(days,res(:,2),'.k','MarkerSize',20)
+mdl=fitlm(x,res(:,2),'RobustOpts','on')
+xx = linspace(1,10,100);
+yfit= predict(mdl,xx');
+hold on
+plot(xx,yfit,'k','LineWidth',1)
+xlim([.5 10.5])
+
+
+%save results_waves_nonwaves_hG_decodingInfo_B3Hand -v7.3
+
+%% ANALYSIS -1.3
+% running above many iterations and storing slope values
+
+
+slope_wave=[];
+slope_nonwave=[];
+slope_diff=[];
+elec=[137	143	148
+    159	160	30
+    134	140	170
+    49	45	41
+    221	62	59];
+for iter=1:20
+
+    disp(['Iteration ' num2str(iter)])
+
+    % looking at hg differences between two conditions, wave vs. non wave
+    res=[];
+    
+    %elec=1:253;
+    for days=1:length(stats_cl_hg_days)
+        disp(['Processing day ' num2str(days)])
+        % stats_cl_hg = stats_cl_hg_days{days};
+        % stats_cl = stats_cl_days{days};
+        a = stats_cl_hg_days{days};
+        l = round(length(a)/2);
+        a = a(l+1:end);
+        %a=a(end-24:end);
+
+        %a = a(1:l);
+        stats_cl_hg=a;
+
+        D_wave=[];D_nonwave=[];
+        for tid0=1:12
+            for tid=tid0+1:12
+                act1=[];act2=[];
+                act1_nonwave=[];act2_nonwave=[];
+                for i=1:length(stats_cl_hg)
+                    if stats_cl_hg(i).target_id ==tid0
+                        tmp = stats_cl_hg(i).hg_wave;
+                        tmp = cell2mat(tmp');
+
+                        for jj=1:size(tmp,2)
+                            tmp(:,jj) = smooth(tmp(:,jj),10);
+                        end
+
+                        %size normalization
+                        idx=randperm(size(tmp,1),50);
+                        tmp = tmp(idx,:);
+
+                        %if stats_cl(i).accuracy==0
+                        act1 = [act1;tmp];
+                        %end
+
+                        tmp = stats_cl_hg(i).hg_nonwave;
+                        tmp = cell2mat(tmp');
+
+                        for jj=1:size(tmp,2)
+                            tmp(:,jj) = smooth(tmp(:,jj),10);
+                        end
+
+                        %size normalization
+                        idx=randperm(size(tmp,1),50);
+                        tmp = tmp(idx,:);
+
+                        act1_nonwave = [act1_nonwave;tmp];
+                    end
+                    if stats_cl_hg(i).target_id ==tid
+                        tmp = stats_cl_hg(i).hg_wave;
+                        tmp = cell2mat(tmp');
+
+                        for jj=1:size(tmp,2)
+                            tmp(:,jj) = smooth(tmp(:,jj),10);
+                        end
+
+                        %size normalization
+                        idx=randperm(size(tmp,1),50);
+                        tmp = tmp(idx,:);
+
+                        %if stats_cl(i).accuracy==0
+                        act2 = [act2;tmp];
+                        %end
+
+                        tmp = stats_cl_hg(i).hg_nonwave;
+                        tmp = cell2mat(tmp');
+                        for jj=1:size(tmp,2)
+                            tmp(:,jj) = smooth(tmp(:,jj),10);
+                        end
+
+                        %size normalization
+                        idx=randperm(size(tmp,1),50);
+                        tmp = tmp(idx,:);
+
+                        act2_nonwave = [act2_nonwave;tmp];
+                    end
+                end
+                d1 = mahal2_singch(act1,act2);
+                d2 = mahal2_singch(act1_nonwave,act2_nonwave);
+                D_wave = [D_wave d1'];
+                D_nonwave = [D_nonwave d2'];
+            end
+        end
+        %res(days,:) = [median(D_wave) median(D_nonwave)];
+        tmp1 = mean(mean(D_nonwave(elec,:),2));
+        tmp2 = mean(mean(D_wave(elec,:),2));
+        res(days,:) = [tmp1 tmp2];
+    end    
+    
+    y = res(:,1)-res(:,2);
+    x = 1:10;
+    mdl=fitlm(x,y,'RobustOpts','on');
+    slope_diff = [slope_diff; ...
+        [mdl.Coefficients.Estimate(2) mdl.Coefficients.pValue(2)]];
+
+    y = res(:,1);
+    x = 1:10;
+    mdl=fitlm(x,y,'RobustOpts','on');
+    slope_nonwave= [slope_nonwave; ...
+        [mdl.Coefficients.Estimate(2) mdl.Coefficients.pValue(2)]];
+
+    y = res(:,2);
+    x = 1:10;
+    mdl=fitlm(x,y,'RobustOpts','on');
+    slope_wave= [slope_wave; ...
+        [mdl.Coefficients.Estimate(2) mdl.Coefficients.pValue(2)]];
+    
+end
+
 
 %% ANALYSIS -1  (MAIN)
 % PLV between mu and hg
