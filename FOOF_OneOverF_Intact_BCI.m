@@ -870,6 +870,8 @@ mu_pow_non_waves=[];
 stats={};
 stats_move={};
 kin_var_waves=[];kin_var_nonwaves=[];
+hold_mu={};
+hold_wave_len=[];
 for i=1:length(trial_timings)
     timings = [trial_timings(i).movement.cue.time];
     % for j=1:length(timings)
@@ -905,6 +907,7 @@ for i=1:length(trial_timings)
     df = resample(data,tx,50); %hilbert of mu
     df_pow = resample(data_pow,tx,50); %mu amplitude
     hg_mu_data = resample(hg_mu_data,tx,50); %hilbert of hg mu
+    hold_mu{i} = df;
 
     % get kinematic data and downsample
     index = (kin_time_resample >= st) .* (kin_time_resample<=stp);    
@@ -913,7 +916,6 @@ for i=1:length(trial_timings)
     kindata = resample(kindata,tx,50); %hilbert of mu
     kindata = kindata(:,1);
     %[c,s,l]=pca(kindata);
-
 
     
     % detect waves based on spatiotemporally stable phase gradients    
@@ -942,6 +944,7 @@ for i=1:length(trial_timings)
     d = mean(out) * 20/1e3; %duration in s
     dcyc=ff1*d;
     dcyc_hold =  [dcyc_hold dcyc];
+    hold_wave_len = [hold_wave_len sum(out)];
 
     %%%% get mu power and plv within wave periods
     tmp={};tmp_mu={};I=ones(length(stab1)+1,1);
@@ -1097,6 +1100,43 @@ figure;boxplot(res(:,1)-res(:,2));hline(0)
 
 
 
+% null statistics for the duration of wave events in the real data
+stat = sum(hold_wave_len);
+boot=[];
+for iter=6:20
+    disp(['Processing null iteration ' num2str(iter)])
+    %hold_mu_shuff = full_spatiotemporal_shuffle(hold_mu);
+    %hold_mu_shuff = temporal_shuffle_complex_mu(hold_mu); %GOAT
+    hold_mu_shuff = temporal_shuffle_all_trials_no_replace(hold_mu);
+    %hold_mu_shuff = spatiotemporal_shuffle_complex_mu(hold_mu);
+    hold_wave_len_tmp=[];
+    parfor j=1:length(hold_mu_shuff)
+        df = hold_mu_shuff{j};
+        % detect waves based on spatiotemporally stable phase gradients
+        planar_val_time=[];
+        for t=1:size(df,1)
+            % estimate planar waves across grid
+            tmp = df(t,:);
+            tmp(bad_ch)= NaN + 1i*NaN;
+            xph = tmp(ecog_grid);
+            %[planar_val,aa,bb] = planar_stats_muller_intact(xph,mask);
+            [planar_val,aa,bb] = planar_stats_muller(xph);
+            planar_val(mask==0) = NaN +1i*NaN;
+            planar_val_time(t,:,:) = planar_val;
+        end
+        stab=[];
+        for k=2:size(planar_val_time,1)
+            xt = planar_val_time(k,:,:);xt=xt(:);
+            xtm1 = planar_val_time(k-1,:,:);xtm1=xtm1(:);
+            stab(k-1) = - nanmean(abs(xt - xtm1));
+        end
+        stab1 = zscore(stab(1:end));
+        [out,st,stp] = wave_stability_detect(stab1,0,3);
+        hold_wave_len_tmp(j) = sum(out);
+    end
+    boot(iter) = sum(hold_wave_len_tmp);
+end
+max(1/length(boot),(sum(stat<=boot))/length(boot))
 %%%%%
 
 % phase amplitude coupling between the hG and mu at specific task phases
@@ -1962,8 +2002,9 @@ wave_f = [];
 wave_dur = [];
 mu_pow_waves=[];
 mu_pow_non_waves=[];
+hold_mu={};
+hold_wave_len=[];
 stats={};
-
 for i=1:length(trial_timings)
     timings = [trial_timings(i).movement.cue.time];
     % for j=1:length(timings)
@@ -1992,6 +2033,7 @@ for i=1:length(trial_timings)
     df = resample(data,tx,50); %hilbert of mu
     df_pow = resample(data_pow,tx,50); %mu amplitude
     hg_mu_data = resample(hg_mu_data,tx,50); %hilbert of hg mu
+    hold_mu{i} = df;
 
     % detect waves based on spatiotemporally stable phase gradients
     planar_val_time=[];
@@ -2020,6 +2062,7 @@ for i=1:length(trial_timings)
     dcyc_hold =  [dcyc_hold dcyc];
     wave_f(i) = ff1;
     wave_dur(i) = d;
+    hold_wave_len = [hold_wave_len sum(out)];
 
     %%%% get mu power and plv within wave periods
     tmp={};tmp_mu={};I=ones(length(stab1)+1,1);
@@ -2109,6 +2152,45 @@ plot_beautify
 res = get_plv_stats_intact(stats,1);
 figure;boxplot(res(:,1)-res(:,2));hline(0)
 
+
+% null statistics for the duration of wave events in the real data
+stat = sum(hold_wave_len);
+boot=[];
+for iter=1:5
+    disp(['Processing null iteration ' num2str(iter)])
+    %hold_mu_shuff = full_spatiotemporal_shuffle(hold_mu);
+    %hold_mu_shuff = temporal_shuffle_complex_mu(hold_mu); %GOAT
+    hold_mu_shuff = temporal_shuffle_all_trials_no_replace(hold_mu);
+    %hold_mu_shuff = spatiotemporal_shuffle_complex_mu(hold_mu);
+    hold_wave_len_tmp=[];
+    parfor j=1:length(hold_mu_shuff)
+        df = hold_mu_shuff{j};
+        % detect waves based on spatiotemporally stable phase gradients
+        planar_val_time=[];
+        for t=1:size(df,1)
+            % estimate planar waves across grid
+            tmp = df(t,:);
+            tmp(bad_ch)= NaN + 1i*NaN;
+            xph = tmp(ecog_grid);
+            %[planar_val,aa,bb] = planar_stats_muller_intact(xph,mask);
+            [planar_val,aa,bb] = planar_stats_muller(xph);
+            planar_val(mask==0) = NaN +1i*NaN;
+            planar_val_time(t,:,:) = planar_val;
+        end
+        stab=[];
+        for k=2:size(planar_val_time,1)
+            xt = planar_val_time(k,:,:);xt=xt(:);
+            xtm1 = planar_val_time(k-1,:,:);xtm1=xtm1(:);
+            stab(k-1) = - nanmean(abs(xt - xtm1));
+        end
+        stab1 = zscore(stab(1:end));
+        [out,st,stp] = wave_stability_detect(stab1,0,3);
+        hold_wave_len_tmp(j) = sum(out);
+    end
+    boot(iter) = sum(hold_wave_len_tmp);
+end
+(sum(stat)<=boot)/length(boot)
+max(1/length(boot),(sum(stat<=boot))/length(boot))
 
 
 EC210_hold_waves_stats.freq = wave_f;
@@ -2782,7 +2864,8 @@ wave_dur = [];
 mu_pow_waves=[];
 mu_pow_non_waves=[];
 stats={};
-
+hold_wave_len=[];
+hold_mu={};
 for i=1:length(trial_timings)
     timings = [trial_timings(i).movement.cue.time];
     % for j=1:length(timings)
@@ -2810,6 +2893,7 @@ for i=1:length(trial_timings)
     df = resample(data,tx,50); %hilbert of mu
     df_pow = resample(data_pow,tx,50); %mu amplitude
     hg_mu_data = resample(hg_mu_data,tx,50); %hilbert of hg mu
+    hold_mu{i} = df;
 
     % detect waves based on spatiotemporally stable phase gradients
     planar_val_time=[];
@@ -2839,6 +2923,7 @@ for i=1:length(trial_timings)
     dcyc_hold =  [dcyc_hold dcyc];
     wave_f(i) = ff1;
     wave_dur(i) = d;
+    hold_wave_len = [hold_wave_len; sum(out)];
 
     %%%% get mu power and plv within wave periods
     tmp={};tmp_mu={};I=ones(length(stab1)+1,1);
@@ -2930,6 +3015,54 @@ res = get_plv_stats_intact(stats);
 figure;boxplot(res(:,1)-res(:,2));hline(0)
 
 
+
+% null statistics for the duration of wave events in the real data
+stat = sum(hold_wave_len);
+boot=[];
+for iter=6:50
+    disp(['Processing null iteration ' num2str(iter)])
+    %hold_mu_shuff = full_spatiotemporal_shuffle(hold_mu);
+    %hold_mu_shuff = temporal_shuffle_complex_mu(hold_mu); %GOAT
+    hold_mu_shuff = temporal_shuffle_all_trials_no_replace(hold_mu);
+    %hold_mu_shuff = spatiotemporal_shuffle_complex_mu(hold_mu);
+    hold_wave_len_tmp=[];
+    parfor j=1:length(hold_mu_shuff)
+        df = hold_mu_shuff{j};
+        % detect waves based on spatiotemporally stable phase gradients
+        planar_val_time=[];
+        for t=1:size(df,1)
+            % estimate planar waves across grid
+            tmp = df(t,:);
+            tmp(bad_ch)= NaN + 1i*NaN;
+            xph = tmp(ecog_grid);
+            %[planar_val,aa,bb] = planar_stats_muller_intact(xph,mask);
+            [planar_val,aa,bb] = planar_stats_muller(xph);
+            planar_val(mask==0) = NaN +1i*NaN;
+            planar_val_time(t,:,:) = planar_val;
+        end
+        stab=[];
+        for k=2:size(planar_val_time,1)
+            xt = planar_val_time(k,:,:);xt=xt(:);
+            xtm1 = planar_val_time(k-1,:,:);xtm1=xtm1(:);
+            stab(k-1) = - nanmean(abs(xt - xtm1));
+        end
+        stab1 = zscore(stab(1:end));
+        [out,st,stp] = wave_stability_detect(stab1,0,3);
+        hold_wave_len_tmp(j) = sum(out);
+    end
+    boot(iter) = sum(hold_wave_len_tmp);
+end
+max(1/length(boot),(sum(stat<=boot))/length(boot))
+
+
+figure;
+hist(boot*20/1e3)
+h=vline(stat*20/1e3);
+h.LineWidth = 1;
+plot_beautify
+xlabel('Total wave duration')
+ylabel('Hist')
+xlim([10 40])
 
 EC176_hold_waves_stats.freq = wave_f;
 EC176_hold_waves_stats.dur = wave_dur;
