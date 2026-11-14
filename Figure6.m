@@ -155,18 +155,22 @@ end
 
 clc;clear
 close all
+load('ECOG_Grid_8596_000067_B3.mat')
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate clicker')
-load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_days')
-[res_days_B1, res_days_f_B1, res_days_d_B1] = get_duty_cycle(stats_cl_days);
+load('B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_days','stats_cl_hg_days')
+[res_days_B1, res_days_f_B1, res_days_d_B1] = ...
+    get_duty_cycle(stats_cl_days,stats_cl_hg_days);
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3')
-load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_days')
-[res_days_B3, res_days_f_B3, res_days_d_B3] = get_duty_cycle(stats_cl_days);
+load('B3_waves_3DArrow_stability_hgFilterBank_PLV_AccStatsCL_v2.mat','stats_cl_days','stats_cl_hg_days')
+[res_days_B3, res_days_f_B3, res_days_d_B3] = ...
+    get_duty_cycle(stats_cl_days,stats_cl_hg_days);
 
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B6')
-load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat','stats_cl_days')
-[res_days_B6, res_days_f_B6, res_days_d_B6] = get_duty_cycle(stats_cl_days(1:end-1));
+load('B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData.mat','stats_cl_days','stats_cl_hg_days')
+[res_days_B6, res_days_f_B6, res_days_d_B6] = ...
+    get_duty_cycle(stats_cl_days(1:end-1),stats_cl_hg_days(1:end-1));
 
 % res_days_B1 = log(res_days_B1);
 % res_days_B3 = log(res_days_B3);
