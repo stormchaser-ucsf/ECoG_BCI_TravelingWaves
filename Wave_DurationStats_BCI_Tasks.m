@@ -1242,3 +1242,22 @@ vline(stat*20/1e3)
 
 save wave_duration_stats_EC210 stat boot -v7.3
 
+
+%% PLOTTING THE EC SUBJECTS
+
+clear
+clc
+a=load('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC210/wave_duration_stats_EC210.mat');
+b=load('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC176_ProcessingForNikhilesh/ecog_data_NN/wave_duration_stats_EC176.mat');
+c=load('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC189_ProcessingForNikhilesh/EC189/wave_duration_stats_EC189.mat');
+
+figure;
+hold on
+hist(a.boot*20/1e3)
+vline(a.stat*20/1e3)
+
+
+
+
+
+
