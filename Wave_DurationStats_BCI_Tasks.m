@@ -272,14 +272,14 @@ for days=1:length(folders)
             end
         end
     end
-    
+
     %%%%%% get online data files %%%%%
     files=[];
     for ii=1:length(online_idx)
         online_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
         files = [files;findfiles('mat',online_folderpath)'];
     end
-   
+
     idx = randperm(length(files),25);
     files_days=[files_days;files(idx)];
 end
@@ -360,9 +360,9 @@ bpFilt=deltaFilt;
 hilbert_flag=1;
 imaging_B3_waves;
 
-  folders = {'20250530','20250610','20250624','20250703','20250708','20250717',...
-        '20250917','20250924','20251203','20251204','20251210','20260116'};
-  
+folders = {'20250530','20250610','20250624','20250703','20250708','20250717',...
+    '20250917','20250924','20251203','20251204','20251210','20260116'};
+
 
 
 num_targets=7;
@@ -394,14 +394,14 @@ for days=1:length(folders)
             end
         end
     end
-    
+
     %%%%%% get online data files %%%%%
     files=[];
     for ii=1:length(online_idx)
         online_folderpath = fullfile(folderpath, D(online_idx(ii)).name,'BCI_Fixed');
         files = [files;findfiles('mat',online_folderpath)'];
     end
-   
+
     idx = randperm(length(files),25);
     files_days=[files_days;files(idx)];
 end
@@ -532,14 +532,14 @@ for i=1:length(trial_timings)
 
     %%%% HOLD PERIOD %%%%%%
     %%%% main
-    st = trial_timings(i).movement.cue(2).time; %anin    
+    st = trial_timings(i).movement.cue(2).time; %anin
     st = st+0.3;
     %stp=st+2.5;
-    stp = trial_timings(i).movement.cue(3).time; %anin    
+    stp = trial_timings(i).movement.cue(3).time; %anin
     %%%% main end
 
     %%% for movement
-    % st = trial_timings(i).movement.cue(3).time; %anin  
+    % st = trial_timings(i).movement.cue(3).time; %anin
     % st=st+0.5;
     % stp = st+3;
 
@@ -559,23 +559,23 @@ for i=1:length(trial_timings)
     hold_mu{i} = df;
 
     % get kinematic data and downsample
-    index = (kin_time_resample >= st) .* (kin_time_resample<=stp);    
+    index = (kin_time_resample >= st) .* (kin_time_resample<=stp);
     kindata = kindata_full_length_resampled(logical(index),13:15);
     tx = (1/Fs)*[0:size(kindata,1)-1];
     kindata = resample(kindata,tx,50); %hilbert of mu
     kindata = kindata(:,1);
     %[c,s,l]=pca(kindata);
 
-    
-    % detect waves based on spatiotemporally stable phase gradients    
+
+    % detect waves based on spatiotemporally stable phase gradients
     planar_val_time=[];
-    parfor t=1:size(df,1)        
+    parfor t=1:size(df,1)
         % estimate planar waves across mini grid
         tmp = df(t,:);
         tmp(bad_ch)= NaN + 1i*NaN;
         xph = tmp(ecog_grid);
-        %[planar_val,aa,bb] = planar_stats_muller_intact(xph,mask);        
-        [planar_val,aa,bb] = planar_stats_muller(xph);   
+        %[planar_val,aa,bb] = planar_stats_muller_intact(xph,mask);
+        [planar_val,aa,bb] = planar_stats_muller(xph);
         planar_val(mask==0) = NaN +1i*NaN;
         planar_val_time(t,:,:) = planar_val;
     end
@@ -651,7 +651,7 @@ for i=1:length(trial_timings)
     %%%%% MOVE PERIOD %%%%%%
     st = trial_timings(i).movement.cue(3).time; %anin
     st=st+0.5;
-    stp = st+3;    
+    stp = st+3;
     index = (lfp_time >= st) .* (lfp_time<=stp);
     data = mu_wave(logical(index),:); % hilbert of mu
     data_pow = mu_pow(logical(index),:); %mu amplitude
@@ -663,15 +663,15 @@ for i=1:length(trial_timings)
     df_pow = resample(data_pow,tx,50); %mu amplitude
     hg_mu_data = resample(hg_mu_data,tx,50); %hilbert of hg mu
 
-    % detect waves based on spatiotemporally stable phase gradients    
+    % detect waves based on spatiotemporally stable phase gradients
     planar_val_time=[];
-    parfor t=1:size(df,1)        
+    parfor t=1:size(df,1)
         % estimate planar waves across mini grid
         tmp = df(t,:);
         tmp(bad_ch)= NaN + 1i*NaN;
         xph = tmp(ecog_grid);
-        %[planar_val,aa,bb] = planar_stats_muller_intact(xph,mask);        
-        [planar_val,aa,bb] = planar_stats_muller(xph);        
+        %[planar_val,aa,bb] = planar_stats_muller_intact(xph,mask);
+        [planar_val,aa,bb] = planar_stats_muller(xph);
         planar_val(mask==0) = NaN +1i*NaN;
         planar_val_time(t,:,:) = planar_val;
     end
@@ -1247,17 +1247,55 @@ save wave_duration_stats_EC210 stat boot -v7.3
 
 clear
 clc
-a=load('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC210/wave_duration_stats_EC210.mat');
-b=load('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC176_ProcessingForNikhilesh/ecog_data_NN/wave_duration_stats_EC176.mat');
-c=load('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC189_ProcessingForNikhilesh/EC189/wave_duration_stats_EC189.mat');
+addpath(genpath('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves'))
+cd('C:\Users\nikic\Documents\GitHub\ECoG_BCI_TravelingWaves')
+addpath('C:\Users\nikic\Documents\MATLAB')
+if ispc
+    a=load('wave_duration_stats_EC210.mat');
+    b=load('wave_duration_stats_EC176.mat');
+    c=load('wave_duration_stats_EC189.mat');
+else
+    a=load('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC210/wave_duration_stats_EC210.mat');
+    b=load('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC176_ProcessingForNikhilesh/ecog_data_NN/wave_duration_stats_EC176.mat');
+    c=load('/media/user/Data/ecog_data/ECoG LeapMotion/Raw Data/EC189_ProcessingForNikhilesh/EC189/wave_duration_stats_EC189.mat');
+end
 
 figure;
 hold on
 hist(a.boot*20/1e3)
 vline(a.stat*20/1e3)
+xlabel('Time (s)')
+ylabel('Count')
+title('EC 210')
+xlim([10 38])
+xticks(0:5:40)
+plot_beautify
+figure
+hist(b.boot*20/1e3)
+vline(b.stat*20/1e3)
+xlabel('Time (s)')
+ylabel('Count')
+title('EC 176')
+xlim([10 38])
+xticks(0:5:40)
+plot_beautify
+figure
+hist(c.boot*20/1e3)
+vline(c.stat*20/1e3)
+xlabel('Time (s)')
+ylabel('Count')
+title('EC 189')
+xlim([10 38])
+xticks(0:5:40)
+plot_beautify
+
+%% SAVING TO DISK
 
 
+cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New_v2\Figure2\')
 
-
-
+% svg
+set(gcf,'PaperPositionMode','auto');
+print(gcf,'Wave_Duration_Stats_EC210.svg','-dsvg','-painters','-r300');
+    
 
