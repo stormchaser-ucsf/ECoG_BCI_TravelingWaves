@@ -933,6 +933,20 @@ ylabel('% Increase in latent variance')
 xlabel('BCI control actions')
 ylim([-20 110])
 
+[p,h,stats] = signrank(res(:,1),0,'method','approximate') %B6
+[p,h,stats] = signrank(res(:,2),0,'method','approximate') %B1
+[p,h,stats] = signrank(res(:,3),0,'method','approximate') %B3
+
+% LME model
+data=[];
+subj=[];
+for i=1:size(res,2)
+    tmp=res(:,i);
+    data = [data;tmp];
+    subj = [subj;i*ones(size(tmp))];
+end
+tbl = table(data,subj);
+mdl = fitlme(tbl,'data~1+(1|subj)', 'FitMethod', 'REML');
 
 
 
