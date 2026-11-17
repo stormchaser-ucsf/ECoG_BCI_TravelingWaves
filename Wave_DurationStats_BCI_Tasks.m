@@ -1295,10 +1295,10 @@ plot_beautify
 %% SAVING TO DISK
 
 
-cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New_v2\Figure2\')
+cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New_v2\Figure7\')
 
 % svg
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'Wave_Duration_Stats_EC210.svg','-dsvg','-painters','-r300');
+print(gcf,'B1B3B6_WaveFrequency_ArrowTask2.svg','-dsvg','-painters','-r300');
     
 
