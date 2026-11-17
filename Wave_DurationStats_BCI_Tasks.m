@@ -161,15 +161,18 @@ for days=1:len_days
         files = [files;findfiles('mat',folderpath)'];
     end
 
-    idx = randperm(length(files),20);
+    %idx = randperm(length(files),20);
+    idx = 1:length(files);
     files_days=[files_days;files(idx)];
 end
 
 %%%% running stats
+tic
 idx=1:length(files_days);
 [hold_mu,hold_wave_len] = ...
     planar_waves_stats_onlyWave(files_days(idx),d2,hilbert_flag,ecog_grid,...
     grid_layout,elecmatrix,bpFilt,d1,1);
+toc
 
 % null statistics for the duration of wave events in the real data
 stat = sum(hold_wave_len);

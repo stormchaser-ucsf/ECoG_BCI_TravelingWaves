@@ -1012,6 +1012,56 @@ title('B6')
 bb = sort(bootstrp(1000,@mean,num_waves_all));
 [bb(25) mean(num_waves_all) bb(975)]
 
+%%%%% plotting boxplots of average wave frequency
+b1 = res_B1.num_waves_days; b1(end+1:11) = NaN;
+b3 = res_B3.num_waves_days;
+b6 = res_B6.num_waves_days;
+data = [b1' b3' b6'];
+bb = sort(bootstrp(10000,@nanmedian,data(:)));
+[bb(250) nanmedian(data(:)) bb(9750)]
+
+% as better scatter plot, traveling wave frequency
+b1_acc = b1;
+b3_acc = b3;
+b6_acc = b6;
+res=[b1_acc b3_acc b6_acc];
+m11 = b1_acc;%m11(m11>.25) = NaN;
+m22 = b3_acc;%m22(m22>.25) = NaN;
+m33 = b6_acc;%m33(m33>.25) = NaN;
+y=[nanmean(m11) nanmean(m22) nanmean(m33)];
+% scatter B1 and B3 and B6 individually
+figure; hold on
+h=hline(nanmedian(res),'k');
+h.LineWidth=3;
+h.XData = [0.75 1.25];
+
+x=(1:1) + 0.1*randn(length(m11),1);
+h=scatter(x,[m11],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'b';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(1:1) + 0.1*randn(length(m22),1);
+h=scatter(x,[m22],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'r';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+
+x=(1:1) + 0.1*randn(length(m33),1);
+h=scatter(x,[m33],70,'filled');
+for i=1:1
+    h(i).MarkerFaceColor = 'k';
+    h(i).MarkerFaceAlpha = 0.3;
+end
+xlim([.6 1.4])
+ylim([1.4 2.8])
+xticks ''
+plot_beautify
+ylabel('No. of waves/Sec (Freq)')
+
+
 %%%%% plotting boxplots of average wave duration
 b1 = res_B1.wave_duration_days; b1(end+1:11) = NaN;
 b3 = res_B3.wave_duration_days;
