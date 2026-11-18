@@ -891,6 +891,10 @@ for r = 1:numel(rois)
     title(roiName);
 
     box off;
+    ylim([0.2 .7])
+    xticks(1:10)
+    xlim([.5 10.5])
+
 
 end
 title('STG')

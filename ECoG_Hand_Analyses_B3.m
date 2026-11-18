@@ -2899,11 +2899,15 @@ toc
 cd('/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/')
 load('PAC_B3_Hand_rawValues.mat')
 
+%load('PAC_B3_Hand_rawValues_deltaToHg.mat')
+
 %% PLOTTING CONTINUATION FROM ABOVE
 
 % temp stuff for plotting: get good channel example of PAC
 % plot significant channel on brain with preferred phase
 % show how it traverses across days
+imaging_B3_waves;
+close all
 
 % plotting channel wide change across days
 cl_days=[2:2:14 17 20 23];
@@ -2977,8 +2981,6 @@ for j=1:256%length(sig)
         end
     end
 end
-
-
 
 
 % plotting example of null hypothesis testing
@@ -3221,7 +3223,7 @@ figure;boxplot([plv_ol' plv_cl'])
 
 %%%% STEP 2 PLOTTING SIG. CHANNELS ON GRID  WITH PLV
 % days 1-2
-tmp = sum(sig_ch(1:2,:),1);
+tmp = sum(sig_ch(8:10,:),1);
 tmp(tmp>0)=1;
 tmp_pac=[];
 for ii=2:2:4 % CL days 1 and 2
@@ -3231,6 +3233,31 @@ for ii=2:2:4 % CL days 1 and 2
 end
 tmp_pac = sum(tmp_pac);
 plot_on_brain_wts(tmp,tmp_pac,ecog_grid,cortex,elecmatrix);
+%%%%% just simple camera zoom
+% ax = gca;
+% axis(ax, 'off');
+% axis(ax, 'vis3d');
+% camproj(ax, 'orthographic');
+% camzoom(ax, 2.0);
+
+%%%% better zoom
+% Run after ctmr_gauss_plot and electrode plotting
+ax = gca;
+% Center of electrode grid
+grid_center = mean(elecmatrix, 1);
+% Current camera position and target
+old_target = camtarget(ax);
+old_pos = campos(ax);
+% Translate camera to electrode grid while preserving view direction
+shift = grid_center - old_target;
+campos(ax, old_pos + shift);
+camtarget(ax, grid_center);
+% Zoom in
+camproj(ax, 'orthographic');
+camzoom(ax, 2.4);
+axis(ax, 'vis3d');
+axis(ax, 'off');
+%%%%%%
 
 % days 8-10
 tmp = sum(sig_ch(8:10,:),1);
