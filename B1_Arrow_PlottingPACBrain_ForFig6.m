@@ -84,7 +84,7 @@ c_h = ctmr_gauss_plot(cortex,[0 0 0],0,'lh',1,1,1);
 e_h = el_add(elecmatrix, 'color', 'w','msize',1);
 for j=1:253
     if sig_ch_lfo(j)==1 && r_lfo(j)~=0
-        ms = (r_lfo(j))*12;
+        ms = (r_lfo(j))*9;
         c='b';                
         e_h = el_add(elecmatrix(j,:), 'color', c,'msize',abs(ms));
     end
@@ -102,7 +102,7 @@ campos(ax, old_pos + shift);
 camtarget(ax, grid_center);
 % Zoom in
 camproj(ax, 'orthographic');
-camzoom(ax, 3.0);
+camzoom(ax, 3.2);
 axis(ax, 'vis3d');
 axis(ax, 'off');
 
@@ -139,7 +139,7 @@ campos(ax, old_pos + shift);
 camtarget(ax, grid_center);
 % Zoom in
 camproj(ax, 'orthographic');
-camzoom(ax, 3.0);
+camzoom(ax, 3.2);
 axis(ax, 'vis3d');
 axis(ax, 'off');
 
