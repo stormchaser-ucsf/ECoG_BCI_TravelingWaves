@@ -1303,4 +1303,4 @@ print(gcf,'Mu_hG_PAC_B3_Hand_ChannelsBrain_Days8to10.svg','-dsvg','-painters','-
 
 % png
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'LFO_hG_PAC_B3_Hand_ChannelsBrain_Days9to10.png','-dpng','-r1200');
+print(gcf,'B1_Arrow_Mu_hG_PAC.png','-dpng','-r1200');
