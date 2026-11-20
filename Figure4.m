@@ -811,7 +811,7 @@ pval
 
 
 
-%% PLOTTING RESULTS
+%% PLOTTING PAC RESULTS BETWEEN MU AND HG AND LFO AND HG IN ARROW TASK
 % number of significant channels 
 
 clc;clear

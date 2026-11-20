@@ -514,6 +514,30 @@ yticklabels({'X+ve/Rt Thumb','Y-ve/Leg','X-ve/Lt. Thumb','Y+ve/Head','Z+ve/Tong'
     'Origin/Both middle'})
 title(['B6: Mean Acc ' num2str(100*mean(diag(acc_online)))])
 
+%% ZOOM INTO ECOG GRID FOR B1 ARROW TASK LFO MU PAC TO HG
+
+imaging_B1_253
+close all
+
+% load the image  from repo mat files directory
+%open('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/mat_plots/B1_Sig_Ch_Mu_hG_PAC.fig')
+open('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/mat_plots/B1_Sig_Ch_LFO_hG_PAC.fig')
+
+ax = gca;
+% Center of electrode grid
+grid_center = mean(elecmatrix, 1);
+% Current camera position and target
+old_target = camtarget(ax);
+old_pos = campos(ax);
+% Translate camera to electrode grid while preserving view direction
+shift = grid_center - old_target;
+campos(ax, old_pos + shift);
+camtarget(ax, grid_center);
+% Zoom in
+camproj(ax, 'orthographic');
+camzoom(ax, 2.4);
+axis(ax, 'vis3d');
+axis(ax, 'off');
 
 %% performance B3 hand OL, CL all
 
