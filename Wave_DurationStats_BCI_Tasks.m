@@ -1295,12 +1295,12 @@ plot_beautify
 %% SAVING TO DISK
 
 
-cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New_v2\Figure4\')
+cd('C:\Users\nikic\Documents\Ganguly lab\ECoG BCI\BCI_Paper_Waves_Hand\Paper_text\Figures_New_v2\Figure3\')
 
 % svg
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'Mu_hG_PAC_B3_Hand_ChannelsBrain_Days8to10.svg','-dsvg','-painters','-r300');
+print(gcf,'PMd_Channels_grid.svg','-dsvg','-painters','-r300');
 
 % png
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'LFO_hG_PAC_B3_Hand_ChannelsBrain_Days9to10.png','-dpng','-r1200');
+print(gcf,'STG_Channels.png','-dpng','-r1200');
