@@ -786,6 +786,7 @@ plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
 ch_wts = zeros(253,1);
 ch_wts(tg1(:))=1;
 plot_on_brain1(ch_wts,cortex,elecmatrix,ecog_grid_253)
+zoom_into_ecog_grid(elecmatrix,3.5)
 % stg2
 ch_wts = zeros(253,1);
 ch_wts(tg2(:))=1;
@@ -894,6 +895,7 @@ for r = 1:numel(rois)
     ylim([0.2 .7])
     xticks(1:10)
     xlim([.5 10.5])
+    plot_beautify
 
 
 end
