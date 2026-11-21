@@ -1303,4 +1303,4 @@ print(gcf,'PMd_Channels_grid.svg','-dsvg','-painters','-r300');
 
 % png
 set(gcf,'PaperPositionMode','auto');
-print(gcf,'STG_Channels.png','-dpng','-r1200');
+print(gcf,'hGMahab_Dist_B3Hand_Day10.png','-dpng','-r1200');
