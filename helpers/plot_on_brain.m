@@ -14,7 +14,7 @@ for j=1:256%length(sig)
     [xx yy]=find(ecog_grid==j);
     if ~isempty(xx)
         ch = ch_layout(xx,yy);
-        ms = ch_wts(j)*10;
+        ms = ch_wts(j)*15;
         
         e_h = el_add(elecmatrix(ch,:), 'color', 'b','msize',ms);
     end

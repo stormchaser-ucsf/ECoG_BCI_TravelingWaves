@@ -906,6 +906,13 @@ xticks(1:10)
 xlim([.5 10.5])
 plot_beautify
 
+%%%%%%% PLOTTING WEIGHTS ON THE BRAIN (IMPT)
+ch_wts=DEC(:,1)';
+ch_wts = [ch_wts(1:107) 0 ch_wts(108:111) 0  ch_wts(112:115) 0 ...
+            ch_wts(116:end)];
+plot_on_brain(ch_wts,cortex,elecmatrix,ecog_grid)
+zoom_into_ecog_grid(elecmatrix,3.5)
+
 %%%%%%
 
 
