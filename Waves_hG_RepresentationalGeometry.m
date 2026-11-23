@@ -1842,18 +1842,18 @@ condn_data={};k=1;
 for days = 1:length(stats_cl_days)
     stats_cl = stats_cl_days{days};
     stats_cl_hg = stats_cl_hg_days{days};
-    l = round(length(stats_cl)/2);
-    stats_cl = stats_cl(l+1:end);
-    stats_cl_hg = stats_cl_hg(l+1:end);
+    % l = round(length(stats_cl)/2);
+    % stats_cl = stats_cl(l+1:end);
+    % stats_cl_hg = stats_cl_hg(l+1:end);
     for i=1:length(stats_cl)
         tid=stats_cl(i).target_id;
         if tid<=num_targets
             tmp = stats_cl_hg(i).hg_wave;
             tmp = cell2mat(tmp');
 
-            for j=1:size(tmp,2)
-                tmp(:,j) =smooth(tmp(:,j),10);
-            end
+            % for j=1:size(tmp,2)
+            %     tmp(:,j) =smooth(tmp(:,j),10);
+            % end
 
           
 
@@ -1864,9 +1864,9 @@ for days = 1:length(stats_cl_days)
             tmp1 = stats_cl_hg(i).hg_nonwave;
             tmp1 = cell2mat(tmp1');
 
-            for j=1:size(tmp1,2)
-                tmp1(:,j) =smooth(tmp1(:,j),10);
-            end
+            % for j=1:size(tmp1,2)
+            %     tmp1(:,j) =smooth(tmp1(:,j),10);
+            % end
 
 
             if size(tmp,1) > size(tmp1,1)
@@ -1905,9 +1905,9 @@ for i=1:length(condn_data)
 end
 condn_data=condn_data1;
 
-iterations=3;
-%[acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance,del_iter_wave,...
-%    del_mean_wave] = accuracy_imagined_data_Hand_B3(condn_data, iterations);
+iterations=10;
+% [acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance,del_iter_wave,...
+%    del_mean_wave] =  accuracy_imagined_data(condn_data, iterations);
 
 [acc_wave,train_permutations,acc_bin_wave,bino_pdf,bino_pdf_chance] = ...
     accuracy_imagined_data_Hand_B3(condn_data, iterations);
@@ -1920,18 +1920,18 @@ condn_data={};k=1;
 for days = 1:length(stats_cl_days)
     stats_cl = stats_cl_days{days};
     stats_cl_hg = stats_cl_hg_days{days};
-    l = round(length(stats_cl)/2);
-    stats_cl = stats_cl(l+1:end);
-    stats_cl_hg = stats_cl_hg(l+1:end);
+    % l = round(length(stats_cl)/2);
+    % stats_cl = stats_cl(l+1:end);
+    % stats_cl_hg = stats_cl_hg(l+1:end);
     for i=1:length(stats_cl)
         tid=stats_cl(i).target_id;
         if tid<=num_targets
             tmp = stats_cl_hg(i).hg_nonwave;
             tmp = cell2mat(tmp');
 
-            for j=1:size(tmp,2)
-                tmp(:,j) =smooth(tmp(:,j),10);
-            end
+            % for j=1:size(tmp,2)
+            %     tmp(:,j) =smooth(tmp(:,j),10);
+            % end
 
             % % 
             % if size(tmp,1)>62
@@ -1986,29 +1986,29 @@ condn_data=condn_data1;
 [acc_nonwave,train_permutations,acc_bin_nonwave,bino_pdf,bino_pdf_chance] = ...
     accuracy_imagined_data_Hand_B3(condn_data, iterations);
 
-figure;
-boxplot([del_mean_nonwave' del_mean_wave'])
-xticks(1:2)
-xticklabels({'nonwaves','waves'})
-signrank(del_mean_nonwave,del_mean_wave)
-plot_beautify
-ylabel('Normalized difference in votes between 1st and 2nd class')
-
-a=[];b=[];
-for i=1:length(del_iter_nonwave)
-    tmp = del_iter_nonwave{i};
-    a(i) = mean(tmp);
-
-    tmp = del_iter_wave{i};
-    b(i) = mean(tmp);
-end
-figure;
-boxplot([a' b'])
-xticks(1:2)
-xticklabels({'nonwaves','waves'})
-signrank(a,b)
-plot_beautify
-ylabel('Normalized difference in votes between 1st and 2nd class')
+% figure;
+% boxplot([del_mean_nonwave' del_mean_wave'])
+% xticks(1:2)
+% xticklabels({'nonwaves','waves'})
+% signrank(del_mean_nonwave,del_mean_wave)
+% plot_beautify
+% ylabel('Normalized difference in votes between 1st and 2nd class')
+% 
+% a=[];b=[];
+% for i=1:length(del_iter_nonwave)
+%     tmp = del_iter_nonwave{i};
+%     a(i) = mean(tmp);
+% 
+%     tmp = del_iter_wave{i};
+%     b(i) = mean(tmp);
+% end
+% figure;
+% boxplot([a' b'])
+% xticks(1:2)
+% xticklabels({'nonwaves','waves'})
+% signrank(a,b)
+% plot_beautify
+% ylabel('Normalized difference in votes between 1st and 2nd class')
 
 
 % % non wave, least global wave patterns
@@ -2089,7 +2089,10 @@ xticklabels({'Non wave epochs', 'Wave epochs'})
 signrank(res(:,1),res(:,2))
 title('Bin Level Acc.')
 
+%save TopWaves_Zthresh_pt5_hg_wave_nonwave_MLP_3DArrow_CL_AllData_v5_AllFolders acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
+
 %save hg_wave_nonwave_MLP_3DArrow_CL_AllData_v5_AllFolders acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
+
 %hg_wave_nonwave_MLP 
 %hg_wave_nonwave_MLP_3DArrow_CL_v2
 %hg_wave_nonwave_MLP_3DArrow_CL_v2_AllData

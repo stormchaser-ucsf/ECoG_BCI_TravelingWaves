@@ -81,11 +81,11 @@ for ii=1:length(files)
         hg = resample(hg,d2.SampleRate,1e3);
 
         % smooth it -> dont smooth for delta PAC
-        % hg_smooth=[];
-        % for j=1:size(hg,2)
-        %     hg_smooth(:,j) = smooth(hg(:,j),10);
-        % end      
-        % hg=hg_smooth;
+        hg_smooth=[];
+        for j=1:size(hg,2)
+            hg_smooth(:,j) = smooth(hg(:,j),10);
+        end      
+        hg=hg_smooth;
         
         % get the mu signal phase of hG
         hg_mu = filtfilt(d2,hg);
@@ -196,7 +196,7 @@ for ii=1:length(files)
         %%%%% STABILITY AND WAVE DETECTION 
         % look 300 after start of state 2
         stab1 = zscore(stab(15:end));
-        [out,st,stp] = wave_stability_detect(stab1);
+        [out,st,stp] = wave_stability_detect(stab1,0.5);
         st = st+14;
         stp = stp+14;
 
@@ -221,115 +221,119 @@ for ii=1:length(files)
         %%%% PLV analyses AND DATA STORING AROUND WAVE/NON WAVE EPOCHS
         %%%% extract hg envelope and mu only around waves and when decoder
         %%%% acc is correct (new)
-        tmp={};tmp_mu={};tmp_hg_mu={};tmp_wave_stab={};
-        tmp_delta={};tmp_hg_delta={};        
-        for k=1:length(st)
 
-            % this just stores wave segments across all time, not tied to
-            % decoder output. 
-            tmp{k} = hg(st(k):stp(k),good_ch);
-            tmp_mu{k} = df(st(k):stp(k),good_ch);
-            tmp_hg_mu{k} = hg_mu(st(k):stp(k),good_ch);
-            tmp_wave_stab{k} = stab(st(k):stp(k));
+        if ~isempty(out)
+            tmp={};tmp_mu={};tmp_hg_mu={};tmp_wave_stab={};
+            tmp_delta={};tmp_hg_delta={};
+            for k=1:length(st)
 
-            tmp_delta{k} = ds(st(k):stp(k),good_ch);
-            tmp_hg_delta{k} = hg_delta(st(k):stp(k),good_ch);
+                % this just stores wave segments across all time, not tied to
+                % decoder output.
+                tmp{k} = hg(st(k):stp(k),good_ch);
+                tmp_mu{k} = df(st(k):stp(k),good_ch);
+                tmp_hg_mu{k} = hg_mu(st(k):stp(k),good_ch);
+                tmp_wave_stab{k} = stab(st(k):stp(k));
 
-            % this part of code is to store wave segments when decoder
-            % output was accurate. 
-            % tmpp = output(st(k):stp(k));            
-            % if cl_chk==1
-            %     if sum(tmpp)/length(tmpp)>=0.5
-            %         tmp{k} = hg(st(k):stp(k),good_ch);
-            %         tmp_mu{k} = df(st(k):stp(k),good_ch);
-            %         tmp_hg_mu{k} = hg_mu(st(k):stp(k),good_ch);
-            %         tmp_wave_stab{k} = stab(st(k):stp(k));
-            %     else
-            %         tmp{k} = [];
-            %         tmp_mu{k} = [];
-            %         tmp_hg_mu{k} = [];
-            %         tmp_wave_stab{k} = [];
-            %     end
-            % else
-            %     tmp{k} = hg(st(k):stp(k),good_ch);
-            %     tmp_mu{k} = df(st(k):stp(k),good_ch);
-            %     tmp_hg_mu{k} = hg_mu(st(k):stp(k),good_ch);
-            %     tmp_wave_stab{k} = stab(st(k):stp(k));
-            % end
+                tmp_delta{k} = ds(st(k):stp(k),good_ch);
+                tmp_hg_delta{k} = hg_delta(st(k):stp(k),good_ch);
+
+                % this part of code is to store wave segments when decoder
+                % output was accurate.
+                % tmpp = output(st(k):stp(k));
+                % if cl_chk==1
+                %     if sum(tmpp)/length(tmpp)>=0.5
+                %         tmp{k} = hg(st(k):stp(k),good_ch);
+                %         tmp_mu{k} = df(st(k):stp(k),good_ch);
+                %         tmp_hg_mu{k} = hg_mu(st(k):stp(k),good_ch);
+                %         tmp_wave_stab{k} = stab(st(k):stp(k));
+                %     else
+                %         tmp{k} = [];
+                %         tmp_mu{k} = [];
+                %         tmp_hg_mu{k} = [];
+                %         tmp_wave_stab{k} = [];
+                %     end
+                % else
+                %     tmp{k} = hg(st(k):stp(k),good_ch);
+                %     tmp_mu{k} = df(st(k):stp(k),good_ch);
+                %     tmp_hg_mu{k} = hg_mu(st(k):stp(k),good_ch);
+                %     tmp_wave_stab{k} = stab(st(k):stp(k));
+                % end
+            end
+            stats_hg(kk).hg_wave = tmp;
+            stats_hg(kk).mu_wave = tmp_mu;
+            stats_hg(kk).hg_mu_wave = tmp_hg_mu;
+            stats_hg(kk).target_id = TrialData.TargetID;
+            stats_hg(kk).wave_stab = tmp_wave_stab;
+
+            % perform PLV analyses
+            tmp_mu = angle(cell2mat(tmp_mu'));
+            tmp_hg_mu = angle(cell2mat(tmp_hg_mu'));
+            res_wave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
+
+            tmp_delta = angle(cell2mat(tmp_delta'));
+            tmp_hg_delta = angle(cell2mat(tmp_hg_delta'));
+            res_wave_delta = (exp(1i .* (tmp_delta - tmp_hg_delta)));
+
+
+            %%%% extract hg envelope around non wave regions
+            % till the first start
+            tmp={};tmp_mu={}; tmp_hg_mu={};tmp_wave_stab={};k=1;
+            tmp_delta={};tmp_hg_delta={};
+            if st(1)>15+3  %change 15 to 1 etc. depending on when wave detections start
+                tmp = cat(2,tmp,hg(15:(st(k)-1),good_ch));
+                tmp_mu = cat(2,tmp_mu,df(15:(st(k)-1),good_ch));
+                tmp_hg_mu = cat(2,tmp_hg_mu,hg_mu(15:(st(k)-1),good_ch));
+                tmp_wave_stab = cat(2,tmp_wave_stab,stab(15:(st(k)-1)));
+
+                tmp_delta = cat(2,tmp_delta,ds(15:(st(k)-1),good_ch));
+                tmp_hg_delta = cat(2,tmp_hg_delta,hg_delta(15:(st(k)-1),good_ch));
+
+            end
+            % everything in between
+            for j=1:length(stp)-1
+                tmp = cat(2,tmp,hg((stp(j)+1) : (st(j+1)-1), good_ch));
+                tmp_mu = cat(2,tmp_mu,df((stp(j)+1) : (st(j+1)-1), good_ch));
+                tmp_hg_mu = cat(2,tmp_hg_mu,hg_mu((stp(j)+1) : (st(j+1)-1), good_ch));
+                tmp_wave_stab = cat(2,tmp_wave_stab,stab((stp(j)+1) : (st(j+1)-1)));
+
+                tmp_delta = cat(2,tmp_delta,ds((stp(j)+1) : (st(j+1)-1), good_ch));
+                tmp_hg_delta = cat(2,tmp_hg_delta,hg_delta((stp(j)+1) : (st(j+1)-1), good_ch));
+            end
+            % get the last bit
+            if (3+stp(end)) < (size(df,1))
+                tmp = cat(2,tmp, hg((stp(end)+1):end,good_ch));
+                tmp_mu = cat(2,tmp_mu, df((stp(end)+1):end,good_ch));
+                tmp_hg_mu = cat(2,tmp_hg_mu, hg_mu((stp(end)+1):end,good_ch));
+                tmp_wave_stab = cat(2,tmp_wave_stab,stab((stp(end)+1):end));
+
+                tmp_delta = cat(2,tmp_delta, ds((stp(end)+1):end,good_ch));
+                tmp_hg_delta = cat(2,tmp_hg_delta, hg_delta((stp(end)+1):end,good_ch));
+            end
+            stats_hg(kk).hg_nonwave = tmp;
+            stats_hg(kk).mu_nonwave = tmp_mu;
+            stats_hg(kk).hg_mu_nonwave = tmp_hg_mu;
+            stats_hg(kk).nonwave_stab = tmp_wave_stab;
+
+            % perform PLV analyses
+            tmp_mu = angle(cell2mat(tmp_mu'));
+            tmp_hg_mu = angle(cell2mat(tmp_hg_mu'));
+            res_nonwave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
+
+            tmp_delta = angle(cell2mat(tmp_delta'));
+            tmp_hg_delta = angle(cell2mat(tmp_hg_delta'));
+            res_nonwave_delta = (exp(1i .* (tmp_delta - tmp_hg_delta)));
+
+            % contrast
+            %figure;boxplot([abs(res_wave)' abs(res_nonwave)'])
+            stats_hg(kk).plv_nonwave = res_nonwave;
+            stats_hg(kk).plv_wave = res_wave;
+
+            stats_hg(kk).plv_nonwave_delta = res_nonwave_delta;
+            stats_hg(kk).plv_wave_delta = res_wave_delta;
+
+            kk=kk+1;
+
         end
-        stats_hg(kk).hg_wave = tmp;
-        stats_hg(kk).mu_wave = tmp_mu;
-        stats_hg(kk).hg_mu_wave = tmp_hg_mu;
-        stats_hg(kk).target_id = TrialData.TargetID;
-        stats_hg(kk).wave_stab = tmp_wave_stab;
-
-        % perform PLV analyses 
-        tmp_mu = angle(cell2mat(tmp_mu'));
-        tmp_hg_mu = angle(cell2mat(tmp_hg_mu'));
-        res_wave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
-
-        tmp_delta = angle(cell2mat(tmp_delta'));
-        tmp_hg_delta = angle(cell2mat(tmp_hg_delta'));
-        res_wave_delta = (exp(1i .* (tmp_delta - tmp_hg_delta)));
-
-
-        %%%% extract hg envelope around non wave regions
-        % till the first start
-        tmp={};tmp_mu={}; tmp_hg_mu={};tmp_wave_stab={};k=1;   
-        tmp_delta={};tmp_hg_delta={};
-        if st(1)>15+3  %change 15 to 1 etc. depending on when wave detections start
-            tmp = cat(2,tmp,hg(15:(st(k)-1),good_ch));            
-            tmp_mu = cat(2,tmp_mu,df(15:(st(k)-1),good_ch));            
-            tmp_hg_mu = cat(2,tmp_hg_mu,hg_mu(15:(st(k)-1),good_ch));              
-            tmp_wave_stab = cat(2,tmp_wave_stab,stab(15:(st(k)-1)));
-
-            tmp_delta = cat(2,tmp_delta,ds(15:(st(k)-1),good_ch));            
-            tmp_hg_delta = cat(2,tmp_hg_delta,hg_delta(15:(st(k)-1),good_ch));  
-            
-        end
-        % everything in between
-        for j=1:length(stp)-1
-            tmp = cat(2,tmp,hg((stp(j)+1) : (st(j+1)-1), good_ch));            
-            tmp_mu = cat(2,tmp_mu,df((stp(j)+1) : (st(j+1)-1), good_ch));            
-            tmp_hg_mu = cat(2,tmp_hg_mu,hg_mu((stp(j)+1) : (st(j+1)-1), good_ch));   
-            tmp_wave_stab = cat(2,tmp_wave_stab,stab((stp(j)+1) : (st(j+1)-1)));
-
-            tmp_delta = cat(2,tmp_delta,ds((stp(j)+1) : (st(j+1)-1), good_ch));
-            tmp_hg_delta = cat(2,tmp_hg_delta,hg_delta((stp(j)+1) : (st(j+1)-1), good_ch));
-        end
-        % get the last bit
-        if (3+stp(end)) < (size(df,1))
-            tmp = cat(2,tmp, hg((stp(end)+1):end,good_ch));
-            tmp_mu = cat(2,tmp_mu, df((stp(end)+1):end,good_ch));
-            tmp_hg_mu = cat(2,tmp_hg_mu, hg_mu((stp(end)+1):end,good_ch));
-            tmp_wave_stab = cat(2,tmp_wave_stab,stab((stp(end)+1):end));
-
-            tmp_delta = cat(2,tmp_delta, ds((stp(end)+1):end,good_ch));
-            tmp_hg_delta = cat(2,tmp_hg_delta, hg_delta((stp(end)+1):end,good_ch));
-        end
-        stats_hg(kk).hg_nonwave = tmp;
-        stats_hg(kk).mu_nonwave = tmp_mu;
-        stats_hg(kk).hg_mu_nonwave = tmp_hg_mu;
-        stats_hg(kk).nonwave_stab = tmp_wave_stab;
-
-        % perform PLV analyses 
-        tmp_mu = angle(cell2mat(tmp_mu'));
-        tmp_hg_mu = angle(cell2mat(tmp_hg_mu'));
-        res_nonwave = (exp(1i .* (tmp_mu - tmp_hg_mu)));
-
-        tmp_delta = angle(cell2mat(tmp_delta'));
-        tmp_hg_delta = angle(cell2mat(tmp_hg_delta'));
-        res_nonwave_delta = (exp(1i .* (tmp_delta - tmp_hg_delta)));
-
-        % contrast
-        %figure;boxplot([abs(res_wave)' abs(res_nonwave)'])
-        stats_hg(kk).plv_nonwave = res_nonwave;
-        stats_hg(kk).plv_wave = res_wave;
-
-        stats_hg(kk).plv_nonwave_delta = res_nonwave_delta;
-        stats_hg(kk).plv_wave_delta = res_wave_delta;
-
-        kk=kk+1;
     end  
 
 end

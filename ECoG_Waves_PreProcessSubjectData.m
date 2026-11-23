@@ -429,8 +429,10 @@ for days=1:len_days
     %[p,h] = signrank(xol,xcl)
     %figure;boxplot([xol' xcl'],'notch','off')
 
-    save B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta_New -v7.3    
-    
+    %save B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta_New -v7.3
+    %save B3_waves_Arrow_stability_hgFilterBank_PLV_AccStatsCL_v2_WaveZThresh_Pt5 -v7.3
+    save B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_WaveZThresh_Pt5 -v7.3
+
 end
 
 %save B3_waves_hand_stability_Muller_hG -v7.3
