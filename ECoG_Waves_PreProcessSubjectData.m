@@ -722,7 +722,7 @@ for days=1:length(folders) %if B1-> it is -1
     xol_days(days)=mean(xol);
 
     %save B6_waves_stability -v7.3 % 50Hz, removing last 400ms in fitering step
-    save B6_waves_Arrow_stability_hgFilterBank_PLV_AccStatsCL_v2_WaveZThresh_1 -v7.3
+    save B6_waves_Arrow_stability_hgFilterBank_PLV_AccStatsCL_v2_WaveZThresh_Pt5 -v7.3
 
 end
 

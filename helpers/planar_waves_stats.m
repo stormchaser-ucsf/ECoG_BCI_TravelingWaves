@@ -196,7 +196,7 @@ for ii=1:length(files)
         %%%%% STABILITY AND WAVE DETECTION 
         % look 300 after start of state 2
         stab1 = zscore(stab(15:end));
-        [out,st,stp] = wave_stability_detect(stab1,1);
+        [out,st,stp] = wave_stability_detect(stab1,0.5);
         st = st+14;
         stp = stp+14;
 

@@ -1819,12 +1819,14 @@ addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 
 num_targets=7;
 
-if strcmp(subj,'B6')
-    stats_cl_days = stats_cl_days(1:end-1);
-    stats_cl_hg_days = stats_cl_hg_days(1:end-1);
-    stats_ol_days = stats_ol_days(1:end-1);
-    stats_ol_hg_days = stats_ol_hg_days(1:end-1);
-end
+%%% this is not required when looking at influence of wave detection
+%%% threshold on decoding acc
+% if strcmp(subj,'B6')
+%     stats_cl_days = stats_cl_days(1:end-1);
+%     stats_cl_hg_days = stats_cl_hg_days(1:end-1);
+%     stats_ol_days = stats_ol_days(1:end-1);
+%     stats_ol_hg_days = stats_ol_hg_days(1:end-1);
+% end
 
 
 %B6
@@ -2091,7 +2093,7 @@ signrank(res(:,1),res(:,2))
 title('Bin Level Acc.')
 
 
-save TopWaves_Zthresh_1_hg_wave_nonwave_MLP_3DArrow_CL_AllData_v5_AllFolders acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
+save B6_TopWaves_Zthresh_Pt5_hg_wave_nonwave_MLP_3DArrow_CL_AllData_v5_AllFolders acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
 
 %save hg_wave_nonwave_MLP_3DArrow_CL_AllData_v5_AllFolders acc_nonwave acc_bin_nonwave acc_wave acc_bin_wave -v7.3
 
