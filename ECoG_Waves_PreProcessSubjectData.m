@@ -2,7 +2,7 @@
 clear
 clc
 close all
-subj='B3';
+subj='B6';
 
 % LOAD SUBJECT SPECIFIC DATA
 
@@ -23,8 +23,8 @@ if strcmp(subj,'B3')
         %root_path ='/media/reza/ResearchDrive/ECoG_BCI_TravelingWave_HandControl_B3_Project/Data';
         root_path = '/media/user/Data/ecog_data/ECoG BCI/GangulyServer/Multistate B3/';
         cd(root_path)
-        load session_data_B3_Hand
-        %load session_data_B3
+        %load session_data_B3_Hand
+        load session_data_B3
         load('ECOG_Grid_8596_000067_B3.mat')
         addpath(genpath('/home/user/Documents/Repositories/ECoG_BCI_TravelingWaves/'))
 
@@ -58,7 +58,7 @@ if strcmp(subj,'B3')
 
     imaging_B3_waves;
     len_days = min(11,length(session_data));
-    num_targets=12;
+    num_targets=7;
 end
 
 
@@ -213,8 +213,8 @@ for days=1:len_days
     day_date = session_data(days).Day;
     files=[];
     for ii=1:length(folders)
-        folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
-        %folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'Imagined');
+        %folderpath = fullfile(root_path, day_date,'HandImagined',folders{ii},'Imagined');
+        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'Imagined');
         %cd(folderpath)
         files = [files;findfiles('mat',folderpath)'];
     end
@@ -273,8 +273,8 @@ for days=1:len_days
     day_date = session_data(days).Day;
     files=[];
     for ii=1:length(folders)
-        folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
-        %folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
+        %folderpath = fullfile(root_path, day_date,'HandOnline',folders{ii},'BCI_Fixed');
+        folderpath = fullfile(root_path, day_date,'Robot3DArrow',folders{ii},'BCI_Fixed');
         %cd(folderpath)
         files = [files;findfiles('mat',folderpath)'];
     end
@@ -429,8 +429,10 @@ for days=1:len_days
     %[p,h] = signrank(xol,xcl)
     %figure;boxplot([xol' xcl'],'notch','off')
 
-    save B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta_New -v7.3    
-    
+    %save B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_PLVDelta_New -v7.3
+    save B3_waves_Arrow_stability_hgFilterBank_PLV_AccStatsCL_v2_WaveZThresh_1 -v7.3
+    %save B3_waves_Hand_stability_hgFilterBank_PLV_AccStatsCL_v2_WaveZThresh_Pt5 -v7.3
+
 end
 
 %save B3_waves_hand_stability_Muller_hG -v7.3
@@ -456,7 +458,7 @@ wave_plv_ol_days={};
 nonwave_plv_ol_days={};
 wave_plv_cl_days={};
 nonwave_plv_cl_days={};
-for days=1:length(folders)-1 %if B1-> it is -1
+for days=1:length(folders) %if B1-> it is -1
 
     disp(['Processing day ' num2str(days)])
 
@@ -569,8 +571,9 @@ for days=1:length(folders)-1 %if B1-> it is -1
         files = [files;findfiles('mat',imag_folderpath)'];
     end
 
-    len = min(200,length(files));
-    idx=randperm(length(files),len);
+    %len = min(200,length(files));
+    %idx=randperm(length(files),len);
+    idx=1:length(files);
     [stats_cl,stats_cl_hg] = planar_waves_stats(files(idx),d2,hilbert_flag,ecog_grid,...
         grid_layout,elecmatrix,bpFilt,d1,1);
     stats_cl_days{days}=stats_cl;
@@ -592,8 +595,8 @@ for days=1:length(folders)-1 %if B1-> it is -1
         mu_nonwav_pow(ii,:) = mean(tmp,1);
     end
 
-    figure;
-    boxplot([mean(mu_wave_pow,1)' mean(mu_nonwav_pow,1)'])
+    % figure;
+    % boxplot([mean(mu_wave_pow,1)' mean(mu_nonwav_pow,1)'])
 
    
 
@@ -719,6 +722,7 @@ for days=1:length(folders)-1 %if B1-> it is -1
     xol_days(days)=mean(xol);
 
     %save B6_waves_stability -v7.3 % 50Hz, removing last 400ms in fitering step
+    save B6_waves_Arrow_stability_hgFilterBank_PLV_AccStatsCL_v2_WaveZThresh_Pt5 -v7.3
 
 end
 
@@ -727,7 +731,7 @@ end
 %save B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData -v7.3 %
 
 %save B6_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData_PLVDetla -v7.3
-save B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData_PLVDetla_CL2Only -v7.3
+%save B1_waves_stability_hgFilterBank_PLV_AccStatsCL_v2_AllData_PLVDetla_CL2Only -v7.3
 
 
 %% LOOKING AT MU POWER IN EACH STATE ACROSS DAYS
